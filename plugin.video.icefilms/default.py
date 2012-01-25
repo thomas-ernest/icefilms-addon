@@ -38,7 +38,7 @@ icepath = selfAddon.getAddonInfo('path')
 sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 
 #imports of things bundled in the addon
-import container_urls,clean_dirs,htmlcleaner,megaroutines
+import container_urls,clean_dirs,htmlcleaner,megaroutines, rapidroutines
 from metahandler import metahandlers
 from cleaners import *
 from xgoogle.BeautifulSoup import BeautifulSoup,BeautifulStoneSoup
@@ -164,6 +164,8 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'megaupload.png')
      elif filename == 'shared2pic':
           return_file = xbmcpath(art,'2shared.png')
+     elif filename == 'rapidpic':
+          return_file = xbmcpath(art,'rapidshare.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -467,10 +469,10 @@ def Startup_Routines():
      DLDirStartup()
 
      # Run the login startup routines
-     if LoginStartup():
+     #if LoginStartup(): 
      
-         # Run the container checking startup routines, if enable meta is set to true
-         if meta_setting=='true': ContainerStartup()
+     # Run the container checking startup routines, if enable meta is set to true
+     if meta_setting=='true': ContainerStartup()
      
      #Rescan Next Aired on startup - actually only rescans every 24hrs
      xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
@@ -1500,10 +1502,14 @@ def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
                 addDir('R5/R6 DVDRip',url,104,os.path.join(art,'source_types','r5r6.png'), imdb=imdbnum)
 
 
-def PART(scrap,sourcenumber,args,cookie,megapic,shared2pic):
+def PART(scrap,sourcenumber,args,cookie):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
+     
+     megapic=handle_file('megapic','')
+     shared2pic=handle_file('shared2pic','')
+     rapidpic=handle_file('rapidpic','')
      
      #if source exists proceed.
      if checkforsource is not None:
@@ -1525,8 +1531,9 @@ def PART(scrap,sourcenumber,args,cookie,megapic,shared2pic):
                         # check if source is megaupload or 2shared, and add all parts as links
                         ismega = re.search('\.megaupload\.com/', url)
                         is2shared = re.search('\.2shared\.com/', url)
+                        israpid = re.search('rapidshare\.com/', url)
 
-                        if ismega is not None:
+                        if ismega:
                               partname='Part '+partnum
                               fullname=sourcestring+' | MU | '+partname
                               try:
@@ -1541,7 +1548,8 @@ def PART(scrap,sourcenumber,args,cookie,megapic,shared2pic):
                                   addExecute(name,url,199,megapic)
                               elif selfAddon.getSetting('stack-multi-part') == 'false':
                                   addExecute(fullname,url,get_default_action(),megapic)
-                        elif is2shared is not None:
+                        
+                        elif is2shared:
                              #print sourcestring+' is hosted by 2shared' 
                              part=re.compile('&url=http://www.2shared.com/(.+?)>PART (.+?)</a>').findall(scrape)
                              for url,name in part:
@@ -1549,6 +1557,7 @@ def PART(scrap,sourcenumber,args,cookie,megapic,shared2pic):
                                   partname='Part '+name
                                   fullname=sourcestring+' | 2S  | '+partname
                                   addExecute(fullname,url,get_default_action(),shared2pic)
+                         
 
           # if source does not have multiple parts...
           elif multiple_part is None:
@@ -1560,14 +1569,23 @@ def PART(scrap,sourcenumber,args,cookie,megapic,shared2pic):
                     url = GetSource(id, args, cookie)
                     ismega = re.search('\.megaupload\.com/', url)
                     is2shared = re.search('\.2shared\.com/', url)
+                    israpid = re.search('rapidshare\.com/', url)
+                    
                     if ismega is not None:
                          # print 'Source #'+sourcenumber+' is hosted by megaupload'
                          fullname=sourcestring+' | MU | Full'
                          addExecute(fullname,url,get_default_action(),megapic)
+                    
                     elif is2shared is not None:
                          #print 'Source #'+sourcenumber+' is hosted by 2shared' 
                          fullname=sourcestring+' | 2S  | Full'
                          addExecute(fullname,url,200,shared2pic)
+
+                    elif israpid is not None:
+                         #print 'Source #'+sourcenumber+' is hosted by 2shared' 
+                         fullname=sourcestring+' | RS  | Full'
+                         addExecute(fullname,url,200,rapidpic)
+
 
 
 def GetSource(id, args, cookie):
@@ -1592,9 +1610,6 @@ def GetSource(id, args, cookie):
 
 def SOURCE(page, sources):
           # get settings
-          megapic=handle_file('megapic','')
-          shared2pic=handle_file('shared2pic','')
-
           # extract the ingredients used to generate the XHR request
           #
           # set here:
@@ -1657,7 +1672,7 @@ def SOURCE(page, sources):
           #...so it's not as CPU intensive as you might think.
 
           for thenumber in numlist:
-               PART(sources,thenumber,args,cookie,megapic,shared2pic)
+               PART(sources,thenumber,args,cookie)
           setView(None, 'default-view')
 
 def DVDRip(url):
@@ -1928,8 +1943,9 @@ def Handle_Vidlink(url):
      #video link preflight, pays attention to settings / checks if url is mega or 2shared
      ismega = re.search('\.megaupload\.com/', url)
      is2shared = re.search('\.2shared\.com/', url)
+     israpid = re.search('rapidshare\.com/', url)
      
-     if ismega is not None:
+     if ismega:
           WaitIf()
           
           mu = megaroutines.megaupload(translatedicedatapath)
@@ -1942,11 +1958,26 @@ def Handle_Vidlink(url):
           else:
                return None
 
-     elif is2shared is not None:
+     elif is2shared:
           #Notify('big','2Shared','2Shared is not supported by this addon. (Yet)','')
           #return False
           shared2url=SHARED2_HANDLER(url)
           return shared2url
+          
+     elif israpid:
+          rs = rapidroutines.rapidshare()
+          
+          try:
+              download_details = rs.resolve_link(url, '', '')
+          except Exception, e:
+              print '********* ERROR : %s' % e
+          
+          finished = do_wait('', download_details['wait_time'])
+
+          if finished == True:
+               return link
+          else:
+               return None          
 
 
 def PlayFile(name,url):
