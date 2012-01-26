@@ -91,12 +91,12 @@ class rapidshare:
 
     def get_download_link(self, file_id, file_name, cookie):
         
-        download_details = []
+        download_details = {}
         if cookie:
             rapid_download = self.downloadfile_cookie % (file_id, file_name, cookie)
         else:
             rapid_download = self.downloadfile_nocookie % (file_id, file_name)
-
+        
         html = self.get_url(rapid_download)
         if html.startswith("ERROR:"):
             return None

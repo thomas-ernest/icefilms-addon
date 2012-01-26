@@ -1895,7 +1895,10 @@ def Item_Meta(name):
 
 def do_wait(account, wait_time):
      # do the necessary wait, with  a nice notice and pre-set waiting time. I have found the below waiting times to never fail.
-
+     
+     if wait_time == '0':
+         wait_time = 1
+         
      if account == 'platinum':    
           return handle_wait(int(wait_time),'Megaupload','Loading video with your *Platinum* account.')
                
@@ -1967,15 +1970,13 @@ def Handle_Vidlink(url):
      elif israpid:
           rs = rapidroutines.rapidshare()
           
-          try:
-              download_details = rs.resolve_link(url, '', '')
-          except Exception, e:
-              print '********* ERROR : %s' % e
+          download_details = rs.resolve_link(url, '', '')
+          print download_details
           
           finished = do_wait('', download_details['wait_time'])
 
           if finished == True:
-               return link
+               return download_details['download_link']
           else:
                return None          
 
@@ -2011,7 +2012,7 @@ def Stream_Source(name,url):
             print '**** Stream error: %s' % e
             Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','')
             return
-    
+            
         if link:
             play_with_watched(link[0], listitem, mypath)
     
