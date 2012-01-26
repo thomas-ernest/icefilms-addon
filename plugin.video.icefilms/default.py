@@ -1976,7 +1976,9 @@ def Handle_Vidlink(url):
           finished = do_wait('', download_details['wait_time'])
 
           if finished == True:
-               return download_details['download_link']
+               download_link = [1]
+               download_link[0] = download_details['download_link']
+               return download_link
           else:
                return None          
 
@@ -2119,7 +2121,7 @@ class MyPlayer (xbmc.Player):
         print 'Initializing myPlayer...'
         
      def play(self, url, listitem):
-        print 'Now im playing... '+url
+        print 'Now im playing... %s' % url
 
         xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(url, listitem)            
         
