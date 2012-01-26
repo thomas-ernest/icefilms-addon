@@ -1968,10 +1968,18 @@ def Handle_Vidlink(url):
           return shared2url
           
      elif israpid:
+          
+          account = selfAddon.getSetting('rapidshare-account')
+          if account == 'true':
+              rapiduser = selfAddon.getSetting('rapidshare-username')
+              rapidpass = selfAddon.getSetting('rapidshare-password')
+          else:
+              rapiduser = ''
+              rapidpass = ''
+          
           rs = rapidroutines.rapidshare()
           
-          download_details = rs.resolve_link(url, '', '')
-          print download_details
+          download_details = rs.resolve_link(url, rapiduser, rapidpass)
           
           finished = do_wait('', download_details['wait_time'])
 
