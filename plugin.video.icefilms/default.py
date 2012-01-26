@@ -433,20 +433,31 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
      url = str(url)
 
      #get the download url
-     mu=megaroutines.megaupload(translatedicedatapath)
-     print 'Download URL: %s' % url
-     thefile=mu.resolve_megaup(url)
+     #mu=megaroutines.megaupload(translatedicedatapath)
+     #print 'Download URL: %s' % url
+     #thefile=mu.resolve_megaup(url)
+
+     account = selfAddon.getSetting('rapidshare-account')
+     if account == 'true':
+         rapiduser = selfAddon.getSetting('rapidshare-username')
+         rapidpass = selfAddon.getSetting('rapidshare-password')
+     else:
+         rapiduser = ''
+         rapidpass = ''
+
+     rs = rapidroutines.rapidshare()
+     download_details = rs.resolve_link(url, rapiduser, rapidpass)
 
      #define the path to save it to
-     filepath=os.path.normpath(os.path.join(work_folder,thefile[1]))
+     filepath=os.path.normpath(os.path.join(work_folder,download_details['file_name']))
 
      filepath_exists=os.path.exists(filepath)
      #if zip does not already exist, download from url, with nice display name.
      if filepath_exists==False:
                     
-         print 'Downloading zip: %s' % thefile[0]
-         do_wait(thefile[3], thefile[4])
-         Download(thefile[0], filepath, installtype)
+         print 'Downloading zip: %s' % download_details['download_link']
+         do_wait('', download_details['wait_time'])
+         Download(download_details['download_link'], filepath, installtype)
        
      elif filepath_exists==True:
           print 'zip already downloaded, attempting extraction'                   
@@ -1549,14 +1560,38 @@ def PART(scrap,sourcenumber,args,cookie):
                               elif selfAddon.getSetting('stack-multi-part') == 'false':
                                   addExecute(fullname,url,get_default_action(),megapic)
                         
-                        elif is2shared:
-                             #print sourcestring+' is hosted by 2shared' 
-                             part=re.compile('&url=http://www.2shared.com/(.+?)>PART (.+?)</a>').findall(scrape)
-                             for url,name in part:
-                                  fullurl='http://www.2shared.com/'+url
-                                  partname='Part '+name
-                                  fullname=sourcestring+' | 2S  | '+partname
+                        elif is2shared is not None:
+                             #print sourcestring+' is hosted by 2shared'
+                              partname='Part '+partnum
+                              fullname=sourcestring+' | 2S | '+partname
+                              try:
+                                  sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
+                              except:
+                                  sources = {partnum: url}
+                                  print 'sources havent been set yet...' 
+                              sources[partnum] = url                         
+                              cache.set("source"+str(sourcenumber)+"parts", repr(sources))
+                              if selfAddon.getSetting('stack-multi-part') == 'true' and partnum == '1':
+                                  name = fullname.replace('Part 1', 'Multiple Parts')
+                                  addExecute(name,url,199,shared2pic)
+                              elif selfAddon.getSetting('stack-multi-part') == 'false':
                                   addExecute(fullname,url,get_default_action(),shared2pic)
+
+                        elif israpid:
+                              partname='Part '+partnum
+                              fullname=sourcestring+' | RS | '+partname
+                              try:
+                                  sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
+                              except:
+                                  sources = {partnum: url}
+                                  print 'sources havent been set yet...' 
+                              sources[partnum] = url                         
+                              cache.set("source"+str(sourcenumber)+"parts", repr(sources))
+                              if selfAddon.getSetting('stack-multi-part') == 'true' and partnum == '1':
+                                  name = fullname.replace('Part 1', 'Multiple Parts')
+                                  addExecute(name,url,199,shared2pic)
+                              elif selfAddon.getSetting('stack-multi-part') == 'false':
+                                  addExecute(fullname,url,get_default_action(),rapidpic)
                          
 
           # if source does not have multiple parts...
