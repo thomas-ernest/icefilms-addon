@@ -35,7 +35,7 @@ class rapidshare:
             #Only return and use cookie if account has Rapids (rapidshare currency)
             if int(rapids) > 0:
                 #Return login cookie
-                return cookie_r
+                return cookie
             else:
                 return None
         else:
@@ -52,7 +52,9 @@ class rapidshare:
 
         if file_details:
             download_details = self.get_download_link(file_details['file_id'], file_details['file_name'], cookie)
-            return download_details
+            file_details.update(download_details)
+            print 'RapidRoutines returning:', file_details            
+            return file_details
         else:
             return None
 
@@ -69,6 +71,7 @@ class rapidshare:
             html = self.get_url(file_check_url)          
 
             #If file is available, RapidShare will return a '1' in 5th comma position of returned data         
+            file_details['file_name'] = html.split(',')[1]
             file_details['file_size'] = html.split(',')[2]
             file_details['server_id'] = html.split(',')[3]
             file_details['status'] = html.split(',')[4]
