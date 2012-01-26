@@ -3,7 +3,7 @@
     <setting id="hide-homepage" type="bool" label="30101" default="false"/>
   	<setting id="flatten-single-season" type="bool" label="30103" default="true"/>
   	<setting id="flatten-source-type" type="bool" label="30104" default="true"/>
-  	<setting id="stack-multi-part" type="bool" label="30106" default="false" visible="false" />      
+  	<setting id="stack-multi-part" type="bool" label="30106" default="false" />      
 	  <setting id="display-show-eps" type="bool" label="30107" default="true"/>
    </category>
    <category label="Accounts">
