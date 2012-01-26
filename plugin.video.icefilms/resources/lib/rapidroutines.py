@@ -15,9 +15,10 @@ class rapidshare:
         
         self.accountdetails = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=getaccountdetails&withcookie=1&type=prem&login=%s&password=%s'
         self.checkfile = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=checkfiles&files=%s&filenames=%s'
+        self.downloadfile = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s'
         self.downloadfile_cookie = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&cookie=%s'
-        self.downloadfile_nocookie = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s'
         self.download_link = 'http://%s/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&dlauth=%s'
+        self.download_link_cookie = 'http://%s/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&dlauth=%s&cookie=%s'
 
 
     def check_account(self, login, password):
@@ -27,13 +28,18 @@ class rapidshare:
         #Check for error
         if html.startswith('ERROR:'):
             return None
-        else:
-            r = re.search('cookie=(.+)', html)
-            if r:
+        elif html:
+            cookie = re.search('cookie=(.+)', html).group(1)
+            rapids = re.search('rapids=([0-9]+)', html).group(1)
+            
+            #Only return and use cookie if account has Rapids (rapidshare currency)
+            if int(rapids) > 0:
                 #Return login cookie
-                return r.group(1)
+                return cookie_r
             else:
                 return None
+        else:
+            return None
 
 
     def resolve_link(self, url, login, password):
@@ -95,16 +101,20 @@ class rapidshare:
         if cookie:
             rapid_download = self.downloadfile_cookie % (file_id, file_name, cookie)
         else:
-            rapid_download = self.downloadfile_nocookie % (file_id, file_name)
+            rapid_download = self.downloadfile % (file_id, file_name)
         
         html = self.get_url(rapid_download)
+        
         if html.startswith("ERROR:"):
             return None
         else:
             host = html.split(",")[0].split(":")[1]
             authkey = html.split(",")[1]
             
-            download_details['download_link'] = self.download_link % (host, file_id, file_name, authkey)
+            if cookie:
+                download_details['download_link'] = self.download_link_cookie % (host, file_id, file_name, authkey, cookie)
+            else:
+                download_details['download_link'] = self.download_link % (host, file_id, file_name, authkey)
             download_details['wait_time'] = html.split(",")[2]
             return download_details
 
