@@ -48,12 +48,12 @@ import xbmcvfs
 # plugin constants
 dbg = True # Set to false if you don't want debugging
 
+#Common Cache
 try:
   import StorageServer
 except:
   import storageserverdummy as StorageServer
-cache = StorageServer.StorageServer()
-cache.table_name = "icefilms" # Name of your plugin.
+cache = StorageServer.StorageServer("icefilms")
    
 ####################################################
 
@@ -237,18 +237,47 @@ def DLDirStartup():
 
 def LoginStartup():
      #Get whether user has set an account to use.
-     Account = selfAddon.getSetting('megaupload-account')
+     mega_account = selfAddon.getSetting('megaupload-account')
+     rapid_account = selfAddon.getSetting('rapidshare-account')
+     HideSuccessfulLogin = selfAddon.getSetting('hide-successful-login-messages')
+   
+     if rapid_account == 'true':
+         rapiduser = selfAddon.getSetting('rapidshare-username')
+         rapidpass = selfAddon.getSetting('rapidshare-password')
 
-     mu=megaroutines.megaupload(translatedicedatapath)
+         try:
+             if rapiduser and rapidpass:
 
-     #delete old logins
-     mu.delete_login()
+                 rs = rapidroutines.rapidshare()
+                 account_details = rs.check_account(login=rapiduser, password=rapidpass)
+                 
+                 if account_details:
+                     cache.delete('rapid_cookie')
+                     cache.set('rapid_cookie', account_details['cookie'])
+                     print 'RapidShare Account: login succeeded'
+                     if HideSuccessfulLogin == 'false':
+                         Notify('small','RapidShare', 'Account login successful.','')
+                     return True
+                 else:
+                     print 'RapidShare Account: login failed'
+                     return True
+             else:
+                   print 'RapidShare: No login details specified, using no account'
+                   Notify('big','RapidShare','Login failed. RapidShare will load with no account.','')
+         
+         except Exception, e:
+              print '**** RapidShare Error: %s' % e
+              Notify('big','RapidShare Failed','Failed to connect with RapidShare.', '', '', 'Please check your internet connection.')
+              pass
+              return False
+
+     elif mega_account == 'true':
      
-     if Account == 'false':
-          print 'Account: '+'no account set'
-          return True
+          mu=megaroutines.megaupload(translatedicedatapath)
 
-     elif Account == 'true':
+          #delete old logins
+          mu.delete_login()
+          
           #check for megaupload login and do it
           
           megauser = selfAddon.getSetting('megaupload-username')
@@ -263,7 +292,6 @@ def LoginStartup():
                         Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
                    elif login is True:
                         print 'Account: '+'login succeeded'
-                        HideSuccessfulLogin = selfAddon.getSetting('hide-successful-login-messages')
                         if HideSuccessfulLogin == 'false':
                              Notify('small','Megaupload', 'Account login successful.','')
                              
@@ -276,6 +304,11 @@ def LoginStartup():
               Notify('big','Megaupload Failed','Failed to connect with MegaUpload.', '', '', 'Please check your internet connection.')
               pass
               return False
+
+     else:
+          cache.delete('rapid_cookie')
+          print 'Account: no account set'
+          return True
               
                                 
 def ContainerStartup():
@@ -439,14 +472,12 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
 
      account = selfAddon.getSetting('rapidshare-account')
      if account == 'true':
-         rapiduser = selfAddon.getSetting('rapidshare-username')
-         rapidpass = selfAddon.getSetting('rapidshare-password')
+         rapid_cookie = cache.get('rapid_cookie')
      else:
-         rapiduser = ''
-         rapidpass = ''
+         rapid_cookie = ''
 
      rs = rapidroutines.rapidshare()
-     download_details = rs.resolve_link(url, rapiduser, rapidpass)
+     download_details = rs.resolve_link(url, cookie=rapid_cookie)
 
      #define the path to save it to
      filepath=os.path.normpath(os.path.join(work_folder,download_details['file_name']))
@@ -456,7 +487,7 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
      if filepath_exists==False:
                     
          print 'Downloading zip: %s' % download_details['download_link']
-         do_wait('', download_details['wait_time'])
+         do_wait('RapidShare', '', download_details['wait_time'])
          Download(download_details['download_link'], filepath, installtype)
        
      elif filepath_exists==True:
@@ -480,10 +511,10 @@ def Startup_Routines():
      DLDirStartup()
 
      # Run the login startup routines
-     #if LoginStartup(): 
+     if LoginStartup(): 
      
-     # Run the container checking startup routines, if enable meta is set to true
-     if meta_setting=='true': ContainerStartup()
+         # Run the container checking startup routines, if enable meta is set to true
+         if meta_setting=='true': ContainerStartup()
      
      #Rescan Next Aired on startup - actually only rescans every 24hrs
      xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
@@ -1928,23 +1959,23 @@ def Item_Meta(name):
           return listitem
 
 
-def do_wait(account, wait_time):
+def do_wait(source, account, wait_time):
      # do the necessary wait, with  a nice notice and pre-set waiting time. I have found the below waiting times to never fail.
      
-     if wait_time == '0':
+     if int(wait_time) == 0:
          wait_time = 1
          
      if account == 'platinum':    
-          return handle_wait(int(wait_time),'Megaupload','Loading video with your *Platinum* account.')
+          return handle_wait(int(wait_time),source,'Loading video with your *Platinum* account.')
                
      elif account == 'premium':    
-          return handle_wait(int(wait_time),'Megaupload','Loading video with your *Premium* account.')
+          return handle_wait(int(wait_time),source,'Loading video with your *Premium* account.')
              
      elif account == 'free':
-          return handle_wait(int(wait_time),'Megaupload Free User','Loading video with your free account.')
+          return handle_wait(int(wait_time),source,'Loading video with your free account.')
 
      else:
-          return handle_wait(int(wait_time),'Megaupload','Loading video.')
+          return handle_wait(int(wait_time),source,'Loading video.')
 
 
 def handle_wait(time_to_wait,title,text):
@@ -1989,7 +2020,7 @@ def Handle_Vidlink(url):
           mu = megaroutines.megaupload(translatedicedatapath)
           link = mu.resolve_megaup(url)
 
-          finished = do_wait(link[3], link[4])
+          finished = do_wait('MegaUpload', link[3], link[4])
 
           if finished == True:
                return link
@@ -1997,8 +2028,6 @@ def Handle_Vidlink(url):
                return None
 
      elif is2shared:
-          #Notify('big','2Shared','2Shared is not supported by this addon. (Yet)','')
-          #return False
           shared2url=SHARED2_HANDLER(url)
           return shared2url
           
@@ -2006,24 +2035,22 @@ def Handle_Vidlink(url):
           
           account = selfAddon.getSetting('rapidshare-account')
           if account == 'true':
-              rapiduser = selfAddon.getSetting('rapidshare-username')
-              rapidpass = selfAddon.getSetting('rapidshare-password')
+              rapid_cookie = cache.get('rapid_cookie')
           else:
-              rapiduser = ''
-              rapidpass = ''
+              rapid_cookie = ''
           
           rs = rapidroutines.rapidshare()
+          download_details = rs.resolve_link(url, cookie=rapid_cookie)
           
-          download_details = rs.resolve_link(url, rapiduser, rapidpass)
-          
-          finished = do_wait('', download_details['wait_time'])
+          finished = do_wait('RapidShare', '', download_details['wait_time'])
 
           if finished == True:
                download_link = [1]
                download_link[0] = download_details['download_link']
+               #download_link[1] = download_details['message']
                return download_link
           else:
-               return None          
+               return None
 
 
 def PlayFile(name,url):
