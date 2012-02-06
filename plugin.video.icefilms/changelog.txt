@@ -1,3 +1,12 @@
+v1.0.99.13 (Sunday, 05 February 2012):
+  - Updated RapidRoutines
+      - Premium account checking on BilledUntil != 0
+      - Premium accounts now only call checkfiles to get host & server id
+      - Instead of using the host rapid returns, now using short_host + server id to create download link
+      - Many more updates, error checks, and more flexibility to call each method individually
+  - RapidShare login check on startup, stores cookie in cache so that login check only needs to be called once
+  - Fixed comsetics where MegaUpload was being shown on message boxes
+      
 v1.0.99.12 (Friday, 20 January 2012):
   - Removed MegaUpload login check on startup
   - Added RapidShare sources support
