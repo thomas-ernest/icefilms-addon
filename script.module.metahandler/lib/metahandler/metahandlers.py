@@ -116,73 +116,8 @@ class MetaData:
         self.dbcon.row_factory = sqlite.Row # return results indexed by field names and not numbers so we can convert to dict
         self.dbcur = self.dbcon.cursor()
 
-        # !!!!!!!! TEMPORARY CODE !!!!!!!!!!!!!!!      
-        if os.path.exists(self.videocache):
-            table_exists = True
-            try:
-                sql_select = 'select * from movie_meta'
-                self.dbcur.execute(sql_select)
-                matchedrow = self.dbcur.fetchone()
-            except:
-                table_exists = False
-
-            if table_exists:
-                sql_select = 'SELECT votes FROM movie_meta'
-                sql_alter = 'ALTER TABLE movie_meta RENAME TO tmp_movie_meta'
-                try:
-                    self.dbcur.execute(sql_select)
-                    matchedrow = self.dbcur.fetchone()
-                except Exception:
-                    print '************* movie votes column does not exist - creating temp table'
-                    self.dbcur.execute(sql_alter)
-                    self.dbcon.commit()
-    
-                sql_select = 'SELECT status FROM tvshow_meta'
-                sql_alter = 'ALTER TABLE tvshow_meta RENAME TO tmp_tvshow_meta'
-                try:
-                    self.dbcur.execute(sql_select)
-                    matchedrow = self.dbcur.fetchone()
-                except Exception:
-                    print '************* movie votes column does not exist - creating temp table'
-                    self.dbcur.execute(sql_alter)
-                    self.dbcon.commit()
-        ## !!!!!!!!!!!!!!!!!!!!!!!
-
-
         # initialize cache db
         self._cache_create_movie_db()
-
-
-        # !!!!!!!! TEMPORARY CODE !!!!!!!!!!!!!!!
-        sql_insert = "INSERT INTO movie_meta (imdb_id, tmdb_id, title, year, director, writer, tagline, cast, rating, votes, duration, plot, mpaa, premiered, genre, studio, thumb_url, cover_url, trailer_url, backdrop_url, imgs_prepacked, overlay) SELECT imdb_id, tmdb_id, title, year, director, writer, tagline, [cast], rating, '' as votes, duration, plot, mpaa, premiered, genre, studio, thumb_url, cover_url, trailer_url, backdrop_url, imgs_prepacked, overlay FROM tmp_movie_meta"
-        sql_select = 'SELECT imdb_id from tmp_movie_meta'
-        sql_drop = 'DROP TABLE tmp_movie_meta'
-        try:
-            self.dbcur.execute(sql_select)
-            matchedrow = self.dbcur.fetchone()
-            self.dbcur.execute(sql_insert)
-            self.dbcon.commit()
-            self.dbcur.execute(sql_drop)
-            self.dbcon.commit()
-        except Exception, e:
-            print '************* tmp_movie_meta does not exist: %s' % e
-
-
-        sql_insert = "INSERT INTO tvshow_meta (imdb_id, tvdb_id, title, cast, rating, duration, plot, mpaa, premiered, genre, studio, status, banner_url, cover_url, trailer_url, backdrop_url, imgs_prepacked, overlay) SELECT imdb_id, tvdb_id, title, [cast], rating, duration, plot, mpaa, premiered, genre, studio, '' as [status], banner_url, cover_url, trailer_url, backdrop_url, imgs_prepacked, overlay FROM tmp_tvshow_meta"
-        sql_select = 'SELECT imdb_id from tmp_tvshow_meta'
-        sql_drop = 'DROP TABLE tmp_tvshow_meta'
-        try:
-            self.dbcur.execute(sql_select)
-            matchedrow = self.dbcur.fetchone()
-            self.dbcur.execute(sql_insert)
-            self.dbcon.commit()
-            self.dbcur.execute(sql_drop)
-            self.dbcon.commit()
-        except Exception, e:
-            print '************* tmp_tvshow_meta does not exist: %s' % e
-
-        ## !!!!!!!!!!!!!!!!!!!!!!!
-
 
     def __del__(self):
         ''' Cleanup db when object destroyed '''
@@ -861,7 +796,7 @@ class MetaData:
         
         print 'Looking up in local cache by name for: %s %s %s' % (type, name, year)
         
-        if year:
+        if year and type == self.type_movie:
             sql_select = sql_select + " AND year = %s" % year
         print 'SQL Select: %s' % sql_select            
         
@@ -1141,13 +1076,16 @@ class MetaData:
         
         if imdb_id:
             tvdb_id = tvdb.get_show_by_imdb(imdb_id)
-
+            
         #Intialize tvshow meta dictionary
         meta = self._init_tvshow_meta(imdb_id, tvdb_id, name)
 
         # if not found by imdb, try by name
         if tvdb_id == '':
             try:
+                #If year is passed in, add it to the name for better TVDB search results
+                if year:
+                    name = name + ' ' + year
                 show_list=tvdb.get_matching_shows(name)
             except Exception, e:
                 print '************* Error retreiving from thetvdb.com: %s ' % e     
@@ -1178,8 +1116,8 @@ class MetaData:
             if show is not None:
                 meta['imdb_id'] = imdb_id
                 meta['tvdb_id'] = tvdb_id
-                meta['title'] = show.name
-                meta['TVShowTitle'] = show.name
+                meta['title'] = name
+                meta['TVShowTitle'] = name
                 if str(show.rating) != '' and show.rating != None:
                     meta['rating'] = float(show.rating)
                 meta['duration'] = show.runtime
