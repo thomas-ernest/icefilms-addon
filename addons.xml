@@ -38,7 +38,7 @@ Turns your XBMC into an instant free on-demand media-center. Stream and download
 	</extension>
 </addon>
 
-<addon id="script.module.metahandler" name="metahandler" version="0.0.11" provider-name="Eldorado (inspired by anarchintosh, westcoast, daledude, t0mm0)">
+<addon id="script.module.metahandler" name="metahandler" version="0.0.13" provider-name="Eldorado (inspired by anarchintosh, westcoast, daledude, t0mm0)">
   <requires>
     <import addon="xbmc.python" version="2.0" />
     <import addon="script.module.elementtree"/>
