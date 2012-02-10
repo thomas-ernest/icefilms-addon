@@ -10,14 +10,22 @@ import re
 import urllib2
             
 class rapidshare:
-    def __init__(self):
+    def __init__(self, use_ssl=False):
         self.class_name='rapidshare'
         
-        self.accountdetails = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=getaccountdetails&withcookie=1&login=%s&password=%s'
-        self.checkfile = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=checkfiles&files=%s&filenames=%s'
-        self.downloadfile = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s'
-        self.download_link = 'http://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&dlauth=%s'
-        self.download_link_cookie = 'https://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&cookie=%s'
+        if use_ssl:
+            self.accountdetails = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=getaccountdetails&withcookie=1&login=%s&password=%s'
+            self.checkfile = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=checkfiles&files=%s&filenames=%s'
+            self.downloadfile = 'https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s'
+            #Free users must use non-ssl for this call
+            self.download_link = 'http://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&dlauth=%s'
+            self.download_link_cookie = 'https://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&cookie=%s'
+        else:
+            self.accountdetails = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=getaccountdetails&withcookie=1&login=%s&password=%s'
+            self.checkfile = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=checkfiles&files=%s&filenames=%s'
+            self.downloadfile = 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s'
+            self.download_link = 'http://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&dlauth=%s'
+            self.download_link_cookie = 'http://rs%s%s.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=%s&filename=%s&cookie=%s'
 
 
     def file_status(self, status):
