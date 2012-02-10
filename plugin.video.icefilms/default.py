@@ -76,12 +76,12 @@ downloadPath = selfAddon.getSetting('download-folder')
 
 #Auto-watch
 currentTime = 1
-totalTime = 1
+totalTime = 0
 
 callEndOfDirectory = True
 
 #Variable for multi-part
-finalPart = 0
+finalPart = True
 
 #Params
 url=None
@@ -92,6 +92,7 @@ dirmode=None
 season_num=None
 episode_num=None
 video_type=None
+stacked_parts=None
 
 ####################################################
 
@@ -242,13 +243,14 @@ def LoginStartup():
      HideSuccessfulLogin = selfAddon.getSetting('hide-successful-login-messages')
    
      if rapid_account == 'true':
+         rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
          rapiduser = selfAddon.getSetting('rapidshare-username')
          rapidpass = selfAddon.getSetting('rapidshare-password')
 
          try:
              if rapiduser and rapidpass:
 
-                 rs = rapidroutines.rapidshare()
+                 rs = rapidroutines.rapidshare(use_ssl=rapidssl)
                  account_details = rs.check_account(login=rapiduser, password=rapidpass)
                  
                  if account_details:
@@ -259,6 +261,7 @@ def LoginStartup():
                          Notify('small','RapidShare', 'Account login successful.','')
                      return True
                  else:
+                     Notify('big','RapidShare','Login failed.', '', line2='RapidShare will load with no account.')
                      print 'RapidShare Account: login failed'
                      return True
              else:
@@ -476,7 +479,8 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
      else:
          rapid_cookie = ''
 
-     rs = rapidroutines.rapidshare()
+     rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
+     rs = rapidroutines.rapidshare(use_ssl=rapidssl)
      download_details = rs.resolve_link(url, cookie=rapid_cookie)
 
      #define the path to save it to
@@ -488,7 +492,7 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
                     
          print 'Downloading zip: %s' % download_details['download_link']
          do_wait('RapidShare', '', download_details['wait_time'])
-         Download(download_details['download_link'], filepath, installtype)
+         complete = Download(download_details['download_link'], filepath, installtype)
        
      elif filepath_exists==True:
           print 'zip already downloaded, attempting extraction'                   
@@ -1583,12 +1587,14 @@ def PART(scrap,sourcenumber,args,cookie):
                               except:
                                   sources = {partnum: url}
                                   print 'sources havent been set yet...'  
-                              sources[partnum] = url                          
+                              sources[partnum] = url
+                              cache.delete("source"+str(sourcenumber)+"parts")
                               cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              if selfAddon.getSetting('stack-multi-part') == 'true' and partnum == '1':
-                                  name = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(name,url,199,megapic)
-                              elif selfAddon.getSetting('stack-multi-part') == 'false':
+                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
+                              if stacked and partnum == '1':
+                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
+                                  addExecute(fullname,url,get_default_action(),megapic,stacked)
+                              elif not stacked:
                                   addExecute(fullname,url,get_default_action(),megapic)
                         
                         elif is2shared is not None:
@@ -1600,12 +1606,14 @@ def PART(scrap,sourcenumber,args,cookie):
                               except:
                                   sources = {partnum: url}
                                   print 'sources havent been set yet...' 
-                              sources[partnum] = url                         
+                              sources[partnum] = url
+                              cache.delete("source"+str(sourcenumber)+"parts")
                               cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              if selfAddon.getSetting('stack-multi-part') == 'true' and partnum == '1':
-                                  name = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(name,url,199,shared2pic)
-                              elif selfAddon.getSetting('stack-multi-part') == 'false':
+                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
+                              if stacked and partnum == '1':
+                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
+                                  addExecute(fullname,url,get_default_action(),shared2pic,stacked)
+                              elif not stacked:
                                   addExecute(fullname,url,get_default_action(),shared2pic)
 
                         elif israpid:
@@ -1616,12 +1624,14 @@ def PART(scrap,sourcenumber,args,cookie):
                               except:
                                   sources = {partnum: url}
                                   print 'sources havent been set yet...' 
-                              sources[partnum] = url                         
+                              sources[partnum] = url
+                              cache.delete("source"+str(sourcenumber)+"parts")
                               cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              if selfAddon.getSetting('stack-multi-part') == 'true' and partnum == '1':
-                                  name = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(name,url,199,shared2pic)
-                              elif selfAddon.getSetting('stack-multi-part') == 'false':
+                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
+                              if stacked and partnum == '1':
+                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
+                                  addExecute(fullname,url,get_default_action(),rapidpic,stacked)
+                              elif not stacked:
                                   addExecute(fullname,url,get_default_action(),rapidpic)
                          
 
@@ -1865,6 +1875,11 @@ def Clean_Windows_String(string):
      return re.sub('[^-a-zA-Z0-9_.()\\\/ ]+', '',  string)
 
 
+#Helper function to convert strings to boolean values
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
+
+
 def Get_Path(srcname,vidname):
      ##Gets the path the file will be downloaded to, and if necessary makes the folders##
          
@@ -2022,7 +2037,7 @@ def Handle_Vidlink(url):
 
           finished = do_wait('MegaUpload', link[3], link[4])
 
-          if finished == True:
+          if finished:
                return link
           else:
                return None
@@ -2039,18 +2054,25 @@ def Handle_Vidlink(url):
           else:
               rapid_cookie = ''
           
-          rs = rapidroutines.rapidshare()
+          rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
+          rs = rapidroutines.rapidshare(use_ssl=rapidssl)
           download_details = rs.resolve_link(url, cookie=rapid_cookie)
           
-          finished = do_wait('RapidShare', '', download_details['wait_time'])
+          #Check if the returned status is good, else display the returned error message
+          if download_details['status'] == '1':
+          
+              finished = do_wait('RapidShare', '', download_details['wait_time'])
 
-          if finished == True:
-               download_link = [1]
-               download_link[0] = download_details['download_link']
-               #download_link[1] = download_details['message']
-               return download_link
+              if finished == True:
+                   download_link = [1]
+                   download_link[0] = download_details['download_link']
+                   #download_link[1] = download_details['message']
+                   return download_link
+              else:
+                   return None
           else:
-               return None
+              Notify('big','RapidShare','Error occurred attempting to stream the file.','', line2=download_details['message'])
+              return None
 
 
 def PlayFile(name,url):
@@ -2066,7 +2088,7 @@ def PlayFile(name,url):
         print 'local file playing failed'
 
 
-def Stream_Source(name,url):
+def Stream_Source(name, url, download_play=False, download=False, stacked=False):
     
     callEndOfDirectory = False
     
@@ -2074,58 +2096,134 @@ def Stream_Source(name,url):
     mypath = Get_Path(name,vidname)
     listitem = Item_Meta(name)
 
-    video_seeking = selfAddon.getSetting('video-seeking')
+    video_seeking = str2bool(selfAddon.getSetting('video-seeking'))
 
-    #Play File normal as a stream
-    if video_seeking == 'false':
+    last_part = False
+    current_part = 1
+
+    while last_part == False:
+        
+        #If it's a stacked source, grab url one by one
+        if stacked == True:
+            print 'I AM STACKED'
+            url = get_stacked_part(name, str(current_part))
+            if url:
+                current_part += 1
+                
+                #Check to see if it is the last part by attempting to grab the next
+                next_url = get_stacked_part(name, str(current_part))
+                if not next_url:
+                    last_part = True
+            else:
+                last_part = True
+                break
+        else:
+            last_part = True        
+
+        print 'Last video part: %s' % str(last_part)
+        
+        #Grab the final playable link
         try:
             link = Handle_Vidlink(url)
+            
+            if link == None:
+               callEndOfDirectory = False
+               break
         except Exception, e:
             print '**** Stream error: %s' % e
             Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','')
-            return
-            
-        if link:
-            play_with_watched(link[0], listitem, mypath)
-    
-    #Download file in a separate thread then play - delete file when done
-    else:
-        Download_And_Play(name,url, video_seek=True)
-        CancelDownload(name, video_seek=True)
+            break
 
 
-def play_with_watched(url, listitem, mypath):
+        #Download & Watch
+        if download_play:
+            completed = Download_And_Play(name,link[0], video_seek=False)
+            print 'Download & Play streaming completed: %s' % completed
+        
+        #Download & Watch - but delete file when done, simulates streaming and allows video seeking
+        elif video_seeking:
+            completed = Download_And_Play(name,link[0], video_seek=video_seeking)
+            print 'Video Seeking streaming completed: %s' % completed
+            CancelDownload(name, video_seek=video_seeking)
+        
+        #Download option
+        elif download:
+            completed = Download_Source(name,link[0])
+            print 'Downloading completed: %s' % completed
+
+        #Else play the file as normal stream
+        else:               
+            completed = play_with_watched(link[0], listitem, mypath, last_part)
+            print 'Normal streaming completed: %s' % completed
+
+        #Check if video was played until end - else assume user stopped watching video so break from loop
+        if not completed:
+            break                
+
+
+def play_with_watched(url, listitem, mypath, last_part=False):
     global currentTime
     global totalTime
     global watched_percent
     global finalPart
     
-    finalPart = 1
+    finalPart = last_part
     watched_percent = get_watched_percent()    
 
-    mplayer = MyPlayer()
+    mplayer = MyPlayer(last_part=last_part)
     mplayer.play(url, listitem)
 
     try:
-        totalTime = mplayer.getTotalTime()
+        video_time = mplayer.getTotalTime()
     except Exception:
         xbmc.sleep(20000) #wait 20 seconds until the video is playing before getting totalTime
         try:
-            totalTime = mplayer.getTotalTime()
-        except Exception:
-            return
+            video_time = mplayer.getTotalTime()
+        except Exception, e:
+            print 'Error grabbing video time: %s' % e
+            return False
+
+    #For stacked parts totalTime will need to be added up
+    temp_total = totalTime
+    totalTime = totalTime + video_time
+    print '******** VIDEO TIME: %s' % video_time
+    print '******** TOTAL TIME: %s' % totalTime
+
     while(1):
         try:
-            currentTime= mplayer.getTime()
+            temp_current_time = mplayer.getTime()
+            currentTime= temp_current_time + temp_total
         except Exception:
             print 'XBMC is not currently playing a media file'
             break
         xbmc.sleep(1000)
-        
+    
+    print '******** CURRENT TIME: %s' % currentTime
+
+    #Check if video was played until the end (-1 second)
+    if temp_current_time < (video_time - 1):
+        return False
+    else:
+        return True
+
 
 def get_watched_percent():
-     watched_values = [.5, .6, .7, .8, .9]
+     watched_values = [.7, .8, .9]
      return watched_values[int(selfAddon.getSetting('watched-percent'))]
+
+
+def get_stacked_part(name, part):
+    sourcenumber = name[8:9]
+    source = eval(cache.get("source"+str(sourcenumber)+"parts"))
+    print '**** Stacked parts: %s' % source
+    
+    try:
+        url=source[part]
+        print '**** Stacked Part returning part #%s: %s' % (part, url)
+        return url
+    except:
+        print 'No more parts found'
+        return None
 
 
 def Stream_Source_with_parts(name,url):
@@ -2149,7 +2247,7 @@ def Stream_Source_with_parts(name,url):
     index = 2
     
     # first part is playing... now wait to start 2nd part
-    while finalPart != 1:
+    while not finalPart:
         #Set the currentTime and totalTime to arbitrary numbers. This keeps it from pre-maturely starting the 3rd part immediately after the 2nd part starts
         # using currentTime and totalTime from the first part.
         currentTime = 0
@@ -2175,7 +2273,7 @@ def Stream_Source_with_parts(name,url):
                     nextPart = source[str(index+1)]
                 except:
                     print 'Attempting to stream the final part: %s' % str(link2)
-                    finalPart = 1
+                    finalPart = True
                     pass
                 mplayer = MyPlayer()
                 mplayer.play(link2[0], listitem)
@@ -2184,8 +2282,9 @@ def Stream_Source_with_parts(name,url):
 
 
 class MyPlayer (xbmc.Player):
-     def __init__ (self):
+     def __init__ (self, last_part=False):
         self.dialog = None
+        self.last_part = last_part
         xbmc.Player.__init__(self)
         
         print 'Initializing myPlayer...'
@@ -2202,7 +2301,7 @@ class MyPlayer (xbmc.Player):
         global currentTime
         global totalTime
         global finalPart
-        if finalPart == 1:
+        if finalPart:
             percentWatched = currentTime / totalTime
             print 'current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched)
             if percentWatched >= watched_percent:
@@ -2216,7 +2315,7 @@ class MyPlayer (xbmc.Player):
         global currentTime
         global totalTime
         global finalPart
-        if finalPart == 1:
+        if finalPart:
             percentWatched = currentTime / totalTime
             print 'current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched)
             if percentWatched >= watched_percent and totalTime > 1:
@@ -2230,10 +2329,11 @@ class MyPlayer (xbmc.Player):
 
 
 class DownloadThread (threading.Thread):
-    def __init__(self, url, dest, vidname=False):
+    def __init__(self, url, dest, vidname=False, video_seek=False):
         self.url = url
         self.dest = dest
         self.vidname = vidname
+        self.video_seek = video_seek
         self.dialog = None
         
         threading.Thread.__init__(self)
@@ -2291,7 +2391,7 @@ class DownloadThread (threading.Thread):
                     except:
                         pass
             
-            if sys.exc_info()[0] in (StopDownloading,):
+            if sys.exc_info()[0] in (StopDownloading,) and not self.video_seek:
                 Notify('big','Download Canceled','Download has been canceled','')
             else:
                 raise 
@@ -2329,7 +2429,7 @@ def Download_And_Play(name,url, video_seek=False):
     print 'MYPATH: ',mypath
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
-        return
+        return False
 
     if os.path.exists(os.path.join(downloadPath, 'Ping')):
         os.remove(os.path.join(downloadPath, 'Ping'))
@@ -2354,7 +2454,7 @@ def Download_And_Play(name,url, video_seek=False):
           
           Notify('Download Alert','Currently downloading '+fileNameAlive,'','')
           addDownloadControls(fileNameAlive, filePathAlive)
-          return
+          return False
 
       else:
           os.remove(os.path.join(downloadPath, 'Ping'))
@@ -2386,34 +2486,27 @@ def Download_And_Play(name,url, video_seek=False):
                 os.remove(mypath + '.dling')
             except:
                 print 'download failed: existing incomplete files cannot be removed'
-                return
+                return False
         else:
             Notify('Download Alert','The video you are trying to download already exists!','','')
-
-    try: 
-        link=Handle_Vidlink(url)
-    except:
-        Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','') 
-        callEndOfDirectory = False
-        return
-    if link == None:
-        callEndOfDirectory = False
-        return
 
     print 'attempting to download and play file'
 
     try:
         print "Starting Download Thread"
-        dlThread = DownloadThread(link[0], mypath, vidname)
+        dlThread = DownloadThread(url, mypath, vidname, video_seek)
         dlThread.start()
         buffer_delay = int(selfAddon.getSetting('buffer-delay'))
         handle_wait(buffer_delay, "Buffering", "Waiting a bit before playing...")
+        if not handle_wait:
+            return False
         if os.path.exists(mypath):
             if dlThread.isAlive():
                 listitem=Item_Meta(name)
-                              
-                play_with_watched(mypath, listitem, '')
                 
+                #Play file              
+                completed = play_with_watched(mypath, listitem, '')
+               
                 if video_seek:
                     if os.path.exists(mypath):
                         try:
@@ -2422,6 +2515,13 @@ def Download_And_Play(name,url, video_seek=False):
                             print 'Failed to delete file after video seeking'
                 else:
                     addDownloadControls(name,mypath, listitem)
+
+                #Return if video was played until the end
+                if not completed:
+                    return False
+                else:
+                    return True
+
             else:
                 raise
         else:
@@ -2501,7 +2601,7 @@ def _dlhook(numblocks, blocksize, filesize, dt, start_time):
         save(os.path.join(downloadPath,'Alive'),dt.dest+'\n'+dt.vidname)
 
 
-def Download_Source(name,url):
+def Download_Source(name,url,stacked=False):
     #get proper name of vid
     vidname=cache.get('videoname')
     
@@ -2509,28 +2609,25 @@ def Download_Source(name,url):
            
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
+        return False
     else:
         if os.path.isfile(mypath) is True:
             Notify('Download Alert','The video you are trying to download already exists!','','')
+            return False
         else:              
-            
-            try:
-                link=Handle_Vidlink(url)
-            except Exception, e:
-                print '**** Download error: %s' % e
-                Notify('big','Invalid Source','Unable to download select source. \n    Please try another.','')
-                callEndOfDirectory = False
-                return
-            
+                       
             DownloadInBack=selfAddon.getSetting('download-in-background')
             print 'attempting to download file, silent = '+ DownloadInBack
             try:
                 if DownloadInBack == 'true':
-                    QuietDownload(link[0], mypath, vidname)
+                    completed = QuietDownload(url, mypath, vidname)
+                    return completed
                 else:
-                    Download(link[0], mypath, vidname)
+                    completed = Download(url, mypath, vidname)
+                    return completed
             except:
                 print 'download failed'
+                return False
 
 
 def Check_Mega_Limits(name,url):
@@ -2572,10 +2669,11 @@ def Download(url, dest, displayname=False):
                         pass 
             #only handle StopDownloading (from cancel), ContentTooShort (from urlretrieve), and OS (from the race condition); let other exceptions bubble 
             if sys.exc_info()[0] in (urllib.ContentTooShortError, StopDownloading, OSError): 
-                return 'false' 
+                return False 
             else: 
                 raise 
-        return 'downloaded'
+            return False
+        return True
 
 '''     
 def QuietDownload(url, dest):
@@ -2615,8 +2713,13 @@ def QuietDownload(url, dest, videoname):
     # get notify value from settings
     NotifyPercent=int(selfAddon.getSetting('notify-percent'))
     
-    script = os.path.join( icepath, 'resources', 'lib', "DownloadInBackground.py" )
-    xbmc.executebuiltin( "RunScript(%s, %s, %s, %s, %s)" % ( script, q_url, q_dest, q_vidname, str(notifyValues[NotifyPercent]) ) )
+    try:
+        script = os.path.join( icepath, 'resources', 'lib', "DownloadInBackground.py" )
+        xbmc.executebuiltin( "RunScript(%s, %s, %s, %s, %s)" % ( script, q_url, q_dest, q_vidname, str(notifyValues[NotifyPercent]) ) )
+        return True
+    except Exception, e:
+        print '*** Error in Quiet Download: %s' % e
+        return False
              
 
 def _pbhook(numblocks, blocksize, filesize, dp, start_time):
@@ -2652,7 +2755,7 @@ def _pbhook(numblocks, blocksize, filesize, dp, start_time):
             raise StopDownloading('Stopped Downloading')
 
    
-def addExecute(name,url,mode,iconimage):
+def addExecute(name,url,mode,iconimage,stacked=False):
 
     # A list item that executes the next mode, but doesn't clear the screen of current list items.
 
@@ -2660,7 +2763,7 @@ def addExecute(name,url,mode,iconimage):
     sysname = urllib.quote_plus(name)
     sysurl = urllib.quote_plus(url)
     
-    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + video_type + "&season=" + str(season_num) + "&episode=" + str(episode_num)
+    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + video_type + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked)
     ok=True
 
     liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
@@ -2669,9 +2772,9 @@ def addExecute(name,url,mode,iconimage):
     #handle adding context menus
     contextMenuItems = []
 
-    contextMenuItems.append(('Play Stream', 'XBMC.RunPlugin(%s?mode=200&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
-    contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
-    contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
+    contextMenuItems.append(('Play Stream', 'XBMC.RunPlugin(%s?mode=200&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
+    contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
+    contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
     contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(plugin://plugin.program.jdownloader/?action=addlink&url=%s)' % (sysurl)))
     contextMenuItems.append(('Check Mega Limits', 'XBMC.RunPlugin(%s?mode=202&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
     contextMenuItems.append(('Kill Streams', 'XBMC.RunPlugin(%s?mode=203&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
@@ -3363,6 +3466,10 @@ try:
         video_type=urllib.unquote_plus(params["videoType"])
 except:
         pass
+try:
+        stacked_parts=urllib.unquote_plus(params["stackedParts"])
+except:
+        pass
 print '==========================PARAMS:\nURL: %s\nNAME: %s\nMODE: %s\nIMDBNUM: %s\nVIDEOTYPE: %s\nMYHANDLE: %s\nPARAMS: %s' % ( url, name, mode, imdbnum, video_type, sys.argv[1], params )
 
 if mode==None: #or url==None or len(url)<1:
@@ -3549,16 +3656,13 @@ elif mode==111:
         print ""+url
         DELETE_FROM_FAVOURITES(name,url)
 
-elif mode==199:
-        print ""+url
-        Stream_Source_with_parts(name,url)
-
 elif mode==200:
         print ""+url      
-        Stream_Source(name,url)
+        Stream_Source(name,url,stacked=stacked_parts)
 
 elif mode==201:
-        Download_Source(name,url)
+        Stream_Source(name, url, download=True, stacked=stacked_parts)
+        #Download_Source(name,url)
 
 elif mode==202:
         Check_Mega_Limits(name,url)
@@ -3570,7 +3674,8 @@ elif mode==205:
         PlayFile(name,url)
         
 elif mode==206:
-        Download_And_Play(name,url)
+        Stream_Source(name, url, download_play=True, stacked=stacked_parts)
+        #Download_And_Play(name,url)
 
 elif mode==207:
         ShowDownloadInfo(name)
