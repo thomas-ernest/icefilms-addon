@@ -1,3 +1,10 @@
+v1.0.99.14 (Friday, 10 February 2012):
+  - Added RapidShare SSL setting, HTTPS calls were causing issues for some users
+  - Updated RapidRoutines to use either https or http based on ssl setting passed in
+  - Added integrated Stacked Parts to work with D&W/Video seeking, auto-watch and downloads
+  - Added some extra error checking and msg displays on RS links, displays valid error messages on links
+  - Removed some percent options from 'Watched Percent' setting, with stacked parts/auto-watch having low values might affect
+
 v1.0.99.13 (Sunday, 05 February 2012):
   - Updated RapidRoutines
       - Premium account checking on BilledUntil != 0
