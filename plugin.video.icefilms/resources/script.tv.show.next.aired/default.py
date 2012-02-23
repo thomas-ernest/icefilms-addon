@@ -302,17 +302,18 @@ class NextAired:
         except:
             tvdircontents=None
         #Open all files in dir
-        for thefile in tvdircontents:
-            try:
-                fh = open(os.path.join(tvfav,thefile), 'r')
-                contents=fh.read()
-                fh.close()
-                
-                #add this to list
-                stringList.append(contents) 
-                log(contents)
-            except:
-                print 'problem with opening a favourites item'
+        if tvdircontents is not None:
+            for thefile in tvdircontents:
+                try:
+                    fh = open(os.path.join(tvfav,thefile), 'r')
+                    contents=fh.read()
+                    fh.close()
+                    
+                    #add this to list
+                    stringList.append(contents) 
+                    log(contents)
+                except:
+                    print 'problem with opening a favourites item'
 
         #sort list alphabetically and return it.
         tupleList = [(x.lower(), x) for x in stringList]
