@@ -38,11 +38,13 @@ icepath = selfAddon.getAddonInfo('path')
 sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 
 #imports of things bundled in the addon
-import container_urls,clean_dirs,htmlcleaner,megaroutines, rapidroutines
+import container_urls,clean_dirs,htmlcleaner
+import megaroutines, rapidroutines, debridroutines
 from metahandler import metahandlers
 from cleaners import *
-from xgoogle.BeautifulSoup import BeautifulSoup,BeautifulStoneSoup
+from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
+
 #Common Cache
 import xbmcvfs
 # plugin constants
@@ -53,7 +55,7 @@ try:
   import StorageServer
 except:
   import storageserverdummy as StorageServer
-cache = StorageServer.StorageServer("icefilms")
+cache = StorageServer.StorageServer(addon_id)
    
 ####################################################
 
@@ -128,13 +130,15 @@ def Notify(typeq,title,message,times, line2='', line3=''):
           dialog = xbmcgui.Dialog()
           dialog.ok(' '+title+' ', ' '+message+' ')
 
-#paths etc need sorting out. do for v1.1.0
+
+#Paths Etc
 icedatapath = 'special://profile/addon_data/plugin.video.icefilms'
 metapath = icedatapath+'/mirror_page_meta_cache'
 transmetapath = xbmcpath(metapath,'')
 downinfopath = icedatapath+'/downloadinfologs'
 transdowninfopath = xbmcpath(downinfopath,'')
 translatedicedatapath = xbmcpath(icedatapath,'')
+cookie_jar = os.path.join(translatedicedatapath, "cookiejar.lwp")
 art = icepath+'/resources/art'
 
 
@@ -238,11 +242,34 @@ def DLDirStartup():
 
 def LoginStartup():
      #Get whether user has set an account to use.
-     mega_account = selfAddon.getSetting('megaupload-account')
-     rapid_account = selfAddon.getSetting('rapidshare-account')
-     HideSuccessfulLogin = selfAddon.getSetting('hide-successful-login-messages')
-   
-     if rapid_account == 'true':
+     mega_account = str2bool(selfAddon.getSetting('megaupload-account'))
+     rapid_account = str2bool(selfAddon.getSetting('rapidshare-account'))
+     debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
+     HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
+
+     #Verify Read-Debrid Account
+     if debrid_account:
+         debriduser = selfAddon.getSetting('realdebrid-username')
+         debridpass = selfAddon.getSetting('realdebrid-password')
+
+         try:
+             rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
+             if rd.Login():
+                 if not HideSuccessfulLogin:
+                     Notify('small','Real-Debrid', 'Account login successful.','')
+                 return True
+             else:
+                 Notify('big','Real-Debrid','Login failed.', '')
+                 print 'Real-Debrid Account: login failed'
+                 return True
+         except Exception, e:
+              print '**** Real-Debrid Error: %s' % e
+              Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
+              pass
+              return False
+
+     #Verify RapidShare Account
+     if rapid_account:
          rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
          rapiduser = selfAddon.getSetting('rapidshare-username')
          rapidpass = selfAddon.getSetting('rapidshare-password')
@@ -257,7 +284,7 @@ def LoginStartup():
                      cache.delete('rapid_cookie')
                      cache.set('rapid_cookie', account_details['cookie'])
                      print 'RapidShare Account: login succeeded'
-                     if HideSuccessfulLogin == 'false':
+                     if not HideSuccessfulLogin:
                          Notify('small','RapidShare', 'Account login successful.','')
                      return True
                  else:
@@ -274,7 +301,8 @@ def LoginStartup():
               pass
               return False
 
-     elif mega_account == 'true':
+     #Verify MegaUpload Account
+     elif mega_account:
      
           mu=megaroutines.megaupload(translatedicedatapath)
 
@@ -295,7 +323,7 @@ def LoginStartup():
                         Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
                    elif login is True:
                         print 'Account: '+'login succeeded'
-                        if HideSuccessfulLogin == 'false':
+                        if not HideSuccessfulLogin:
                              Notify('small','Megaupload', 'Account login successful.','')
                              
               if megapass == '' or megauser == '':
@@ -464,40 +492,27 @@ def ContainerStartup():
 
 
 def Zip_DL_and_Install(url,installtype,work_folder,mc):
-     ####function to download and install a metacontainer. ####
 
+     ####function to download and install a metacontainer. ####
      url = str(url)
 
-     #get the download url
-     #mu=megaroutines.megaupload(translatedicedatapath)
-     #print 'Download URL: %s' % url
-     #thefile=mu.resolve_megaup(url)
-
-     account = selfAddon.getSetting('rapidshare-account')
-     if account == 'true':
-         rapid_cookie = cache.get('rapid_cookie')
-     else:
-         rapid_cookie = ''
-
-     rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
-     rs = rapidroutines.rapidshare(use_ssl=rapidssl)
-     download_details = rs.resolve_link(url, cookie=rapid_cookie)
-
+     link = Handle_Vidlink(url)
+     filename = re.search('[^/]+$', link[0]).group(0)
+     
      #define the path to save it to
-     filepath=os.path.normpath(os.path.join(work_folder,download_details['file_name']))
+     filepath=os.path.normpath(os.path.join(work_folder,filename))
 
      filepath_exists=os.path.exists(filepath)
      #if zip does not already exist, download from url, with nice display name.
      if filepath_exists==False:
                     
-         print 'Downloading zip: %s' % download_details['download_link']
-         do_wait('RapidShare', '', download_details['wait_time'])
-         complete = Download(download_details['download_link'], filepath, installtype)
+         print 'Downloading zip: %s' % link
+         complete = Download(link[0], filepath, installtype)
        
      elif filepath_exists==True:
           print 'zip already downloaded, attempting extraction'                   
           
-     print '!!!!handling meta install!!!!'
+     print '*** Handling meta install'
      return mc.install_metadata_container(filepath, installtype)
 
 
@@ -526,6 +541,9 @@ def Startup_Routines():
 def create_meta_pack():
        
     # This function will scrape all A-Z categories of the entire site
+    
+    mh=metahandlers.MetaData(preparezip=prepare_zip)
+    mh.insert_meta_installed(addon_id, last_update='Now', movie_covers='true', tv_covers='true', tv_banners='true', movie_backdrops='true', tv_backdrops='true')
     
     A2Z=[chr(i) for i in xrange(ord('A'), ord('Z')+1)]
     
@@ -984,23 +1002,29 @@ def WATCHINGNOW(url):
                                     addDir(name,url,mode,'',disablefav=True, disablewatch=True) 
         setView(None, 'default-view')
 
+
 def SEARCH(url):
+    SEARCHBYPAGE(url, 0)
+
+
+def SEARCHBYPAGE(url, page):
     kb = xbmc.Keyboard('', 'Search Icefilms.info', False)
     kb.doModal()
     if (kb.isConfirmed()):
         search = kb.getText()
         if search != '':
             DoEpListSearch(search)
-            DoSearch(search)
+            DoSearch(url, search, page)
             
     setView('movies', 'movies-view')
     
                                
-def DoSearch(search):        
+def DoSearch(iurl, search, nextPage):        
         finished = False
-        nextPage = 0
-        results = None
-        gs = GoogleSearch('site:http://www.icefilms.info/ip '+search+'')
+        more     = False
+        results  = None
+        url      = 'site:' + iurl + 'ip '+search+''
+        gs       = GoogleSearch(url)
         gs.results_per_page = 10
 
         while not finished:
@@ -1017,11 +1041,26 @@ def DoSearch(search):
                  
             nextPage = nextPage + 1
 
-            if len(results) == 30:
+            results_per_page = int(selfAddon.getSetting('search-results'))
+            if len(results) >= results_per_page:
+                more     = True
                 finished = True
 
         find_meta_for_search_results(results, 100)
-   
+
+        if more:
+            #leading space ensures the menu item always appears at end of list regardless of current sort order
+            name = ' Get More...'
+            sysname = urllib.quote_plus(name)
+            sysurl = urllib.quote_plus(iurl)
+            icon = handle_file('search','')
+
+            liz = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=icon)
+            liz.setInfo(type="Video", infoLabels={"Title": name})
+
+            u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(555) + "&name=" + sysname + "&search=" + search + "&nextPage=" + str(nextPage)
+            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
+
 
 def FindSearchResult(name, results):
         for res in results:
@@ -2028,8 +2067,25 @@ def Handle_Vidlink(url):
      ismega = re.search('\.megaupload\.com/', url)
      is2shared = re.search('\.2shared\.com/', url)
      israpid = re.search('rapidshare\.com/', url)
+
+    #Using real-debrid to get the generated premium link
+     link = None
+     debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
+
+     if debrid_account:
+          debriduser = selfAddon.getSetting('realdebrid-username')
+          debridpass = selfAddon.getSetting('realdebrid-password')
+          rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
+          if rd.Login():
+               link = rd.Resolve(url)
+               if not link:
+                   Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',)
      
-     if ismega:
+     if link:
+          print 'Real-Debrid Link resolved: %s ' % link[0]
+          return link
+
+     elif ismega:
           WaitIf()
           
           mu = megaroutines.megaupload(translatedicedatapath)
@@ -2066,7 +2122,6 @@ def Handle_Vidlink(url):
               if finished == True:
                    download_link = [1]
                    download_link[0] = download_details['download_link']
-                   #download_link[1] = download_details['message']
                    return download_link
               else:
                    return None
@@ -3470,6 +3525,14 @@ try:
         stacked_parts=urllib.unquote_plus(params["stackedParts"])
 except:
         pass
+try:
+        nextPage=urllib.unquote_plus(params["nextPage"])
+except:
+        pass
+try:
+        search=urllib.unquote_plus(params["search"])
+except:
+        pass
 print '==========================PARAMS:\nURL: %s\nNAME: %s\nMODE: %s\nIMDBNUM: %s\nVIDEOTYPE: %s\nMYHANDLE: %s\nPARAMS: %s' % ( url, name, mode, imdbnum, video_type, sys.argv[1], params )
 
 if mode==None: #or url==None or len(url)<1:
@@ -3527,6 +3590,12 @@ elif mode==56:
 elif mode==57:
         print ""+url
         FAVOURITES(url)
+
+elif mode==58:
+        print "Metahandler Settings"
+        import metahandler
+        metahandler.display_settings()
+        callEndOfDirectory = False
 
 elif mode==570:
         print ""+url
@@ -3682,6 +3751,10 @@ elif mode==207:
 
 elif mode==208:
         CancelDownload(name)        
+
+elif mode==555:
+        print "Mode 555 (Get More...) ******* search string is " + search + " *************  nextPage is " + nextPage
+        DoSearch(url, search, int(nextPage))
          
 elif mode==666:
         create_meta_pack()
