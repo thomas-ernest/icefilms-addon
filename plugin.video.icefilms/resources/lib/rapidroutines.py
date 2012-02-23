@@ -177,7 +177,7 @@ class rapidshare:
     
     def get_url(self, url):
 
-        #Ensure we remove and passwords and cookies from logging
+        #Ensure we remove logins, passwords and cookies from logging
         logurl = re.sub('&login=(.*)&password=(.*)', '&login=XXXXXX&password=XXXXXX',url)
         logurl = re.sub('&cookie=(.*)', '&cookie=XXXXXX',logurl)
         print 'RapidRoutines - Requesting URL: %s' % logurl
