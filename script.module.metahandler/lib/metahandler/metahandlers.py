@@ -30,8 +30,7 @@ from TMDB import TMDB
 from thetvdbapi import TheTVDB
 
 #necessary so that the metacontainers.py can use the scrapers
-import xbmc,xbmcaddon
-
+import xbmc, xbmcaddon
 
 ''' Use t0mm0's common library for http calls, corrects unicode problems '''
 from t0mm0.common.net import Net
@@ -50,8 +49,8 @@ except:
     print 'Metahandlers - Loading pysqlite2 as DB engine'
 
 addon = xbmcaddon.Addon(id='script.module.metahandler')
-path = addon.getAddonInfo('path')
-sys.path.append((os.path.split(path))[0])
+addon_path = addon.getAddonInfo('path')
+sys.path.append((os.path.split(addon_path))[0])
 
 
 def make_dir(mypath, dirname):
@@ -81,10 +80,16 @@ class MetaData:
      
     def __init__(self, path='special://profile/addon_data/script.module.metahandler/', preparezip=False):
 
-        self.path = xbmc.translatePath(path)
+        #Check if a path has been set in the addon settings
+        settings_path = addon.getSetting('meta_folder_location')
+        
+        if settings_path:
+            self.path = settings_path
+        else:
+            self.path = xbmc.translatePath(path)
+        
         self.cache_path = make_dir(self.path, 'meta_cache')
 
-        
         if preparezip:
             #create container working directory
             #!!!!!Must be matched to workdir in metacontainers.py create_container()
@@ -689,17 +694,21 @@ class MetaData:
 
     def update_meta(self, type, name, imdb_id, tmdb_id='', new_imdb_id='', new_tmdb_id='', year=''):
         '''
-        Updates and returns meta data for given movie, 
-        mainly to be used with refreshing individual movies.
+        Updates and returns meta data for given movie/tvshow, mainly to be used with refreshing individual movies.
         
         Searches local cache DB for record, delete if found, calls get_meta() to grab new data
-               
+
+        name, imdb_id, tmdb_id should be what is currently in the DB in order to find current record
+        
+        new_imdb_id, new_tmdb_id should be what you would like to update the existing DB record to, which you should have already found
         
         Args:
             name (int): full name of movie you are searching            
+            imdb_id (str): IMDB ID of CURRENT entry
         Kwargs:
-            imdb_id (str): IMDB ID        
-            tmdb_id (str): TMDB ID
+            tmdb_id (str): TMDB ID of CURRENT entry
+            new_imdb_id (str): NEW IMDB_ID to search with
+            new_tmdb_id (str): NEW TMDB ID to search with
             year (str): 4 digit year of video, recommended to include the year whenever possible
                         to maximize correct search results.
                         
@@ -732,7 +741,7 @@ class MetaData:
             new_tmdb_id = tmdb_id
             
         return self.get_meta(type, name, new_imdb_id, new_tmdb_id, year, overlay)
-        
+
 
     def _cache_lookup_by_id(self, type, imdb_id='', tmdb_id=''):
         '''
@@ -813,7 +822,7 @@ class MetaData:
         else:
             print 'No match in local DB'            
             return None
-                       
+
 
     def _cache_save_video_meta(self, meta, name, type, overlay=6):
         '''
