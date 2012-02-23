@@ -1,3 +1,10 @@
+v1.0.99.15 (Thursday, 23 February 2012):
+  - Small bug fix in Next Aired - was failing if you had no favorites
+  - Removed BeautifulSoup included with addon and instead referenced to module in xbmc official repository
+  - Removed import of BeautifulStone since it wasn't being used
+  - Added search pagination (spoyser)
+  - Added real-debrid support (anilkuj)
+
 v1.0.99.14 (Friday, 10 February 2012):
   - Added RapidShare SSL setting, HTTPS calls were causing issues for some users
   - Updated RapidRoutines to use either https or http based on ssl setting passed in
