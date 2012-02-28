@@ -39,15 +39,20 @@ class RealDebrid:
         url = 'http://real-debrid.com/ajax/deb.php?lang=en&sl=1&link=%s' % url
         source = self.GetURL(url)
         print 'DebridRoutines - Returned Source: %s' % source
+        download_details = {}
+        download_details['download_link'] = ''
+        download_details['message'] = ''
         if source == '<span id="generation-error">Your file is unavailable on the hoster.</span>':
-            return None
+            download_details['message'] = 'The file is unavailable on the hoster'
+            return download_details
         elif re.search('This hoster is not included in our free offer', source):
-            return None
+            download_details['message'] = 'This hoster is not included in our free offer'
+            return download_details
         else:
-            link =re.compile('ok"><a href="(.+?)"').findall(source)
-            print 'DebridRoutines - Resolved Link: %s' % link[0]
-            self.media_url = link[0]
-            return link
+            link = re.search('ok"><a href="(.+?)"', source).group(1)
+            print 'DebridRoutines - Resolved Link: %s' % link
+            download_details['download_link'] = link
+            return download_details
 
 
     def valid_url(self, url):
