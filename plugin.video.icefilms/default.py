@@ -378,7 +378,7 @@ def ContainerStartup():
          if ret==True:
                  
               #download dem files
-              get_db_zip=Zip_DL_and_Install(containers['db_url'],'database', work_path, mc)
+              get_db_zip=Zip_DL_and_Install(containers['db_url'],containers['db_filename'], 'database', work_path, mc)
 
               #do nice notification
               if get_db_zip==True:
@@ -408,10 +408,12 @@ def ContainerStartup():
              if tv_posters == 'true':
                  tv_installed = meta_installed['tv_covers']
                  tv_zip = containers['tv_covers_url']
+                 tv_filename = containers['tv_covers_filename']
                  tv_size = containers['tv_cover_size']
              else:
                  tv_installed = meta_installed['tv_banners']
                  tv_zip = containers['tv_banners_url']
+                 tv_filename = containers['tv_banners_filename']
                  tv_size = containers['tv_banners_size']
 
              if tv_installed == 'false':
@@ -419,7 +421,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(tv_zip,'tv_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(tv_zip, tv_filename, 'tv_images', work_path, mc)
                      
                      if get_cover_zip:
                          if tv_posters =='true':
@@ -440,7 +442,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(containers['mv_covers_url'],'movie_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(containers['mv_covers_url'],containers['mv_covers_filename'], 'movie_images', work_path, mc)
                      
                      if get_cover_zip:
                          mh.update_meta_installed(addon_id, movie_covers='true')
@@ -458,11 +460,9 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop1_zip=Zip_DL_and_Install(containers['mv_backdrop_1_url'],'movie_images', work_path, mc)
-                     get_backdrop2_zip=Zip_DL_and_Install(containers['mv_backdrop_2_url'],'movie_images', work_path, mc)
-                     get_backdrop3_zip=Zip_DL_and_Install(containers['mv_backdrop_3_url'],'movie_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(containers['mv_backdrop_url'],containers['mv_backdrop_filename'], 'movie_images', work_path, mc)
                      
-                     if get_backdrop1_zip and get_backdrop2_zip and get_backdrop3_zip:
+                     if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, movie_backdrops='true')
                          Notify('small','Movie Fanart Installation Success','','')
                      else:
@@ -478,7 +478,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(containers['tv_backdrop_url'],'tv_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(containers['tv_backdrop_url'],containers['tv_backdrop_filename'], 'tv_images', work_path, mc)
                      
                      if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, tv_backdrops='true')
@@ -491,13 +491,13 @@ def ContainerStartup():
                  print 'TV fanart already installed'
 
 
-def Zip_DL_and_Install(url,installtype,work_folder,mc):
+def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
 
-     ####function to download and install a metacontainer. ####
-     url = str(url)
-
-     link = Handle_Vidlink(url)
-     filename = re.search('[^/]+$', link[0]).group(0)
+     #link = Handle_Vidlink(url)
+     #filename = re.search('[^/]+$', link).group(0)
+     
+     #Use Minus.com to download meta packs
+     link = resolve_minus(url, filename)
      
      #define the path to save it to
      filepath=os.path.normpath(os.path.join(work_folder,filename))
@@ -507,13 +507,20 @@ def Zip_DL_and_Install(url,installtype,work_folder,mc):
      if filepath_exists==False:
                     
          print 'Downloading zip: %s' % link
-         complete = Download(link[0], filepath, installtype)
+         complete = Download(link, filepath, installtype)
        
      elif filepath_exists==True:
           print 'zip already downloaded, attempting extraction'                   
           
      print '*** Handling meta install'
      return mc.install_metadata_container(filepath, installtype)
+
+
+def resolve_minus(url, filename):
+    r = '"name": "%s".*?"id": "([^\s]*?)".*?"secure_prefix":"(.*?)",' % filename
+    html = GetURL(url)
+    r = re.search(r, html)
+    return 'http://i.minus.com%s/d%s.zip' % (r.group(2), r.group(1))
 
 
 def Startup_Routines():
@@ -542,6 +549,7 @@ def create_meta_pack():
        
     # This function will scrape all A-Z categories of the entire site
     
+    #Insert starting record to addon table so that all data and images are scraped/downloaded
     mh=metahandlers.MetaData(preparezip=prepare_zip)
     mh.insert_meta_installed(addon_id, last_update='Now', movie_covers='true', tv_covers='true', tv_banners='true', movie_backdrops='true', tv_backdrops='true')
     
@@ -565,6 +573,9 @@ def create_meta_pack():
     for theletter in A2Z:
          print '### GETTING TV METADATA FOR ALL ENTRIES ON: '+theletter
          TVINDEX(iceurl + 'tv/a-z/' + theletter)
+    
+    #Ensure to reset addon fields to false so database is ready to deploy     
+    mh.update_meta_installed(addon_id, movie_covers='false', tv_covers='false', tv_banners='false', movie_backdrops='false', tv_backdrops='false')
 
 
 def CATEGORIES():  #  (homescreen of addon)
@@ -1251,8 +1262,8 @@ def TVINDEX(url):
     link=GetURL(url)
 
     #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
-    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
-    match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>(.+?)br>').findall(link)
+    match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
+    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>(.+?)br>').findall(link)
     
     getMeta(match, 12)
     print 'TVindex loader'
@@ -2077,12 +2088,13 @@ def Handle_Vidlink(url):
           debridpass = selfAddon.getSetting('realdebrid-password')
           rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
           if rd.Login():
-               link = rd.Resolve(url)
+               download_details = rd.Resolve(url)
+               link = download_details['download_link']
                if not link:
-                   Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',)
+                   Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_link['message'])
      
      if link:
-          print 'Real-Debrid Link resolved: %s ' % link[0]
+          print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
           return link
 
      elif ismega:
@@ -2094,7 +2106,7 @@ def Handle_Vidlink(url):
           finished = do_wait('MegaUpload', link[3], link[4])
 
           if finished:
-               return link
+               return link[0]
           else:
                return None
 
@@ -2120,9 +2132,7 @@ def Handle_Vidlink(url):
               finished = do_wait('RapidShare', '', download_details['wait_time'])
 
               if finished == True:
-                   download_link = [1]
-                   download_link[0] = download_details['download_link']
-                   return download_link
+                   return download_details['download_link']
               else:
                    return None
           else:
@@ -2192,23 +2202,23 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
 
         #Download & Watch
         if download_play:
-            completed = Download_And_Play(name,link[0], video_seek=False)
+            completed = Download_And_Play(name,link, video_seek=False)
             print 'Download & Play streaming completed: %s' % completed
         
         #Download & Watch - but delete file when done, simulates streaming and allows video seeking
         elif video_seeking:
-            completed = Download_And_Play(name,link[0], video_seek=video_seeking)
+            completed = Download_And_Play(name,link, video_seek=video_seeking)
             print 'Video Seeking streaming completed: %s' % completed
             CancelDownload(name, video_seek=video_seeking)
         
         #Download option
         elif download:
-            completed = Download_Source(name,link[0])
+            completed = Download_Source(name,link)
             print 'Downloading completed: %s' % completed
 
         #Else play the file as normal stream
         else:               
-            completed = play_with_watched(link[0], listitem, mypath, last_part)
+            completed = play_with_watched(link, listitem, mypath, last_part)
             print 'Normal streaming completed: %s' % completed
 
         #Check if video was played until end - else assume user stopped watching video so break from loop
@@ -2297,7 +2307,7 @@ def Stream_Source_with_parts(name,url):
     print '--- Attempting to stream file: ' + str(link) + ' from url: ' + str(url)
      
     mplayer = MyPlayer()
-    mplayer.play(link[0], listitem)
+    mplayer.play(link, listitem)
 
     index = 2
     
@@ -2331,7 +2341,7 @@ def Stream_Source_with_parts(name,url):
                     finalPart = True
                     pass
                 mplayer = MyPlayer()
-                mplayer.play(link2[0], listitem)
+                mplayer.play(link2, listitem)
                 index+=1
         xbmc.sleep(500) 
 
@@ -3105,7 +3115,7 @@ def cleanUnicode(string):
 def getMeta(scrape, mode):
 
     #check settings over whether to display the number of episodes next to tv show name.
-    show_num_of_eps=selfAddon.getSetting('display-show-eps')
+    #show_num_of_eps=selfAddon.getSetting('display-show-eps')
     
     #print scrape
 
@@ -3117,17 +3127,17 @@ def getMeta(scrape, mode):
         meta_installed = metaget.check_meta_installed(addon_id)
 
         #determine whether to show number of eps
-        if scrape[3] and show_num_of_eps == 'true' and mode == 12:
-            for imdb_id,url,name,num_of_eps in scrape:
-                num_of_eps=re.sub('<','',num_of_eps)
-                num_of_eps=re.sub('isode','',num_of_eps)#turn Episode{s} into Ep(s)
-                ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode,num_of_eps, totalitems=len(scrape))
-        elif mode == 12: # fix for tvshows with num of episodes disabled
-            for imdb_id,url,name, blank in scrape:
-                ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
-        else:
-            for imdb_id,url,name in scrape:
-                ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
+        #if scrape[3] and show_num_of_eps == 'true' and mode == 12:
+        #    for imdb_id,url,name,num_of_eps in scrape:
+        #        num_of_eps=re.sub('<','',num_of_eps)
+        #        num_of_eps=re.sub('isode','',num_of_eps)#turn Episode{s} into Ep(s)
+        #        ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode,num_of_eps, totalitems=len(scrape))
+        #if mode == 12: # fix for tvshows with num of episodes disabled
+        #    for imdb_id,url,name in scrape:
+        #        ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
+        #else:
+        for imdb_id,url,name in scrape:
+            ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
                 
     #add without metadata -- imdb is still passed for use with Add to Favourites
     else:
