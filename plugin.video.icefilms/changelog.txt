@@ -1,3 +1,9 @@
+v1.0.99.16 (Tuesday, 28 February 2012):
+  - Removed Display Episode numbers options from settings, causing too many issues
+  - Updated meta data packs, now using minus.com
+  - Updated Real-Debrid routines to return error msgs for user display
+  - Metahandlers showing default save location
+
 v1.0.99.15 (Thursday, 23 February 2012):
   - Small bug fix in Next Aired - was failing if you had no favorites
   - Removed BeautifulSoup included with addon and instead referenced to module in xbmc official repository
