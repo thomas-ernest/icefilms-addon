@@ -50,7 +50,7 @@
     <string id="30501">Auto-Watch Percentage</string>
     <string id="30502">Default Play Action</string>
     <string id="30503">Enable Video Seeking - Fast Forward & Rewind</string>
-    <string id="30504">Buffer Delay (seconds)</string>
+    <string id="30504">    Buffer Delay (seconds)</string>
 
    <!-- Next Aired -->
    <string id="45000">Rescan tv guide data</string>    

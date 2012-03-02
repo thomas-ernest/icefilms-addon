@@ -1,88 +1,173 @@
-v1.0.99.16 (Tuesday, 28 February 2012):
-  - Removed Display Episode numbers options from settings, causing too many issues
-  - Updated meta data packs, now using minus.com
-  - Updated Real-Debrid routines to return error msgs for user display
-  - Metahandlers showing default save location
+ v1.1.0 (Friday, 02 March 2012):
+  - Major Release!
+  - Added FULL meta data for all movies & tvshows, includes many new features and information
+  - Ability to mark watched/unwatched, also auto-watch flagging of videos you watch
+  - Download & Watch functionality
+  - Video Seeking - useful for free accounts, allows you to fast forward & rewind while watching a video
+  - Silent Downloads - download a video in the background while continuing to use XBMC
+  - TV Show Next Aired for Favorites - view tv schedule for tv shows in your favorites folder
+  - Skin Auto-View - sets view modes automatically based on content type
+  - Stacked Parts support - Will automatically play all parts of multi-part videos
+  - Better search results and configurable # of results per page
+ 
+ v1.0.25 (Monday, 06 February 2012):
+  - Updated RapidShare, premium account fixed, faster api calls
 
-v1.0.99.15 (Thursday, 23 February 2012):
-  - Small bug fix in Next Aired - was failing if you had no favorites
-  - Removed BeautifulSoup included with addon and instead referenced to module in xbmc official repository
-  - Removed import of BeautifulStone since it wasn't being used
-  - Added search pagination (spoyser)
-  - Added real-debrid support (anilkuj)
-
-v1.0.99.14 (Friday, 10 February 2012):
-  - Added RapidShare SSL setting, HTTPS calls were causing issues for some users
-  - Updated RapidRoutines to use either https or http based on ssl setting passed in
-  - Added integrated Stacked Parts to work with D&W/Video seeking, auto-watch and downloads
-  - Added some extra error checking and msg displays on RS links, displays valid error messages on links
-  - Removed some percent options from 'Watched Percent' setting, with stacked parts/auto-watch having low values might affect
-
-v1.0.99.13 (Sunday, 05 February 2012):
-  - Updated RapidRoutines
-      - Premium account checking on BilledUntil != 0
-      - Premium accounts now only call checkfiles to get host & server id
-      - Instead of using the host rapid returns, now using short_host + server id to create download link
-      - Many more updates, error checks, and more flexibility to call each method individually
-  - RapidShare login check on startup, stores cookie in cache so that login check only needs to be called once
-  - Fixed comsetics where MegaUpload was being shown on message boxes
-      
-v1.0.99.12 (Friday, 20 January 2012):
-  - Removed MegaUpload login check on startup
+v1.0.24 (Thursday, 26 January 2012):
   - Added RapidShare sources support
   
-v1.0.99.11 (Friday, 13 January 2012):
-  - Fixed bug where favorites were not being deleted - favorites should now sort alphabetically
-  - Added single season refresh
-  - Execute Next Aired scan on startup in background, also when a new item is added to favorites
+v1.0.23 (Friday, 20 January 2012):
+  - Disabled (temporarily) MegaUpload login check on startup
+  - Disabled (temporarily) metadata install on startup
+  
+v1.0.22 (Thursday, 19 January 2012):
+  - Enabled 2Shared links
+  
+v1.0.21 (Monday, 2 January 2012):
+  - Fix for MegaUpload removing (temporarily?) wait time on free accounts
+  
+v1.0.20 (Wednesday, 21 December 2011):
+  - Bug fix for premium/platinum acts with direct downloads turned on
 
-v1.0.99.10 (Thursday, 12 January 2012):
-  - Modified wait time increment to round up to no decimals and convert to integer - float caused bug in Ubuntu
-  - Added Episode 'Refresh Info'
-  - Bug fix in Next Aired
-  - Next Aired only showing for Favorites
-  - Watched/Unwatched count now properly shows in TV Show Info dialog
+v1.0.19 (Wednesday, 21 December 2011):
+  - Added automatic MegaUpload wait time check for free user accounts
+  - Added MegaUpload Platinum user support
+  
+v1.0.18 (Monday, 05 December 2011):
+  - Small fix for those receiving 409 errors on Home Page categories
+  - Fixes for MegaUpload site changes, new login check and 60 second wait time for free user accounts
 
-v1.0.99.9 (Tuesday, 10 January 2012):
-  - Updated container url for new DB - new fields added in previous release
-  - Metahandlers updated to properly upgrade existing DB's - was throwing an error
-  - SQL syntax error in Metahandlers when looking up in cache DB by title
+v1.0.17 (Monday, 21 November 2011):
+  - Home page categories fix for recent site html change
+  - Fix for music section throwing script error - cookie was not found
+  - Added forward slash '/' to list of allowed characters in download folder/file names
+  - Search update to allow more results (spoyser)
   
-v1.0.99.8 (Monday, 9 January 2012):
-  - Added TV Shows Next Aired
-  - Bug fix in IMDB ratings
-  - Added 'Votes' to Movie meta, # of votes used to create Rating
-  - Added 'Status' to TV Show meta - 'Continuing' - useful for Next Aired
-  - Bug fix in Stacked Parts
-  - Added # of Watched/Unwatched episodes based on DB stats
-  - Fixed Movies A-Z was showing A-Z list twice
-  - Added check and removal of previous Icefilms 1.0.x metadata
-  - Changed Download path - removed 'Icefilms Downloaded Videos' from path
-  - Removed Library Mode switching from ContextMenu
-  
-v1.0.99.7 (Wednesday, 4 January 2012):
-  - Metahandlers returning total # of episodes - episodes must be scraped for count to show
-  - Metahandlers getting rating from IMDB, using TMDB as backup
-  - Common cache integrated - removed need for IO on many text files
-  - Update default auto-view for season to 504
-  
-v1.0.99.6 (Monday, 2 January 2012):
-  - Fix for megaupload free user account changes
-  
-v1.0.99.5 (Thursday, 22 December 2011):
-  - fixed video-seeking to ensure it deletes the file when finished playing, also added some extra logic around D&W to check if it's doing video-seeking
-  - added TV Banners option to metahandlers and Icefilms
-  - added individual settings for Movie & TV show cover art - now able to install exact items you want, just DB, DB + Movie Covers etc.
-  - removed 'Hide 2Shared Sources' addon setting
-  - removed sorting from search results and trimmed number results returned to 30 - still to add spoyser's pagination
-  - added grabbing the wait time for MU accounts from the website
-  
+v1.0.16 (Wednesday, 19 October 2011):
+  - Quick fix to correct screwup on a-z listings
 
-v1.0.99.4 (Monday, 19 December 2011):
-  - added spoyser's updated search, more results and sorted
-  - enabled streaming from 2shared sources (zpanderson)
-  - Fixed the multi-part code I had written. Previously the text file that I was writing the sources to was never cleaned so it had a list of all the files (zpanderson)
-  - Fixed another issue in the multi-part code where if the totalTime wasn't returned on the first try it stopped and only the first part would be played. (zpanderson)
-  - removed duplicated MOVIE_FAVOURITES and TV_FAVOURITES methods
-  - corrected TV_FAVOURITES view mode to 'tvshows'
- 
+v1.0.15 (Wednesday, 19 October 2011):
+  - Fixed TV Show download errors - extra space in season name from previous fixed caused invalid folder names in Windows
+  - Fixed bad Windows folders/filenames due to invalid characters
+  - put try/except block on a piece of code in LOADMIRRORS that was causing a script error when sources could not be loaded
+  - lower cased two icons for letter m and g, they were uppercase and would not show on XBMC Live due to case sensitivity, changed code to use lower case letters
+
+v1.0.14 (Sunday, 09 October 2011):
+  - correct issues with Colbert Report, Daily Show and others not showing all seasons
+
+v1.0.13 (Saturday, 08 October 2011):
+  - fix for tv shows after site change
+
+v1.0.12 (Monday, 29 August 2011):
+  - added new addon setting to specify url of icefilms site (wesada)
+
+v1.0.11 (Thursday, 7 July 2011):
+  - update script to new movie list page
+
+v1.0.10 (Saturday, 2 July 2011):
+  - add Movie Information context menu item
+  - more favourites fixes
+  - fix script error in lists containing items with missing IMDB IDs
+
+v1.0.9 (Saturday, 2 July 2011):
+  - fix favourites
+  - fix 2shared sources
+
+v1.0.8 (Friday, 1 July 2011):
+  - fix broken sources introduced by IceFilms site update
+  - separate folders for TV and movie favourites
+
+v1.0.7 (Saturday, 4 June 2011):
+  - fix script errors introduced by IceFilms site update
+  - favourites fix
+
+v1.0.6 (Tuesday, 15 March 2011):
+  - added source type art
+  - failures of phantom meta getters no longer impede streaming
+
+v1.0.5 (Thursday, 10 March 2011):
+  - fixed unicode errors
+  - fixed weird characters
+  - backported new login code from videoresolvers.
+    this is faster, and doesn't need the mechanize module.
+
+v1.0.4 (Friday, 4 March 2011):
+  - fixes for favourites handling
+  - possible speed-ups
+
+v1.0.(2,3) (Thursday, 3 March 2011):
+  - fixed Black Swan and King's Speech error
+  - fixed unicode metadata error
+  - added download with jDownloader context menu option for sources.
+    (requires jDownloader xbmc plugin installed)
+
+v1.0.1 (Wednesday, 16 February 2011):
+  - updated megaroutines (supports premium direct downloads)
+  - replaced time.sleep with xbmc.sleep for waiting times
+  - removed offending sqlite line (should now work unlatched on ATV2)
+  - player code now force sets DVD_PLAYER (good for xbox users)
+  - added 3 sec waiting time for premium users, might help them...
+  - added ndeshmukh's youtube patch (now play trailers for items with metadata)
+
+v1.0.0 (Sunday, 13 February 2011):
+  - support for megaupload changes
+  - context menus full of functions
+  - library mode
+  - source images for megaupload and 2shared
+  - cool new fanart and sub-category images made by HTPC Guy
+  - tv show seasons directories
+  - new settings pane with more options
+  - option to download file, with nice folder hierarchy
+  - optimized addon code
+  - favourite items support
+  - improved search
+  - download limit checker
+  - movie metadata support, and container support
+  - megaup now handled by Megaroutines classes
+
+v0.6.1 (Monday, 27 December 2010):
+  - updated icons and fanart
+  - fixed an issue whereby the icons were not being loaded
+  - requires a fresh install of xbmc for the changes to be visible.
+
+v0.6.0 (Monday, 27 December 2010):
+  - reCaptcha passthrough (enables more tv shows)
+  - browse by genre for all categories
+  - HD720p category for Movies
+  - mirror pages are now only scraped once per view
+  - mechanize is now a separate addon
+  - flatten megaupload enabled by default
+
+v0.5.(1,2,3) (Thursday, 23 December 2010):
+  - fixed error on first login with no account
+  - fixed some bugs related to login notifications
+  - tidied the login code
+
+v0.5.0 (Thursday, 23 December 2010):
+  - search function won't return error if it cant find search
+  - support for megaupload free (tested) and premium (untested)
+  - notifications for logins
+  - art is now loaded from disk, not scraped from photobucket
+  - cookies, cookies, cookies
+
+v0.4.0 (Monday, 20 December 2010):
+  - added search function
+  - added Homepage category (and option to disable)
+  - removed flatten A-Z directories (avoid overloading icefilms)
+
+v0.3.1 (Sunday, 19 December 2010):
+  - fanart included
+  - now hosted on this svn repository, for easy updates
+  - renamed Default.py to default.py to avoid XBMC Live issues
+
+v0.3 (Thursday, 17 December 2010):
+  - added settings panel and options to flatten certain menus
+  - added pictures for main categories
+
+v0.2 (December 2010):
+  - mirrors now sorted by type, source and part
+  - added categories Popular, Latest Releases etc.
+  - whether a film is HD or not is now visible
+
+v0.1 (November 2010) :
+  - initial release
