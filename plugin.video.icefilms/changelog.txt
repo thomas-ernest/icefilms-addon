@@ -1,3 +1,8 @@
+ v1.1.1 (Wednesday, 14 March 2012):
+  - Added support for 180Upload and SpeedyShare sources
+  - Corrected Download option where it was streaming instead of downloading
+  - Corrected Default Play Action - was not being used in all scenarios
+
  v1.1.0 (Friday, 02 March 2012):
   - Major Release!
   - Added FULL meta data for all movies & tvshows, includes many new features and information
