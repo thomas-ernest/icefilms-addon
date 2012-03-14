@@ -29,6 +29,10 @@ prepare_zip = False
 
 import xbmc,xbmcplugin,xbmcgui,xbmcaddon, datetime
 
+''' Use t0mm0's common library for http calls '''
+from t0mm0.common.net import Net
+net = Net()
+
 #get path to me
 addon_id = 'plugin.video.icefilms'
 selfAddon = xbmcaddon.Addon(id=addon_id)
@@ -171,6 +175,10 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'2shared.png')
      elif filename == 'rapidpic':
           return_file = xbmcpath(art,'rapidshare.png')
+     elif filename == '180pic':
+          return_file = xbmcpath(art,'180upload.png')
+     elif filename == 'speedypic':
+          return_file = xbmcpath(art,'speedyshare.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -521,6 +529,40 @@ def resolve_minus(url, filename):
     html = GetURL(url)
     r = re.search(r, html)
     return 'http://i.minus.com%s/d%s.zip' % (r.group(2), r.group(1))
+
+
+def resolve_180upload(url):
+
+    dialog = xbmcgui.DialogProgress()
+    dialog.create('Resolving', 'Resolving 180Upload Link...')
+    
+    print 'Requesting GET URL: %s' % url
+    html = net.http_GET(url).content
+    
+    data1 = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+    data2 = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+    data3 = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+    
+    data = {'op': data1, 'id': data2, 'rand': data3}
+    
+    dialog.update(50)
+    
+    print 'Requesting POST URL: %s' % url
+    html = net.http_POST(url, data).content
+    link = re.search('<span style="background:#f9f9f9;border:1px dotted #bbb;padding:7px;">.+?<a href="(.+?)">', html,re.DOTALL).group(1)
+    print '180Upload Link Found: %s' % link
+
+    dialog.update(100)
+    dialog.close()
+    return link
+    
+
+def resolve_speedyshare(url):
+    
+    print 'Requesting GET URL: %s' % url
+    html = net.http_GET(url).content
+    link = re.search("<a class=downloadfilename href='(.+?)'>", html).group(1)
+    return 'http://speedy.sh' + link
 
 
 def Startup_Routines():
@@ -1606,6 +1648,8 @@ def PART(scrap,sourcenumber,args,cookie):
      megapic=handle_file('megapic','')
      shared2pic=handle_file('shared2pic','')
      rapidpic=handle_file('rapidpic','')
+     u180pic=handle_file('180pic','')
+     speedypic=handle_file('speedypic','')
      
      #if source exists proceed.
      if checkforsource is not None:
@@ -1622,68 +1666,50 @@ def PART(scrap,sourcenumber,args,cookie):
                for sourcescrape1,sourcescrape2 in multi_part_source:
                     scrape=sourcescrape1+'PART 1'+sourcescrape2
                     pair = re.compile("onclick='go\((\d+)\)'>PART\s+(\d+)").findall(scrape)
+
                     for id, partnum in pair:
                         url = GetSource(id, args, cookie)
+
                         # check if source is megaupload or 2shared, and add all parts as links
                         ismega = re.search('\.megaupload\.com/', url)
                         is2shared = re.search('\.2shared\.com/', url)
                         israpid = re.search('rapidshare\.com/', url)
+                        is180 = re.search('180upload\.com/', url)
+                        isspeedy = re.search('speedy\.sh/', url)
 
                         if ismega:
-                              partname='Part '+partnum
                               fullname=sourcestring+' | MU | '+partname
-                              try:
-                                  sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
-                              except:
-                                  sources = {partnum: url}
-                                  print 'sources havent been set yet...'  
-                              sources[partnum] = url
-                              cache.delete("source"+str(sourcenumber)+"parts")
-                              cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
-                              if stacked and partnum == '1':
-                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(fullname,url,get_default_action(),megapic,stacked)
-                              elif not stacked:
-                                  addExecute(fullname,url,get_default_action(),megapic)
-                        
+                              logo = megapic
                         elif is2shared is not None:
-                             #print sourcestring+' is hosted by 2shared'
-                              partname='Part '+partnum
                               fullname=sourcestring+' | 2S | '+partname
-                              try:
-                                  sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
-                              except:
-                                  sources = {partnum: url}
-                                  print 'sources havent been set yet...' 
-                              sources[partnum] = url
-                              cache.delete("source"+str(sourcenumber)+"parts")
-                              cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
-                              if stacked and partnum == '1':
-                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(fullname,url,get_default_action(),shared2pic,stacked)
-                              elif not stacked:
-                                  addExecute(fullname,url,get_default_action(),shared2pic)
-
+                              logo = shared2pic
                         elif israpid:
-                              partname='Part '+partnum
                               fullname=sourcestring+' | RS | '+partname
-                              try:
-                                  sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
-                              except:
-                                  sources = {partnum: url}
-                                  print 'sources havent been set yet...' 
-                              sources[partnum] = url
-                              cache.delete("source"+str(sourcenumber)+"parts")
-                              cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                              stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
-                              if stacked and partnum == '1':
-                                  fullname = fullname.replace('Part 1', 'Multiple Parts')
-                                  addExecute(fullname,url,get_default_action(),rapidpic,stacked)
-                              elif not stacked:
-                                  addExecute(fullname,url,get_default_action(),rapidpic)
-                         
+                              logo = rapidpic
+                        elif is180:
+                              fullname=sourcestring+' | 180 | '+partname
+                              logo = u180pic
+                        elif isspeedy:
+                              fullname=sourcestring+' | SS | '+partname
+                              logo = speedypic
+
+                        partname='Part '+partnum
+                        try:
+                            sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
+                        except:
+                            sources = {partnum: url}
+                            print 'sources havent been set yet...'  
+
+                        sources[partnum] = url
+                        cache.delete("source"+str(sourcenumber)+"parts")
+                        cache.set("source"+str(sourcenumber)+"parts", repr(sources))
+                        stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
+
+                        if stacked and partnum == '1':
+                            fullname = fullname.replace('Part 1', 'Multiple Parts')
+                            addExecute(fullname,url,get_default_action(),logo,stacked)
+                        elif not stacked:
+                            addExecute(fullname,url,get_default_action(),logo)                                                
 
           # if source does not have multiple parts...
           elif multiple_part is None:
@@ -1691,27 +1717,34 @@ def PART(scrap,sourcenumber,args,cookie):
                # find corresponding '<a rel=?' entry and add as a one-link source
                source5=re.compile('<a\s+rel='+sourcenumber+'.+?onclick=\'go\((\d+)\)\'>Source\s+#'+sourcenumber+':').findall(scrap)
                # print source5
+
                for id in source5:
                     url = GetSource(id, args, cookie)
                     ismega = re.search('\.megaupload\.com/', url)
                     is2shared = re.search('\.2shared\.com/', url)
                     israpid = re.search('rapidshare\.com/', url)
+                    is180 = re.search('180upload\.com/', url)
+                    isspeedy = re.search('speedy\.sh/', url)
                     
                     if ismega is not None:
-                         # print 'Source #'+sourcenumber+' is hosted by megaupload'
                          fullname=sourcestring+' | MU | Full'
                          addExecute(fullname,url,get_default_action(),megapic)
                     
                     elif is2shared is not None:
-                         #print 'Source #'+sourcenumber+' is hosted by 2shared' 
                          fullname=sourcestring+' | 2S  | Full'
-                         addExecute(fullname,url,200,shared2pic)
+                         addExecute(fullname,url,get_default_action(),shared2pic)
 
                     elif israpid is not None:
-                         #print 'Source #'+sourcenumber+' is hosted by 2shared' 
                          fullname=sourcestring+' | RS  | Full'
-                         addExecute(fullname,url,200,rapidpic)
+                         addExecute(fullname,url,get_default_action(),rapidpic)
 
+                    elif is180 is not None:
+                         fullname=sourcestring+' | 180  | Full'
+                         addExecute(fullname,url,get_default_action(),u180pic)
+
+                    elif isspeedy is not None:
+                         fullname=sourcestring+' | SS  | Full'
+                         addExecute(fullname,url,get_default_action(),speedypic)
 
 
 def GetSource(id, args, cookie):
@@ -2078,6 +2111,7 @@ def Handle_Vidlink(url):
      ismega = re.search('\.megaupload\.com/', url)
      is2shared = re.search('\.2shared\.com/', url)
      israpid = re.search('rapidshare\.com/', url)
+     is180 = re.search('180upload\.com/', url)
 
     #Using real-debrid to get the generated premium link
      link = None
@@ -2113,7 +2147,13 @@ def Handle_Vidlink(url):
      elif is2shared:
           shared2url=SHARED2_HANDLER(url)
           return shared2url
+
+     elif is180:
+          return resolve_180upload(url)
           
+     elif isspeedy:
+          return resolve_speedyshare(url)
+
      elif israpid:
           
           account = selfAddon.getSetting('rapidshare-account')
@@ -2155,6 +2195,8 @@ def PlayFile(name,url):
 
 def Stream_Source(name, url, download_play=False, download=False, stacked=False):
     
+    print 'Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked)
+
     callEndOfDirectory = False
     
     vidname=cache.get('videoname')
@@ -2202,22 +2244,26 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
 
         #Download & Watch
         if download_play:
+            print 'Starting Download & Play'
             completed = Download_And_Play(name,link, video_seek=False)
             print 'Download & Play streaming completed: %s' % completed
         
+        #Download option
+        elif download:
+            print 'Starting Download'
+            completed = Download_Source(name,link)
+            print 'Downloading completed: %s' % completed
+
         #Download & Watch - but delete file when done, simulates streaming and allows video seeking
         elif video_seeking:
+            print 'Starting Video Seeking'
             completed = Download_And_Play(name,link, video_seek=video_seeking)
             print 'Video Seeking streaming completed: %s' % completed
             CancelDownload(name, video_seek=video_seeking)
         
-        #Download option
-        elif download:
-            completed = Download_Source(name,link)
-            print 'Downloading completed: %s' % completed
-
         #Else play the file as normal stream
         else:               
+            print 'Starting Normal Streaming'
             completed = play_with_watched(link, listitem, mypath, last_part)
             print 'Normal streaming completed: %s' % completed
 
