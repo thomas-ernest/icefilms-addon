@@ -2,7 +2,7 @@
 <addons>
 <addon id="plugin.video.icefilms"
        name="Icefilms"
-       version="1.0.99.16"
+       version="1.1.0"
        provider-name="anarchintosh,daledude,eldorado">
     <requires>
         <import addon="xbmc.python" version="2.0"/>
@@ -19,7 +19,7 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary>Stream and download scene releases from the megaupload links listed on Icefilms.info</summary>
+        <summary>Stream and download scene releases from the links listed on Icefilms.info</summary>
         <description>Visit www.xbmchub.com for support.
 
 Turns your XBMC into an instant free on-demand media-center. Stream and download to your library pure AVI scene releases, in DVD and HD720p quality. Browse and search the library of over 77,000 videos with metadata and posters. Never experience the frustration of dead video links!</description>
@@ -37,20 +37,5 @@ Turns your XBMC into an instant free on-demand media-center. Stream and download
 		<description>Icefilms alpha/beta testing only!</description>
 		<platform>all</platform>
 	</extension>
-</addon>
-
-<addon id="script.module.metahandler"
-	     name="metahandler"
-	     version="0.0.15"
-	     provider-name="Eldorado (inspired by anarchintosh, westcoast, daledude, t0mm0)">
-  <requires>
-    <import addon="xbmc.python" version="2.0" />
-    <import addon="script.module.elementtree"/>
-    <import addon="script.module.t0mm0.common" version="1.1.0"/>
-  </requires>
-  <extension point="xbmc.python.module" library="lib" />
-  <extension point="xbmc.addon.metadata">
-    <platform>all</platform>
-  </extension>
 </addon>
 </addons>
