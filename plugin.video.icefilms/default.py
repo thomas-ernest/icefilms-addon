@@ -533,36 +533,148 @@ def resolve_minus(url, filename):
 
 def resolve_180upload(url):
 
-    dialog = xbmcgui.DialogProgress()
-    dialog.create('Resolving', 'Resolving 180Upload Link...')
+    try:
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving 180Upload Link...')
+        
+        print '180Upload - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        data1 = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        data2 = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        data3 = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        
+        data = {'op': data1, 'id': data2, 'rand': data3}
+        
+        dialog.update(50)
+        
+        print '180Upload - Requesting POST URL: %s' % url
+        html = net.http_POST(url, data).content
+        link = re.search('<span style="background:#f9f9f9;border:1px dotted #bbb;padding:7px;">.+?<a href="(.+?)">', html,re.DOTALL).group(1)
+        print '180Upload Link Found: %s' % link
     
-    print 'Requesting GET URL: %s' % url
-    html = net.http_GET(url).content
-    
-    data1 = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-    data2 = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-    data3 = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-    
-    data = {'op': data1, 'id': data2, 'rand': data3}
-    
-    dialog.update(50)
-    
-    print 'Requesting POST URL: %s' % url
-    html = net.http_POST(url, data).content
-    link = re.search('<span style="background:#f9f9f9;border:1px dotted #bbb;padding:7px;">.+?<a href="(.+?)">', html,re.DOTALL).group(1)
-    print '180Upload Link Found: %s' % link
-
-    dialog.update(100)
-    dialog.close()
-    return link
+        dialog.update(100)
+        dialog.close()
+        return link
+    except Exception, e:
+        print '**** 180Upload Error occured: %s' % e
+        raise
     
 
 def resolve_speedyshare(url):
-    
-    print 'Requesting GET URL: %s' % url
-    html = net.http_GET(url).content
-    link = re.search("<a class=downloadfilename href='(.+?)'>", html).group(1)
-    return 'http://speedy.sh' + link
+
+    try:    
+        print 'SpeedyShare - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        link = re.search("<a class=downloadfilename href='(.+?)'>", html).group(1)
+        return 'http://speedy.sh' + link
+    except Exception, e:
+        print '**** SpeedyShare Error occured: %s' % e
+        raise
+
+
+def resolve_vidhog(url):
+
+    try:
+        print 'VidHog - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="submit" name="method_free" value="(.+?)" class="freebtn right">', html).group(1)
+        
+        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
+        
+        print 'VidHog - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
+        down_direct = int(re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1))
+        wait = int(re.search('<span id="countdown_str">Wait <span id=".+?">([0-9]*)</span>', html).group(1))
+        
+        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        
+        #Do wait time for free accounts    
+        finished = do_wait('VidHog', '', wait)
+
+        if finished:
+            print 'VidHog - Requesting POST URL: %s DATA: %s' % (url, data)
+            
+            #Show dialog box so user knows something is happening
+            dialog = xbmcgui.DialogProgress()
+            dialog.create('Resolving', 'Resolving VidHog Link...')
+            dialog.update(50)
+            
+            html = net.http_POST(url, data).content
+            
+            dialog.close()
+        
+            link = re.search('<a href="(.+?)">Click Here to download this file</a>', html).group(1)
+            return link
+        else:
+            return None
+        
+    except Exception, e:
+        print '**** VidHog Error occured: %s' % e
+        raise
+
+
+def resolve_uploadorb(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving UploadOrb Link...')       
+        
+        print 'UploadOrb - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(33)
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="submit" name="method_free" value="(.+?)" class="btn2">', html).group(1)
+        
+        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
+        
+        print 'UploadOrb - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        dialog.update(66)
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
+        down_direct = int(re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1))
+        
+        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        print data
+        
+        print 'UploadOrb - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+        
+        dialog.update(100)
+        link = re.search('ACTION="(.+?)">', html).group(1)
+        dialog.close()
+        
+        return link
+
+    except Exception, e:
+        print '**** UploadOrb Error occured: %s' % e
+        raise
 
 
 def Startup_Routines():
@@ -1676,7 +1788,11 @@ def PART(scrap,sourcenumber,args,cookie):
                         israpid = re.search('rapidshare\.com/', url)
                         is180 = re.search('180upload\.com/', url)
                         isspeedy = re.search('speedy\.sh/', url)
+                        isvidhog = re.search('vidhog\.com/', url)
+                        isuploadorb = re.search('uploadorb\.com/', url)
+                        issharebees = re.search('sharebees\.com/', url)
 
+                        partname='Part '+partnum
                         if ismega:
                               fullname=sourcestring+' | MU | '+partname
                               logo = megapic
@@ -1692,8 +1808,13 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif isspeedy:
                               fullname=sourcestring+' | SS | '+partname
                               logo = speedypic
+                        elif isvidhog:
+                              fullname=sourcestring+' | VH | '+partname
+                              logo = ''
+                        elif isuploadorb:
+                              fullname=sourcestring+' | UO | '+partname
+                              logo = ''
 
-                        partname='Part '+partnum
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
                         except:
@@ -1725,6 +1846,9 @@ def PART(scrap,sourcenumber,args,cookie):
                     israpid = re.search('rapidshare\.com/', url)
                     is180 = re.search('180upload\.com/', url)
                     isspeedy = re.search('speedy\.sh/', url)
+                    isvidhog = re.search('vidhog\.com/', url)
+                    isuploadorb = re.search('uploadorb\.com/', url)
+                    issharebees = re.search('sharebees\.com/', url)
                     
                     if ismega is not None:
                          fullname=sourcestring+' | MU | Full'
@@ -1745,6 +1869,14 @@ def PART(scrap,sourcenumber,args,cookie):
                     elif isspeedy is not None:
                          fullname=sourcestring+' | SS  | Full'
                          addExecute(fullname,url,get_default_action(),speedypic)
+
+                    elif isvidhog is not None:
+                         fullname=sourcestring+' | VH  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+
+                    elif isuploadorb is not None:
+                         fullname=sourcestring+' | UO  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
 
 
 def GetSource(id, args, cookie):
@@ -2113,12 +2245,15 @@ def Handle_Vidlink(url):
      israpid = re.search('rapidshare\.com/', url)
      is180 = re.search('180upload\.com/', url)
      isspeedy = re.search('speedy\.sh/', url)
+     isvidhog = re.search('vidhog\.com/', url)
+     isuploadorb = re.search('uploadorb\.com/', url)
+     issharebees = re.search('sharebees\.com/', url)
 
     #Using real-debrid to get the generated premium link
      link = None
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
 
-     if debrid_account and not is180:
+     if debrid_account and not is180 and not isvidhog and not isuploadorb and not issharebees:
           debriduser = selfAddon.getSetting('realdebrid-username')
           debridpass = selfAddon.getSetting('realdebrid-password')
           rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
@@ -2154,6 +2289,12 @@ def Handle_Vidlink(url):
           
      elif isspeedy:
           return resolve_speedyshare(url)
+
+     elif isvidhog:
+          return resolve_vidhog(url)
+
+     elif isuploadorb:
+          return resolve_uploadorb(url)
 
      elif israpid:
           
@@ -2239,7 +2380,7 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
                break
         except Exception, e:
             print '**** Stream error: %s' % e
-            Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','')
+            Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','', line3=str(e))
             break
 
 
