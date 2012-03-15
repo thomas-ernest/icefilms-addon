@@ -1,3 +1,9 @@
+  v1.1.3 (Friday, 16 March 2012):
+  - Added new hosts - VidHog, ShareBees, UploadOrb
+  - Spitting out error messages to users on failed sources
+  - Some small bug fixes here and there that came up from adding the last couple updates
+  - Updated downloadinbackground.py as it was using deprecated os.cwd() call
+ 
  v1.1.2 (Wednesday, 14 March 2012):
   - Bug fix for users with Real-Debrid accounts getting errors on 180Upload sources
   
