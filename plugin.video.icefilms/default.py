@@ -2112,12 +2112,13 @@ def Handle_Vidlink(url):
      is2shared = re.search('\.2shared\.com/', url)
      israpid = re.search('rapidshare\.com/', url)
      is180 = re.search('180upload\.com/', url)
+     isspeedy = re.search('speedy\.sh/', url)
 
     #Using real-debrid to get the generated premium link
      link = None
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
 
-     if debrid_account:
+     if debrid_account and not is180:
           debriduser = selfAddon.getSetting('realdebrid-username')
           debridpass = selfAddon.getSetting('realdebrid-password')
           rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)

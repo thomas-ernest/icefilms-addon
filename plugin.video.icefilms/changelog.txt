@@ -1,3 +1,6 @@
+ v1.1.2 (Wednesday, 14 March 2012):
+  - Bug fix for users with Real-Debrid accounts getting errors on 180Upload sources
+  
  v1.1.1 (Wednesday, 14 March 2012):
   - Added support for 180Upload and SpeedyShare sources
   - Corrected Download option where it was streaming instead of downloading
