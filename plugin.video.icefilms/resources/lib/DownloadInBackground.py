@@ -8,6 +8,9 @@ import urllib
 import xbmc, xbmcgui
 from traceback import print_exc
 
+selfAddon = xbmcaddon.Addon(id='plugin.video.icefilms')
+addon_path = selfAddon.getAddonInfo('path')
+
 class StopDownloading(Exception): 
     def __init__(self, value): 
         self.value = value 
@@ -27,7 +30,7 @@ DeleteIncomplete = 'true'
 #DeleteIncomplete=selfAddon.getSetting('delete-incomplete-downloads')
 playFile = True
 
-art = os.path.join( os.getcwd() ,'..','art')
+art = os.path.join(addon_path,'..','art')
 NotifyPercents = range(0, 100 + NotifyPercent, NotifyPercent)
 start_time = time.time()
 
