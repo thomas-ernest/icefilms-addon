@@ -25,7 +25,7 @@
    </category>
    <category label="Meta Data">
   	<setting id="use-meta" type="bool" label="30600" default="true"/>
-	  <setting id="meta-path" type="action" label="30601" enable="!eq(-1,false)" action="RunScript(special://home/addons/plugin.video.icefilms/default.py,url=nothing,mode=58,name=Metahanlder+Settings)"/>
+	  <setting id="meta-path" type="action" label="30601" option="close" enable="!eq(-1,false)" action="RunScript(special://home/addons/plugin.video.icefilms/default.py,url=nothing,mode=58,name=Metahanlder+Settings)"/>
 	  <setting id="movie-covers" type="bool" label="30602" default="false" enable="!eq(-2,false)"/>
 	  <setting id="tv-covers" type="bool" label="30603" default="false" enable="!eq(-3,false)"/>
 	  <setting id="tv-posters" type="bool" label="30604" default="false" enable="!eq(-1,false) + !eq(-4,false)"/>	  
