@@ -48,6 +48,7 @@ from metahandler import metahandlers
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
+import jsunpack
 
 #Common Cache
 import xbmcvfs
@@ -179,6 +180,12 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'180upload.png')
      elif filename == 'speedypic':
           return_file = xbmcpath(art,'speedyshare.png')
+     elif filename == 'vihogpic':
+          return_file = xbmcpath(art,'vidhog.png')
+     elif filename == 'uploadorbpic':
+          return_file = xbmcpath(art,'uploadorb.png')
+     elif filename == 'sharebeespic':
+          return_file = xbmcpath(art,'sharebees.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -536,6 +543,7 @@ def resolve_180upload(url):
     try:
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving 180Upload Link...')
+        dialog.update(0)
         
         print '180Upload - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
@@ -576,8 +584,16 @@ def resolve_speedyshare(url):
 def resolve_vidhog(url):
 
     try:
+        
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving VidHog Link...')
+        dialog.update(0)
+        
         print 'VidHog - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
+
+        dialog.update(33)
         
         #Set POST data values
         op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
@@ -591,6 +607,8 @@ def resolve_vidhog(url):
         print 'VidHog - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
         
+        dialog.update(66)
+                
         #Set POST data values
         op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
@@ -601,18 +619,20 @@ def resolve_vidhog(url):
         
         data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
         
+        dialog.close()
+        
         #Do wait time for free accounts    
         finished = do_wait('VidHog', '', wait)
 
         if finished:
             print 'VidHog - Requesting POST URL: %s DATA: %s' % (url, data)
             
-            #Show dialog box so user knows something is happening
-            dialog = xbmcgui.DialogProgress()
             dialog.create('Resolving', 'Resolving VidHog Link...')
-            dialog.update(50)
+            dialog.update(66)
             
             html = net.http_POST(url, data).content
+            
+            dialog.update(100)
             
             dialog.close()
         
@@ -633,6 +653,7 @@ def resolve_uploadorb(url):
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving UploadOrb Link...')       
+        dialog.update(0)
         
         print 'UploadOrb - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
@@ -671,6 +692,62 @@ def resolve_uploadorb(url):
         dialog.close()
         
         return link
+
+    except Exception, e:
+        print '**** UploadOrb Error occured: %s' % e
+        raise
+
+
+def resolve_sharebees(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving ShareBees Link...')       
+        dialog.update(0)
+        
+        print 'ShareBees - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        method_free = re.search('<input class="form-submit" type="submit" name="method_free" value="(.+?)">', html).group(1)
+        
+        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
+        
+        print 'ShareBees - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+        
+        dialog.update(100)
+        
+        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        sPattern += '\s+?</script>'
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        
+        if r:
+            sJavascript = r.group(1)
+            sUnpacked = jsunpack.unpack(sJavascript)
+            print(sUnpacked)
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)
+
+        dialog.close()
+        
+        if r:
+            link = r.group(1)
+            link = link.replace('video.avi', fname)
+            return link
+        else:
+            print '***** ShareBees - Link Not Found'
+            return None
 
     except Exception, e:
         print '**** UploadOrb Error occured: %s' % e
@@ -1762,6 +1839,9 @@ def PART(scrap,sourcenumber,args,cookie):
      rapidpic=handle_file('rapidpic','')
      u180pic=handle_file('180pic','')
      speedypic=handle_file('speedypic','')
+     vihogpic=handle_file('vihogpic','')
+     uploadorbpic=handle_file('uploadorbpic','')
+     sharebeespic=handle_file('sharebeespic','')
      
      #if source exists proceed.
      if checkforsource is not None:
@@ -1810,10 +1890,13 @@ def PART(scrap,sourcenumber,args,cookie):
                               logo = speedypic
                         elif isvidhog:
                               fullname=sourcestring+' | VH | '+partname
-                              logo = ''
+                              logo = vihogpic
                         elif isuploadorb:
                               fullname=sourcestring+' | UO | '+partname
-                              logo = ''
+                              logo = uploadorbpic
+                        elif issharebees:
+                              fullname=sourcestring+' | SB | '+partname
+                              logo = sharebeespic
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -1872,12 +1955,15 @@ def PART(scrap,sourcenumber,args,cookie):
 
                     elif isvidhog is not None:
                          fullname=sourcestring+' | VH  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
+                         addExecute(fullname,url,get_default_action(),vihogpic)
 
                     elif isuploadorb is not None:
                          fullname=sourcestring+' | UO  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
+                         addExecute(fullname,url,get_default_action(),uploadorbpic)
 
+                    elif issharebees is not None:
+                         fullname=sourcestring+' | SB  | Full'
+                         addExecute(fullname,url,get_default_action(),sharebeespic)
 
 def GetSource(id, args, cookie):
     m = random.randrange(100, 300) * -1
@@ -2295,6 +2381,9 @@ def Handle_Vidlink(url):
 
      elif isuploadorb:
           return resolve_uploadorb(url)
+
+     elif issharebees:
+          return resolve_sharebees(url)
 
      elif israpid:
           
