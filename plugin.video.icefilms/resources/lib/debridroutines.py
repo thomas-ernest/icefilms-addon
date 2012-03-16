@@ -7,6 +7,7 @@ class RealDebrid:
         self.cookie_file = cookie_file
         self.username = username
         self.password = password
+        
 
 
     def GetURL(self, url):
@@ -55,8 +56,13 @@ class RealDebrid:
             return download_details
 
 
-    def valid_url(self, url):
-        return True
+    def valid_host(self, host):
+        url = 'http://real-debrid.com/lib/api/hosters.php'
+        allhosts = self.GetURL(url)
+        if host in allhosts:
+            return True
+        else:
+            return False
 
 
     def  checkLogin(self):

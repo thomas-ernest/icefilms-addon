@@ -572,10 +572,19 @@ def resolve_180upload(url):
 def resolve_speedyshare(url):
 
     try:    
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving SpeedyShare Link...')
+        dialog.update(50)
+        
         print 'SpeedyShare - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
+        
+        dialog.close()
+        
+        host = 'http://speedy.sh'
+        #host = re.search("<input value='(http://www[0-9]*.speedy.sh)/.+?'", html).group(1)
         link = re.search("<a class=downloadfilename href='(.+?)'>", html).group(1)
-        return 'http://speedy.sh' + link
+        return host + link
     except Exception, e:
         print '**** SpeedyShare Error occured: %s' % e
         raise
@@ -2334,26 +2343,29 @@ def Handle_Vidlink(url):
      isvidhog = re.search('vidhog\.com/', url)
      isuploadorb = re.search('uploadorb\.com/', url)
      issharebees = re.search('sharebees\.com/', url)
-
+     
+     host = re.search('//(.+?)/', url).group(1)
+         
     #Using real-debrid to get the generated premium link
-     link = None
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
 
-     if debrid_account and not is180 and not isvidhog and not isuploadorb and not issharebees:
+     if debrid_account:
           debriduser = selfAddon.getSetting('realdebrid-username')
           debridpass = selfAddon.getSetting('realdebrid-password')
           rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
-          if rd.Login():
-               download_details = rd.Resolve(url)
-               link = download_details['download_link']
-               if not link:
-                   Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_link['message'])
-     
-     if link:
-          print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
-          return link
+          
+          if rd.valid_host(host):
+              if rd.Login():
+                   download_details = rd.Resolve(url)
+                   link = download_details['download_link']
+                   if not link:
+                       Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_link['message'])
+                       return None
+                   else:
+                       print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
+                       return link
 
-     elif ismega:
+     if ismega:
           WaitIf()
           
           mu = megaroutines.megaupload(translatedicedatapath)
