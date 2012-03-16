@@ -735,31 +735,46 @@ def resolve_sharebees(url):
         
         dialog.update(100)
         
-        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
-        sPattern += '\s+?</script>'
+        #sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+        #sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        #sPattern += '\s+?</script>'
+
+        link = None
+        sPattern = "<script type='text/javascript'>(eval.+?)</script>"      
         r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
         
         if r:
             sJavascript = r.group(1)
             sUnpacked = jsunpack.unpack(sJavascript)
             print(sUnpacked)
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            
+            #They have 2 known scripts - one for avi files and another for mp4's
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.avi'
             sPattern += '"custommode='
             r = re.search(sPattern, sUnpacked)
-
-        dialog.close()
-        
-        if r:
-            link = r.group(1)
-            link = link.replace('video.avi', fname)
-            return link
-        else:
+            
+            #AVI file found   
+            if r:
+                link = r.group(1) + fname
+                dialog.close()
+                return link
+            
+            #Search for MP4 file
+            else:
+                sPattern = "'file','(.+?)video.mp4'"
+                r = re.search(sPattern, sUnpacked)
+                
+                if r:
+                    link = r.group(1) + fname
+                    dialog.close()
+                    return link
+                
+        if not link:
             print '***** ShareBees - Link Not Found'
-            return None
+            raise Exception("Unable to resolve ShareBees")
 
     except Exception, e:
-        print '**** UploadOrb Error occured: %s' % e
+        print '**** ShareBees Error occured: %s' % e
         raise
 
 
