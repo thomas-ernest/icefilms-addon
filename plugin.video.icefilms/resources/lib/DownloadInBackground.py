@@ -5,7 +5,7 @@ Created on 09 Jan 2011
 '''
 import sys, os, time
 import urllib
-import xbmc, xbmcgui
+import xbmc, xbmcgui, xbmcaddon
 from traceback import print_exc
 
 selfAddon = xbmcaddon.Addon(id='plugin.video.icefilms')
