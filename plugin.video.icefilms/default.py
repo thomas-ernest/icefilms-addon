@@ -740,7 +740,7 @@ def resolve_sharebees(url):
         #sPattern += '\s+?</script>'
 
         link = None
-        sPattern = "<script type='text/javascript'>(eval.+?)</script>"      
+        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
         r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
         
         if r:
@@ -1895,12 +1895,13 @@ def PART(scrap,sourcenumber,args,cookie):
                         isvidhog = re.search('vidhog\.com/', url)
                         isuploadorb = re.search('uploadorb\.com/', url)
                         issharebees = re.search('sharebees\.com/', url)
+                        #issharebees = False
 
                         partname='Part '+partnum
                         if ismega:
                               fullname=sourcestring+' | MU | '+partname
                               logo = megapic
-                        elif is2shared is not None:
+                        elif is2shared:
                               fullname=sourcestring+' | 2S | '+partname
                               logo = shared2pic
                         elif israpid:
@@ -1956,6 +1957,7 @@ def PART(scrap,sourcenumber,args,cookie):
                     isvidhog = re.search('vidhog\.com/', url)
                     isuploadorb = re.search('uploadorb\.com/', url)
                     issharebees = re.search('sharebees\.com/', url)
+                    #issharebees = False
                     
                     if ismega is not None:
                          fullname=sourcestring+' | MU | Full'
@@ -1985,7 +1987,7 @@ def PART(scrap,sourcenumber,args,cookie):
                          fullname=sourcestring+' | UO  | Full'
                          addExecute(fullname,url,get_default_action(),uploadorbpic)
 
-                    elif issharebees is not None:
+                    elif issharebees:
                          fullname=sourcestring+' | SB  | Full'
                          addExecute(fullname,url,get_default_action(),sharebeespic)
 
