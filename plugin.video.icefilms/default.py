@@ -645,7 +645,7 @@ def resolve_vidhog(url):
             
             dialog.close()
         
-            link = re.search('<a href="(.+?)">Click Here to download this file</a>', html).group(1)
+            link = re.search('<strong><a href="(.+?)">Click Here to download this file</a></strong>', html).group(1)
             return link
         else:
             return None
