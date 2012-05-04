@@ -1,3 +1,10 @@
+  v1.1.6 (Friday, 04 May 2012):
+  - Added 3 new hosts - GlumboUploads, JumboFiles, Movreel
+  - Removed many remaining MegaUpload references
+  - Updated ShareBees resolver to handle any file type
+  - Added check on UploadOrb resolver for links reporting 'maintenance mode'
+  - Added *HD* tags to Homepage categories and made all HD tags colored red
+
   v1.1.5 (Thursday, 29 March 2012):
   - Corrected VidHog for site changes
     
