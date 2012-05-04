@@ -256,8 +256,10 @@ def DLDirStartup():
 
 
 def LoginStartup():
+
      #Get whether user has set an account to use.
-     mega_account = str2bool(selfAddon.getSetting('megaupload-account'))
+     
+     #mega_account = str2bool(selfAddon.getSetting('megaupload-account'))
      rapid_account = str2bool(selfAddon.getSetting('rapidshare-account'))
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
      HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
@@ -317,39 +319,39 @@ def LoginStartup():
               return False
 
      #Verify MegaUpload Account
-     elif mega_account:
-     
-          mu=megaroutines.megaupload(translatedicedatapath)
-
-          #delete old logins
-          mu.delete_login()
-          
-          #check for megaupload login and do it
-          
-          megauser = selfAddon.getSetting('megaupload-username')
-          megapass = selfAddon.getSetting('megaupload-password')
-
-          try:
-              login=mu.set_login(megauser,megapass)
-                       
-              if megapass != '' and megauser != '':
-                   if login is False:
-                        print 'Account: '+'login failed'
-                        Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
-                   elif login is True:
-                        print 'Account: '+'login succeeded'
-                        if not HideSuccessfulLogin:
-                             Notify('small','Megaupload', 'Account login successful.','')
-                             
-              if megapass == '' or megauser == '':
-                   print 'no login details specified, using no account'
-                   Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
-              return True
-          except Exception, e:
-              print '**** MegaUpload Error: %s' % e
-              Notify('big','Megaupload Failed','Failed to connect with MegaUpload.', '', '', 'Please check your internet connection.')
-              pass
-              return False
+#     elif mega_account:
+#     
+#          mu=megaroutines.megaupload(translatedicedatapath)
+#
+#          #delete old logins
+#          mu.delete_login()
+#          
+#          #check for megaupload login and do it
+#          
+#          megauser = selfAddon.getSetting('megaupload-username')
+#          megapass = selfAddon.getSetting('megaupload-password')
+#
+#          try:
+#              login=mu.set_login(megauser,megapass)
+#                       
+#              if megapass != '' and megauser != '':
+#                   if login is False:
+#                        print 'Account: '+'login failed'
+#                        Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
+#                   elif login is True:
+#                        print 'Account: '+'login succeeded'
+#                        if not HideSuccessfulLogin:
+#                             Notify('small','Megaupload', 'Account login successful.','')
+#                             
+#              if megapass == '' or megauser == '':
+#                   print 'no login details specified, using no account'
+#                   Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
+#              return True
+#          except Exception, e:
+#              print '**** MegaUpload Error: %s' % e
+#              Notify('big','Megaupload Failed','Failed to connect with MegaUpload.', '', '', 'Please check your internet connection.')
+#              pass
+#              return False
 
      else:
           cache.delete('rapid_cookie')
@@ -669,6 +671,11 @@ def resolve_uploadorb(url):
         
         dialog.update(33)
         
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** UploadOrb - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
+
         #Set POST data values
         op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
         usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
@@ -748,33 +755,182 @@ def resolve_sharebees(url):
             sUnpacked = jsunpack.unpack(sJavascript)
             print(sUnpacked)
             
-            #They have 2 known scripts - one for avi files and another for mp4's
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.avi'
+            #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
+            #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.+'
             sPattern += '"custommode='
-            r = re.search(sPattern, sUnpacked)
+            r = re.search(sPattern, sUnpacked)              
             
-            #AVI file found   
+            #Video link found
             if r:
                 link = r.group(1) + fname
                 dialog.close()
                 return link
-            
-            #Search for MP4 file
-            else:
-                sPattern = "'file','(.+?)video.mp4'"
-                r = re.search(sPattern, sUnpacked)
-                
-                if r:
-                    link = r.group(1) + fname
-                    dialog.close()
-                    return link
-                
+
         if not link:
             print '***** ShareBees - Link Not Found'
             raise Exception("Unable to resolve ShareBees")
 
     except Exception, e:
         print '**** ShareBees Error occured: %s' % e
+        raise
+
+
+def resolve_glumbouploads(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving GlumboUploads Link...')       
+        dialog.update(0)
+        
+        print 'GlumboUploads - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Set POST data values
+        op = re.search('''<Form method="POST" action=''>.+?<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
+        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search("""input\[name="fname"\]'\).attr\('value', '(.+?)'""", html).group(1)
+        method_free = re.search('<input class="slowdownload" title="Slow download" type="submit" name="method_free" value="(.+?)">', html).group(1)
+
+        
+        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
+        
+        print 'GlumboUploads - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+        
+        dialog.update(100)
+        
+        #sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+        #sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        #sPattern += '\s+?</script>'
+
+        link = None
+        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        
+        if r:
+            sJavascript = r.group(1)
+            sUnpacked = jsunpack.unpack(sJavascript)
+            print(sUnpacked)
+            
+            #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
+            #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.+'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)              
+            
+            #Video link found
+            if r:
+                link = r.group(1) + fname
+                dialog.close()
+                return link
+
+        if not link:
+            print '***** GlumboUploads - Link Not Found'
+            raise Exception("Unable to resolve GlumboUploads")
+
+    except Exception, e:
+        print '**** GlumboUploads Error occured: %s' % e
+        raise
+
+def resolve_jumbofiles(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving JumboFiles Link...')       
+        dialog.update(0)
+        
+        print 'JumboFiles - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** JumboFiles - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
+
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
+        down_direct = re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1)
+                
+        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        
+        print 'JumboFiles - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        dialog.update(100)
+        link = re.search('<FORM METHOD="LINK" ACTION="(.+?)">', html).group(1)
+        dialog.close()
+        
+        return link
+
+    except Exception, e:
+        print '**** JumboFiles Error occured: %s' % e
+        raise
+        
+def resolve_movreel(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving Movreel Link...')       
+        dialog.update(0)
+        
+        print 'Movreel - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(33)
+        
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** Movreel - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
+
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="submit" name="method_free" style=".+?" value="(.+?)">', html).group(1)
+        
+        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'referer': url, 'fname': fname, 'method_free': method_free}
+        
+        print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        dialog.update(66)
+        
+        #Set POST data values
+        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
+        
+        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free}
+
+        print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+        
+        dialog.update(100)
+        link = re.search('<div class="t_download"></div></a> -->.+?<a href="(.+?)"><div class="t_download"></div></a>', html, re.DOTALL).group(1)
+        dialog.close()
+        
+        return link
+
+    except Exception, e:
+        print '**** Movreel Error occured: %s' % e
         raise
 
 
@@ -1186,8 +1342,8 @@ def RECENT(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
                 for scraped in recadd:
-                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>').findall(scraped)
-                        for url,name in mirlinks:
+                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                        for url,name,hd in mirlinks:
                                 url=iceurl+url
                                 name=CLEANUP(name)
                                 
@@ -1195,12 +1351,18 @@ def RECENT(url):
                                     mode = 14
                                 else:
                                     mode = 100
-
+                                    
+                                #Check if it's an HD source and add a tag to the name
+                                if re.search('color:red', hd):
+                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                                else:
+                                    new_name = name
+                                    
                                 if meta_installed and meta_setting=='true':
                                     meta = check_video_meta(name, metaget)
-                                    addDir(name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
                                 else:
-                                    addDir(name,url,mode,'',disablefav=True, disablewatch=True)
+                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')                                    
         
 def LATEST(url):
@@ -1218,8 +1380,8 @@ def LATEST(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
                 for scraped in latrel:
-                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>').findall(scraped)
-                        for url,name in mirlinks:
+                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                        for url,name,hd in mirlinks:
                                 url=iceurl+url
                                 name=CLEANUP(name)
 
@@ -1227,12 +1389,18 @@ def LATEST(url):
                                     mode = 14
                                 else:
                                     mode = 100
-                                                                    
+                                
+                                #Check if it's an HD source and add a tag to the name
+                                if re.search('color:red', hd):
+                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                                else:
+                                    new_name = name
+                                    
                                 if meta_installed and meta_setting=='true':
                                     meta = check_video_meta(name, metaget)
-                                    addDir(name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
                                 else:
-                                    addDir(name,url,mode,'',disablefav=True, disablewatch=True)
+                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')
 
 
@@ -1251,8 +1419,8 @@ def WATCHINGNOW(url):
                 scrapy='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 watnow=re.compile('<h1>Being Watched Now</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(scrapy)
                 for scraped in watnow:
-                        mirlinks=re.compile('href=/(.+?)>(.+?)</a>').findall(scraped)
-                        for url,name in mirlinks:
+                        mirlinks=re.compile('href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                        for url,name,hd in mirlinks:
                                 url=iceurl+url
                                 name=CLEANUP(name)
 
@@ -1260,12 +1428,18 @@ def WATCHINGNOW(url):
                                     mode = 14
                                 else:
                                     mode = 100
-                                                                    
+
+                                #Check if it's an HD source and add a tag to the name
+                                if re.search('color:red', hd):
+                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                                else:
+                                    new_name = name
+                                                                                                        
                                 if meta_installed and meta_setting=='true':
                                     meta = check_video_meta(name, metaget)
-                                    addDir(name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
                                 else:
-                                    addDir(name,url,mode,'',disablefav=True, disablewatch=True) 
+                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True) 
         setView(None, 'default-view')
 
 
@@ -1895,7 +2069,9 @@ def PART(scrap,sourcenumber,args,cookie):
                         isvidhog = re.search('vidhog\.com/', url)
                         isuploadorb = re.search('uploadorb\.com/', url)
                         issharebees = re.search('sharebees\.com/', url)
-                        #issharebees = False
+                        isglumbo = re.search('glumbouploads\.com/', url)
+                        isjumbo = re.search('jumbofiles\.com/', url)
+                        ismovreel = re.search('movreel\.com/', url)                        
 
                         partname='Part '+partnum
                         if ismega:
@@ -1922,6 +2098,15 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif issharebees:
                               fullname=sourcestring+' | SB | '+partname
                               logo = sharebeespic
+                        elif isglumbo:
+                              fullname=sourcestring+' | GU | '+partname
+                              logo = ''
+                        elif isjumbo:
+                              fullname=sourcestring+' | JF | '+partname
+                              logo = ''
+                        elif ismovreel:
+                              fullname=sourcestring+' | MR | '+partname
+                              logo = ''
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -1957,7 +2142,9 @@ def PART(scrap,sourcenumber,args,cookie):
                     isvidhog = re.search('vidhog\.com/', url)
                     isuploadorb = re.search('uploadorb\.com/', url)
                     issharebees = re.search('sharebees\.com/', url)
-                    #issharebees = False
+                    isglumbo = re.search('glumbouploads\.com/', url)
+                    isjumbo = re.search('jumbofiles\.com/', url)
+                    ismovreel = re.search('movreel\.com/', url)
                     
                     if ismega is not None:
                          fullname=sourcestring+' | MU | Full'
@@ -1990,6 +2177,19 @@ def PART(scrap,sourcenumber,args,cookie):
                     elif issharebees:
                          fullname=sourcestring+' | SB  | Full'
                          addExecute(fullname,url,get_default_action(),sharebeespic)
+
+                    elif isglumbo:
+                         fullname=sourcestring+' | GU  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+
+                    elif isjumbo:
+                         fullname=sourcestring+' | JF  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+
+                    elif ismovreel:
+                         fullname=sourcestring+' | MR  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+
 
 def GetSource(id, args, cookie):
     m = random.randrange(100, 300) * -1
@@ -2360,6 +2560,9 @@ def Handle_Vidlink(url):
      isvidhog = re.search('vidhog\.com/', url)
      isuploadorb = re.search('uploadorb\.com/', url)
      issharebees = re.search('sharebees\.com/', url)
+     isglumbo = re.search('glumbouploads\.com/', url)
+     isjumbo = re.search('jumbofiles\.com/', url)
+     ismovreel = re.search('movreel\.com/', url)
      
      host = re.search('//(.+?)/', url).group(1)
          
@@ -2413,6 +2616,15 @@ def Handle_Vidlink(url):
 
      elif issharebees:
           return resolve_sharebees(url)
+
+     elif isglumbo:
+          return resolve_glumbouploads(url)
+
+     elif isjumbo:
+          return resolve_jumbofiles(url)
+
+     elif ismovreel:
+          return resolve_movreel(url)
 
      elif israpid:
           
@@ -3147,8 +3359,6 @@ def addExecute(name,url,mode,iconimage,stacked=False):
     contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
     contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
     contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(plugin://plugin.program.jdownloader/?action=addlink&url=%s)' % (sysurl)))
-    contextMenuItems.append(('Check Mega Limits', 'XBMC.RunPlugin(%s?mode=202&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
-    contextMenuItems.append(('Kill Streams', 'XBMC.RunPlugin(%s?mode=203&name=%s&url=%s)' % (sys.argv[0], sysname, sysurl)))
 
     liz.addContextMenuItems(contextMenuItems, replaceItems=True)
 
