@@ -64,7 +64,7 @@ def CLEANUP(name):
     # clean names of annoying garbled text
     
     name=re.sub('</a>','',name)
-    name=re.sub('<b>HD</b>',' *HD*',name)
+    name=re.sub('<b>HD</b>',' [COLOR red]*HD*[/COLOR]',name)
     
     name=re.sub('"',"'",name)
     
