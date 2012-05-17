@@ -186,6 +186,12 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'uploadorb.png')
      elif filename == 'sharebeespic':
           return_file = xbmcpath(art,'sharebees.png')
+     elif filename == 'glumbopic':
+          return_file = xbmcpath(art,'glumbo.png')
+     elif filename == 'movreelpic':
+          return_file = xbmcpath(art,'movreel.png')
+     elif filename == 'jumbopic':
+          return_file = xbmcpath(art,'jumbofiles.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -934,6 +940,48 @@ def resolve_movreel(url):
         raise
 
 
+def resolve_billionuploads(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving BillionUploads Link...')       
+        dialog.update(0)
+        
+        print 'BillionUploads - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** BillionUploads - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
+
+        #Set POST data values
+        op = re.search('<Form name="F1" method="POST" action="" onSubmit=".+?">.+?<input type="hidden" name="op" value="(.+?)">', html, re.DOTALL).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
+        down_direct = re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1)
+                
+        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        
+        print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        dialog.update(100)
+        link = re.search('<a href="(.+?)">Download</a>', html).group(1)
+        dialog.close()
+        
+        return link
+
+    except Exception, e:
+        print '**** BillionUploads Error occured: %s' % e
+        raise
+
+
 def Startup_Routines():
      
      # avoid error on first run if no paths exists, by creating paths
@@ -1342,29 +1390,33 @@ def RECENT(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
                 for scraped in recadd:
-                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                        for url,name,hd in mirlinks:
-                                url=iceurl+url
-                                name=CLEANUP(name)
+                    text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    #Add the first line
+                    VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
+                    mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                    for url,name,hd in mirlinks:
+                            url=iceurl+url
+                            name=CLEANUP(name)
+                            
+                            if check_episode(name):
+                                mode = 14
+                            else:
+                                mode = 100
                                 
-                                if check_episode(name):
-                                    mode = 14
-                                else:
-                                    mode = 100
-                                    
-                                #Check if it's an HD source and add a tag to the name
-                                if re.search('color:red', hd):
-                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                                else:
-                                    new_name = name
-                                    
-                                if meta_installed and meta_setting=='true':
-                                    meta = check_video_meta(name, metaget)
-                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                                else:
-                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
+                            #Check if it's an HD source and add a tag to the name
+                            if re.search('color:red', hd):
+                                new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                            else:
+                                new_name = name
+                                
+                            if meta_installed and meta_setting=='true':
+                                meta = check_video_meta(name, metaget)
+                                addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                            else:
+                                addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')                                    
-        
+
+
 def LATEST(url):
         link=GetURL(url)
         
@@ -1380,27 +1432,30 @@ def LATEST(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
                 for scraped in latrel:
-                        mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                        for url,name,hd in mirlinks:
-                                url=iceurl+url
-                                name=CLEANUP(name)
+                    text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    #Add the first line
+                    VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
+                    mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                    for url,name,hd in mirlinks:
+                            url=iceurl+url
+                            name=CLEANUP(name)
 
-                                if check_episode(name):
-                                    mode = 14
-                                else:
-                                    mode = 100
+                            if check_episode(name):
+                                mode = 14
+                            else:
+                                mode = 100
+                            
+                            #Check if it's an HD source and add a tag to the name
+                            if re.search('color:red', hd):
+                                new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                            else:
+                                new_name = name
                                 
-                                #Check if it's an HD source and add a tag to the name
-                                if re.search('color:red', hd):
-                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                                else:
-                                    new_name = name
-                                    
-                                if meta_installed and meta_setting=='true':
-                                    meta = check_video_meta(name, metaget)
-                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                                else:
-                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
+                            if meta_installed and meta_setting=='true':
+                                meta = check_video_meta(name, metaget)
+                                addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                            else:
+                                addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')
 
 
@@ -2040,6 +2095,9 @@ def PART(scrap,sourcenumber,args,cookie):
      vihogpic=handle_file('vihogpic','')
      uploadorbpic=handle_file('uploadorbpic','')
      sharebeespic=handle_file('sharebeespic','')
+     glumbopic=handle_file('glumbopic','')
+     movreelpic=handle_file('movreelpic','')
+     jumbopic=handle_file('jumbopic','')
      
      #if source exists proceed.
      if checkforsource is not None:
@@ -2071,7 +2129,8 @@ def PART(scrap,sourcenumber,args,cookie):
                         issharebees = re.search('sharebees\.com/', url)
                         isglumbo = re.search('glumbouploads\.com/', url)
                         isjumbo = re.search('jumbofiles\.com/', url)
-                        ismovreel = re.search('movreel\.com/', url)                        
+                        ismovreel = re.search('movreel\.com/', url)
+                        isbillion = re.search('billionuploads\.com/', url)
 
                         partname='Part '+partnum
                         if ismega:
@@ -2100,13 +2159,17 @@ def PART(scrap,sourcenumber,args,cookie):
                               logo = sharebeespic
                         elif isglumbo:
                               fullname=sourcestring+' | GU | '+partname
-                              logo = ''
+                              logo = glumbopic
                         elif isjumbo:
                               fullname=sourcestring+' | JF | '+partname
-                              logo = ''
+                              logo = jumbopic
                         elif ismovreel:
                               fullname=sourcestring+' | MR | '+partname
+                              logo = movreelpic
+                        elif isbillion:
+                              fullname=sourcestring+' | BU | '+partname
                               logo = ''
+
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -2145,6 +2208,7 @@ def PART(scrap,sourcenumber,args,cookie):
                     isglumbo = re.search('glumbouploads\.com/', url)
                     isjumbo = re.search('jumbofiles\.com/', url)
                     ismovreel = re.search('movreel\.com/', url)
+                    isbillion = re.search('billionuploads\.com/', url)
                     
                     if ismega is not None:
                          fullname=sourcestring+' | MU | Full'
@@ -2180,14 +2244,18 @@ def PART(scrap,sourcenumber,args,cookie):
 
                     elif isglumbo:
                          fullname=sourcestring+' | GU  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
+                         addExecute(fullname,url,get_default_action(),glumbopic)
 
                     elif isjumbo:
                          fullname=sourcestring+' | JF  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
+                         addExecute(fullname,url,get_default_action(),jumbopic)
 
                     elif ismovreel:
                          fullname=sourcestring+' | MR  | Full'
+                         addExecute(fullname,url,get_default_action(),movreelpic)
+
+                    elif isbillion:
+                         fullname=sourcestring+' | BU  | Full'
                          addExecute(fullname,url,get_default_action(),'')
 
 
@@ -2563,6 +2631,7 @@ def Handle_Vidlink(url):
      isglumbo = re.search('glumbouploads\.com/', url)
      isjumbo = re.search('jumbofiles\.com/', url)
      ismovreel = re.search('movreel\.com/', url)
+     isbillion = re.search('billionuploads\.com/', url)
      
      host = re.search('//(.+?)/', url).group(1)
          
@@ -2625,6 +2694,9 @@ def Handle_Vidlink(url):
 
      elif ismovreel:
           return resolve_movreel(url)
+
+     elif isbillion:
+          return resolve_billionuploads(url)
 
      elif israpid:
           
@@ -3346,7 +3418,7 @@ def addExecute(name,url,mode,iconimage,stacked=False):
     sysname = urllib.quote_plus(name)
     sysurl = urllib.quote_plus(url)
     
-    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + video_type + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked)
+    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + str(video_type) + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked)
     ok=True
 
     liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
@@ -3523,12 +3595,12 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
      
 
 #VANILLA ADDDIR (kept for reference)
-def VaddDir(name,url,mode,iconimage):
+def VaddDir(name, url, mode, iconimage, is_folder=False):
         u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
         ok=True
         liz=xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=iconimage)
         liz.setInfo( type="Video", infoLabels={ "Title": name } )
-        ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True)
+        ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=is_folder)
         return ok
 
 
@@ -4218,6 +4290,11 @@ elif mode==12:
 elif mode==13:
         print ""+url
         TVEPISODES(name,url,None,imdbnum)
+
+# Some tv shows will not be correctly identified, so to load their sources need to check on mode==14
+elif mode==14:
+        print ""+url
+        LOADMIRRORS(url)
 
 elif mode==99:
         print ""+url
