@@ -1,3 +1,8 @@
+  v1.1.7 (Thursday, 16 May 2012):
+  - Added source pics for new hosts
+  - Added new host - BillionUploads
+  - Corrected no sources showing for Colbert Report and Daily Show episodes
+
   v1.1.6 (Friday, 04 May 2012):
   - Added 3 new hosts - GlumboUploads, JumboFiles, Movreel
   - Removed many remaining MegaUpload references
