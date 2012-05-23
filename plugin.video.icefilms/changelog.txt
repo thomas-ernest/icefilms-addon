@@ -1,38 +1,43 @@
-  v1.1.7 (Thursday, 16 May 2012):
+  [B]v1.1.8 (Tuesday, 22 May 2012):[/B]
+  - Fixed ShareBees resolver
+  - Added tags for Popular, Rated, Latest, Recently Added lists
+  - Added *HD* tags for TV Episodes
+
+  [B]v1.1.7 (Thursday, 17 May 2012):[/B]
   - Added source pics for new hosts
   - Added new host - BillionUploads
   - Corrected no sources showing for Colbert Report and Daily Show episodes
 
-  v1.1.6 (Friday, 04 May 2012):
+  [B]v1.1.6 (Friday, 04 May 2012):[/B]
   - Added 3 new hosts - GlumboUploads, JumboFiles, Movreel
   - Removed many remaining MegaUpload references
   - Updated ShareBees resolver to handle any file type
   - Added check on UploadOrb resolver for links reporting 'maintenance mode'
   - Added *HD* tags to Homepage categories and made all HD tags colored red
 
-  v1.1.5 (Thursday, 29 March 2012):
+  [B]v1.1.5 (Thursday, 29 March 2012):[/B]
   - Corrected VidHog for site changes
     
-  v1.1.4 (Wednesday, 28 March 2012):
+  [B]v1.1.4 (Wednesday, 28 March 2012):[/B]
   - Added new host - ShareBees
   - Corrected bug in downloadinbackground.py that was introduced in previous version
   
-  v1.1.3 (Tuesday, 20 March 2012):
+  [B]v1.1.3 (Tuesday, 20 March 2012):[/B]
   - Added new hosts - VidHog, UploadOrb
   - Spitting out error messages to users on failed sources
   - Some small bug fixes here and there that came up from adding the last couple updates
   - Updated downloadinbackground.py as it was using deprecated os.cwd() call
   - Better checking on Real-Debrid valid hosts
  
- v1.1.2 (Wednesday, 14 March 2012):
+ [B]v1.1.2 (Wednesday, 14 March 2012):[/B]
   - Bug fix for users with Real-Debrid accounts getting errors on 180Upload sources
   
- v1.1.1 (Wednesday, 14 March 2012):
+ [B]v1.1.1 (Wednesday, 14 March 2012):
   - Added support for 180Upload and SpeedyShare sources
   - Corrected Download option where it was streaming instead of downloading
   - Corrected Default Play Action - was not being used in all scenarios
 
- v1.1.0 (Friday, 02 March 2012):
+ [B]v1.1.0 (Friday, 02 March 2012):[/B]
   - Major Release!
   - Added FULL meta data for all movies & tvshows, includes many new features and information
   - Ability to mark watched/unwatched, also auto-watch flagging of videos you watch
