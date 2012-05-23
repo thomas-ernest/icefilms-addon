@@ -735,11 +735,11 @@ def resolve_sharebees(url):
         dialog.update(50)
         
         #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        op = re.search('''<Form method="POST" action=''>.+?<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
         usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
         fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = re.search('<input class="form-submit" type="submit" name="method_free" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="submit" name="method_free" value="Free Download" class="(.+?)">', html).group(1)
         
         data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
         
@@ -763,8 +763,7 @@ def resolve_sharebees(url):
             
             #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
             #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.+'
-            sPattern += '"custommode='
+            sPattern  = "addVariable\('file','(.+?)video.+'\)"
             r = re.search(sPattern, sUnpacked)              
             
             #Video link found
@@ -1731,10 +1730,32 @@ def MOVIEINDEX(url):
     # we do this to fix the problem when there is no imdb_id. 
     # I have found only one movie with this problem, but we must check this...
     link = re.sub('<a name=i id=>','<a name=i id=None>',link)
-    
+
+    #Display the first text and movie that won't be shown otherwise....
+    firstText = re.compile('<h3>(.+?)</h3>').findall(link)
+    if firstText:
+        if firstText[0].startswith('Rated'):
+            firstText[0] = string.split(firstText[0], '<')[0]
+            regex = '<h3>(.+?)<div'
+        else:
+            regex = '<h3>(.+?)</h3>'
+        VaddDir('[COLOR blue]' + firstText[0] + '[/COLOR]', '', 0, '', False)
+    else:
+        regex = '<h3>(.+?)</h3>'
     scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(link)
-    if scrape:
-        getMeta(scrape, 100)
+    tmplist = []
+    tmplist.append(scrape[0])
+    getMeta(tmplist, 100)        
+    
+    #Break the remaining source into seperate lines and check if it contains text
+    temp = re.compile('r>(.+?)<b').findall(link)
+    for entry in temp:
+        text = re.compile(regex).findall(entry)
+        if text:
+            VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
+        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
+        if scrape:
+            getMeta(scrape, 100)
     
     # Enable library mode & set the right view for the content
     setView('movies', 'movies-view')
@@ -1746,11 +1767,31 @@ def TVINDEX(url):
     link=GetURL(url)
 
     #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
-    match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
-    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>(.+?)br>').findall(link)
+    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
+    firstText = re.compile('<h3>(.+?)</h3>').findall(link)
+    if firstText:
+        if firstText[0].startswith('Rated'):
+            firstText[0] = string.split(firstText[0], '<')[0]
+            regex = '<h3>(.+?)<div'
+        else:
+            regex = '<h3>(.+?)</h3>'
+        VaddDir('[COLOR blue]' + firstText[0] + '[/COLOR]', '', 0, '',False)
+    else:
+        regex = '<h3>(.+?)</h3>'
+    scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(link)
+    tmplist = []
+    tmplist.append(scrape[0])
+    getMeta(tmplist, 12)
     
-    getMeta(match, 12)
-    print 'TVindex loader'
+    #Break the remaining source into seperate lines and check if it contains a text entry
+    temp = re.compile('r>(.+?)<b').findall(link)
+    for entry in temp:
+        text = re.compile(regex).findall(entry)
+        if text:
+            VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '',False)
+        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
+        if scrape:
+            getMeta(scrape, 12)
     
     # Enable library mode & set the right view for the content
     setView('tvshows', 'tvshows-view')
@@ -1847,7 +1888,7 @@ def TVEPISODES(name,url=None,source=None,imdb_id=None):
 def TVEPLINKS(source, season, imdb_id):
     
     # displays all episodes in the source it is passed.
-    match=re.compile('<img class="star" /><a href="/(.+?)&amp;">(.+?)</a>').findall(source)
+    match=re.compile('<img class="star" /><a href="/(.+?)&amp;">(.+?)</a>([<b>HD</b>]*)<br />').findall(source)
         
     if meta_setting=='true':
         #initialise meta class before loop
@@ -1856,8 +1897,9 @@ def TVEPLINKS(source, season, imdb_id):
     else:
         metaget=False
         meta_installed=False
-    for url,name in match:
-            print " TVepLinks name " + name           
+    for url, name, hd in match:
+            name = name + ' ' + hd
+            print " TVepLinks name " + name
             get_episode(season, name, imdb_id, url, metaget, meta_installed, totalitems=len(match)) 
     
     # Enable library mode & set the right view for the content
