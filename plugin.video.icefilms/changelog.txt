@@ -1,3 +1,8 @@
+  [B]v1.1.9 (Monday, 28 May 2012):[/B]
+  - Fixed ShareBees resolver - again
+  - Fixed movie HD tags that accidently got removed on last release
+  - Added BillionUploads image
+
   [B]v1.1.8 (Tuesday, 22 May 2012):[/B]
   - Fixed ShareBees resolver
   - Added tags for Popular, Rated, Latest, Recently Added lists
