@@ -192,6 +192,8 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'movreel.png')
      elif filename == 'jumbopic':
           return_file = xbmcpath(art,'jumbofiles.png')
+     elif filename == 'billionpic':
+          return_file = xbmcpath(art,'billion.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -763,12 +765,12 @@ def resolve_sharebees(url):
             
             #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
             #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
-            sPattern  = "addVariable\('file','(.+?)video.+'\)"
+            sPattern  = '''("video/divx"src="|addVariable\('file',')(.+?)video[.]'''
             r = re.search(sPattern, sUnpacked)              
             
             #Video link found
             if r:
-                link = r.group(1) + fname
+                link = r.group(2) + fname
                 dialog.close()
                 return link
 
@@ -1748,15 +1750,15 @@ def MOVIEINDEX(url):
     getMeta(tmplist, 100)        
     
     #Break the remaining source into seperate lines and check if it contains text
-    temp = re.compile('r>(.+?)<b').findall(link)
+    temp = re.compile('(<br>.+?<br>)').findall(link)
     for entry in temp:
         text = re.compile(regex).findall(entry)
         if text:
             VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
-        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
+        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(entry)
         if scrape:
             getMeta(scrape, 100)
-    
+
     # Enable library mode & set the right view for the content
     setView('movies', 'movies-view')
 
@@ -2140,6 +2142,7 @@ def PART(scrap,sourcenumber,args,cookie):
      glumbopic=handle_file('glumbopic','')
      movreelpic=handle_file('movreelpic','')
      jumbopic=handle_file('jumbopic','')
+     billionpic=handle_file('billionpic','')
      
      #if source exists proceed.
      if checkforsource is not None:
@@ -2210,7 +2213,7 @@ def PART(scrap,sourcenumber,args,cookie):
                               logo = movreelpic
                         elif isbillion:
                               fullname=sourcestring+' | BU | '+partname
-                              logo = ''
+                              logo = billionpic
 
 
                         try:
@@ -2298,7 +2301,7 @@ def PART(scrap,sourcenumber,args,cookie):
 
                     elif isbillion:
                          fullname=sourcestring+' | BU  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
+                         addExecute(fullname,url,get_default_action(),billionpic)
 
 
 def GetSource(id, args, cookie):
@@ -3778,6 +3781,7 @@ def getMeta(scrape, mode):
 
 def ADD_ITEM(metaget, meta_installed, imdb_id,url,name,mode,num_of_eps=False, totalitems=0):
             #clean name of unwanted stuff
+            print name
             name=CLEANUP(name)
             if url.startswith('http://www.icefilms.info') == False:
                 url=iceurl+url
