@@ -1,3 +1,6 @@
+  [B]v1.1.10 (Wednesday, 30 May 2012):[/B]
+  - Fixed small format change for meta zip files
+  
   [B]v1.1.9 (Monday, 28 May 2012):[/B]
   - Fixed ShareBees resolver - again
   - Fixed movie HD tags that accidently got removed on last release
