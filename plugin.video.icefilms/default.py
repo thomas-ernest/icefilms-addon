@@ -544,7 +544,7 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
 def resolve_minus(url, filename):
     r = '"name": "%s".*?"id": "([^\s]*?)".*?"secure_prefix":"(.*?)",' % filename
     html = GetURL(url)
-    r = re.search(r, html)
+    r = re.search(r, html, re.DOTALL)
     return 'http://i.minus.com%s/d%s.zip' % (r.group(2), r.group(1))
 
 
