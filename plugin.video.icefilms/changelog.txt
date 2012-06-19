@@ -1,3 +1,10 @@
+  [B]v1.1.11 (Tuesday, 19 June 2012):[/B]
+  - Added ShareBees user login support - does not detect free user vs premium as of now
+  - Fixed ShareBees resolver for site changes
+  - Fixed JumboFile resolver
+  - Updated VidHog resolver to check for 'server in maintenance mode' msgs
+  - Disabled 'Video Seeking' option, not needed for current sources and has been causing problems
+
   [B]v1.1.10 (Wednesday, 30 May 2012):[/B]
   - Fixed small format change for meta zip files
   
