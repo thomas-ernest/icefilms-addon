@@ -21,6 +21,10 @@
       <setting id="rapidshare-username" type="text" label="30212" default="" enable="!eq(-1,false)"/>
       <setting id="rapidshare-password" type="text" label="30213" default="" option="hidden" enable="!eq(-2,false)"/>
       <setting type="sep" />
+      <setting id="sharebees-account" type="bool" label="30214" default="false"/>
+      <setting id="sharebees-username" type="text" label="30215" default="" enable="!eq(-1,false)"/>
+      <setting id="sharebees-password" type="text" label="30216" default="" option="hidden" enable="!eq(-2,false)"/>
+      <setting type="sep" />
       <setting id="hide-successful-login-messages" type="bool" label="30250" default="false" />
    </category>
    <category label="Meta Data">
@@ -59,7 +63,7 @@
       <setting id="icefilms-url" type="text" label="30500" default="http://www.icefilms.info/" />
       <setting id="watched-percent" label="30501" type="enum" values="70[B] %[/B]|80[B] %[/B]|90[B] %[/B]" default="2" />
       <setting id="play-action" type="enum" label="30502" values="Watch Stream|Download|Download and Watch" default="Watch Stream"/>
-	    <setting id="video-seeking" type="bool" label="30503" default="false"/>
+	    <setting id="video-seeking" type="bool" label="30503" default="false" visible="false"/>
 	    <setting id="buffer-delay" type="number" label="30504" default="10" enable="!eq(-1,false)"/>
    </category>
 </settings>
