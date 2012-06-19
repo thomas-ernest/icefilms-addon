@@ -29,14 +29,17 @@ prepare_zip = False
 
 import xbmc,xbmcplugin,xbmcgui,xbmcaddon, datetime
 
-''' Use t0mm0's common library for http calls '''
-from t0mm0.common.net import Net
-net = Net()
-
 #get path to me
 addon_id = 'plugin.video.icefilms'
 selfAddon = xbmcaddon.Addon(id=addon_id)
 icepath = selfAddon.getAddonInfo('path')
+
+''' Use t0mm0's common library for http calls '''
+from t0mm0.common.net import Net
+from t0mm0.common.addon import Addon
+net = Net()
+addon = Addon(addon_id)
+datapath = addon.get_profile()
 
 #append lib directory
 sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
@@ -101,6 +104,13 @@ episode_num=None
 video_type=None
 stacked_parts=None
 
+#Paths Etc
+metapath = os.path.join(datapath, 'mirror_page_meta_cache')
+cookie_path = os.path.join(datapath, 'cookies')
+downinfopath = os.path.join(datapath, 'downloadinfologs')
+cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
+art = icepath+'/resources/art'
+
 ####################################################
 
 def xbmcpath(path,filename):
@@ -134,17 +144,6 @@ def Notify(typeq,title,message,times, line2='', line3=''):
      else:
           dialog = xbmcgui.Dialog()
           dialog.ok(' '+title+' ', ' '+message+' ')
-
-
-#Paths Etc
-icedatapath = 'special://profile/addon_data/plugin.video.icefilms'
-metapath = icedatapath+'/mirror_page_meta_cache'
-transmetapath = xbmcpath(metapath,'')
-downinfopath = icedatapath+'/downloadinfologs'
-transdowninfopath = xbmcpath(downinfopath,'')
-translatedicedatapath = xbmcpath(icedatapath,'')
-cookie_jar = os.path.join(translatedicedatapath, "cookiejar.lwp")
-art = icepath+'/resources/art'
 
 
 def handle_file(filename,getmode=''):
@@ -270,7 +269,31 @@ def LoginStartup():
      #mega_account = str2bool(selfAddon.getSetting('megaupload-account'))
      rapid_account = str2bool(selfAddon.getSetting('rapidshare-account'))
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
+     sharebees_account = str2bool(selfAddon.getSetting('sharebees-account'))
      HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
+     
+     #Verify ShareBees Account
+     if sharebees_account:
+         loginurl='http://www.sharebees.com/login.html'
+         op = 'login'
+         login = selfAddon.getSetting('sharebees-username')
+         password = selfAddon.getSetting('sharebees-password')
+         data = {'op': op, 'login': login, 'password': password}
+         cookiejar = os.path.join(cookie_path,'sharebees.lwp')
+        
+         try:
+             html = net.http_POST(loginurl, data).content
+             if re.search('op=logout', html):
+                net.save_cookies(cookiejar)
+             else:
+                Notify('big','ShareBees','Login failed.', '')
+                print 'ShareBees Account: login failed'
+                return True
+         except Exception, e:
+             print '**** ShareBees Error: %s' % e
+             Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
+             pass
+             return False
 
      #Verify Read-Debrid Account
      if debrid_account:
@@ -325,6 +348,10 @@ def LoginStartup():
               Notify('big','RapidShare Failed','Failed to connect with RapidShare.', '', '', 'Please check your internet connection.')
               pass
               return False
+     else:
+          cache.delete('rapid_cookie')
+          print 'Rapid Account: no account set'
+          return True
 
      #Verify MegaUpload Account
 #     elif mega_account:
@@ -361,16 +388,13 @@ def LoginStartup():
 #              pass
 #              return False
 
-     else:
-          cache.delete('rapid_cookie')
-          print 'Account: no account set'
-          return True
+
               
                                 
 def ContainerStartup():
 
      #Check for previous Icefilms metadata install and delete
-     meta_folder = os.path.join(translatedicedatapath, 'meta_caches')
+     meta_folder = os.path.join(datapath, 'meta_caches')
      if os.path.exists(meta_folder):
          import shutil
          try:
@@ -614,6 +638,11 @@ def resolve_vidhog(url):
 
         dialog.update(33)
         
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** VidHog - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
+        
         #Set POST data values
         op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
         usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
@@ -725,7 +754,12 @@ def resolve_uploadorb(url):
 def resolve_sharebees(url):
 
     try:
-
+        
+        if str2bool(selfAddon.getSetting('sharebees-account')):
+            print 'ShareBees - Setting Cookie file'
+            cookiejar = os.path.join(cookie_path,'sharebees.lwp')
+            net.set_cookies(cookiejar)
+        
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving ShareBees Link...')       
@@ -737,11 +771,12 @@ def resolve_sharebees(url):
         dialog.update(50)
         
         #Set POST data values
-        op = re.search('''<Form method="POST" action=''>.+?<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
+        #op = re.search('''<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
+        op = 'download1'
         usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
         fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="submit" name="method_free" value="Free Download" class="(.+?)">', html).group(1)
+        method_free = "method_free"
         
         data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
         
@@ -749,10 +784,6 @@ def resolve_sharebees(url):
         html = net.http_POST(url, data).content
         
         dialog.update(100)
-        
-        #sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        #sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
-        #sPattern += '\s+?</script>'
 
         link = None
         sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
@@ -857,7 +888,7 @@ def resolve_jumbofiles(url):
         print 'JumboFiles - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
         
-        dialog.update(50)
+        dialog.update(33)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
@@ -865,18 +896,33 @@ def resolve_jumbofiles(url):
             raise Exception('File is currently unavailable on the host')
 
         #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        #op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        op = 'download1'
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
-        down_direct = re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        #method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
+        method_free = 'method_free'
                 
-        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        data = {'op': op, 'id': postid, 'referer': url, 'method_free': method_free}
         
         print 'JumboFiles - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
 
-        dialog.update(100)
+        dialog.update(66)
+
+        #Set POST data values
+        #op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+        op = 'download2'
+        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = 'method_free'
+                
+        data = {'op': op, 'id': postid, 'rand': rand, 'method_free': method_free}
+        
+        print 'JumboFiles - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content        
+
+        dialog.update(100)        
         link = re.search('<FORM METHOD="LINK" ACTION="(.+?)">', html).group(1)
         dialog.close()
         
@@ -986,9 +1032,10 @@ def resolve_billionuploads(url):
 def Startup_Routines():
      
      # avoid error on first run if no paths exists, by creating paths
-     if not os.path.exists(translatedicedatapath): os.makedirs(translatedicedatapath)
-     if not os.path.exists(transdowninfopath): os.makedirs(transdowninfopath)
-     if not os.path.exists(transmetapath): os.makedirs(transmetapath)
+     if not os.path.exists(datapath): os.makedirs(datapath)
+     if not os.path.exists(downinfopath): os.makedirs(downinfopath)
+     if not os.path.exists(metapath): os.makedirs(metapath)
+     if not os.path.exists(cookie_path): os.makedirs(cookie_path)
          
      #force refresh addon repositories, to check for updates.
      #xbmc.executebuiltin('UpdateAddonRepos')
@@ -1211,7 +1258,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
      if name is not None and url is not None:
 
           #Set favourites path, and create it if it does'nt exist.
-          favpath=os.path.join(translatedicedatapath,'Favourites')
+          favpath=os.path.join(datapath,'Favourites')
           tvfav=os.path.join(favpath,'TV')
           moviefav=os.path.join(favpath,'Movies')
           
@@ -1283,7 +1330,7 @@ def DELETE_FROM_FAVOURITES(name,url):
     #Deletes HD entry from filename
     name=Clean_Windows_String(name).strip()
       
-    favpath=os.path.join(translatedicedatapath,'Favourites')
+    favpath=os.path.join(datapath,'Favourites')
     
     url_type=URL_TYPE(url)
     
@@ -1313,7 +1360,7 @@ def CLEAR_FAVOURITES(url):
      ret = dialog.yesno('WARNING!', 'Delete all your favourites?','','','Cancel','Go Nuclear')
      if ret==True:
           import shutil
-          favpath=os.path.join(translatedicedatapath,'Favourites')
+          favpath=os.path.join(datapath,'Favourites')
           tvfav=os.path.join(favpath,'TV')
           moviefav=os.path.join(favpath,'Movies')
           try:
@@ -2702,7 +2749,7 @@ def Handle_Vidlink(url):
      if ismega:
           WaitIf()
           
-          mu = megaroutines.megaupload(translatedicedatapath)
+          mu = megaroutines.megaupload(datapath)
           link = mu.resolve_megaup(url)
 
           finished = do_wait('MegaUpload', link[3], link[4])
@@ -2844,11 +2891,11 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
             print 'Downloading completed: %s' % completed
 
         #Download & Watch - but delete file when done, simulates streaming and allows video seeking
-        elif video_seeking:
-            print 'Starting Video Seeking'
-            completed = Download_And_Play(name,link, video_seek=video_seeking)
-            print 'Video Seeking streaming completed: %s' % completed
-            CancelDownload(name, video_seek=video_seeking)
+        #elif video_seeking:
+        #    print 'Starting Video Seeking'
+        #    completed = Download_And_Play(name,link, video_seek=video_seeking)
+        #    print 'Video Seeking streaming completed: %s' % completed
+        #    CancelDownload(name, video_seek=video_seeking)
         
         #Else play the file as normal stream
         else:               
@@ -3332,7 +3379,7 @@ def Download_Source(name,url,stacked=False):
 
 def Check_Mega_Limits(name,url):
      WaitIf()
-     mu=megaroutines.megaupload(translatedicedatapath)
+     mu=megaroutines.megaupload(datapath)
      limit=mu.dls_limited()
      if limit is True:
           Notify('megaalert1','','','')
@@ -3670,7 +3717,7 @@ def setView(content, viewType):
 def MOVIE_FAVOURITES(url):
     
     #get settings
-    favpath=os.path.join(translatedicedatapath,'Favourites')
+    favpath=os.path.join(datapath,'Favourites')
     moviefav=os.path.join(favpath,'Movies')
     try:
         moviedircontents=os.listdir(moviefav)
@@ -3705,7 +3752,7 @@ def MOVIE_FAVOURITES(url):
 #TV Shows Favourites folder
 def TV_FAVOURITES(url):
     
-    favpath=os.path.join(translatedicedatapath,'Favourites')
+    favpath=os.path.join(datapath,'Favourites')
     tvfav=os.path.join(favpath,'TV')
     try:
         tvdircontents=os.listdir(tvfav)
