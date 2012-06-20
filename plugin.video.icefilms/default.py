@@ -271,29 +271,6 @@ def LoginStartup():
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
      sharebees_account = str2bool(selfAddon.getSetting('sharebees-account'))
      HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
-     
-     #Verify ShareBees Account
-     if sharebees_account:
-         loginurl='http://www.sharebees.com/login.html'
-         op = 'login'
-         login = selfAddon.getSetting('sharebees-username')
-         password = selfAddon.getSetting('sharebees-password')
-         data = {'op': op, 'login': login, 'password': password}
-         cookiejar = os.path.join(cookie_path,'sharebees.lwp')
-        
-         try:
-             html = net.http_POST(loginurl, data).content
-             if re.search('op=logout', html):
-                net.save_cookies(cookiejar)
-             else:
-                Notify('big','ShareBees','Login failed.', '')
-                print 'ShareBees Account: login failed'
-                return True
-         except Exception, e:
-             print '**** ShareBees Error: %s' % e
-             Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
-             pass
-             return False
 
      #Verify Read-Debrid Account
      if debrid_account:
@@ -305,16 +282,13 @@ def LoginStartup():
              if rd.Login():
                  if not HideSuccessfulLogin:
                      Notify('small','Real-Debrid', 'Account login successful.','')
-                 return True
              else:
                  Notify('big','Real-Debrid','Login failed.', '')
                  print 'Real-Debrid Account: login failed'
-                 return True
          except Exception, e:
               print '**** Real-Debrid Error: %s' % e
               Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
               pass
-              return False
 
      #Verify RapidShare Account
      if rapid_account:
@@ -334,11 +308,9 @@ def LoginStartup():
                      print 'RapidShare Account: login succeeded'
                      if not HideSuccessfulLogin:
                          Notify('small','RapidShare', 'Account login successful.','')
-                     return True
                  else:
                      Notify('big','RapidShare','Login failed.', '', line2='RapidShare will load with no account.')
                      print 'RapidShare Account: login failed'
-                     return True
              else:
                    print 'RapidShare: No login details specified, using no account'
                    Notify('big','RapidShare','Login failed. RapidShare will load with no account.','')
@@ -347,11 +319,31 @@ def LoginStartup():
               print '**** RapidShare Error: %s' % e
               Notify('big','RapidShare Failed','Failed to connect with RapidShare.', '', '', 'Please check your internet connection.')
               pass
-              return False
      else:
           cache.delete('rapid_cookie')
           print 'Rapid Account: no account set'
-          return True
+
+
+     #Verify ShareBees Account
+     if sharebees_account:
+         loginurl='http://www.sharebees.com/login.html'
+         op = 'login'
+         login = selfAddon.getSetting('sharebees-username')
+         password = selfAddon.getSetting('sharebees-password')
+         data = {'op': op, 'login': login, 'password': password}
+         cookiejar = os.path.join(cookie_path,'sharebees.lwp')
+        
+         try:
+             html = net.http_POST(loginurl, data).content
+             if re.search('op=logout', html):
+                net.save_cookies(cookiejar)
+             else:
+                Notify('big','ShareBees','Login failed.', '')
+                print 'ShareBees Account: login failed'
+         except Exception, e:
+             print '**** ShareBees Error: %s' % e
+             Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
+             pass
 
      #Verify MegaUpload Account
 #     elif mega_account:
@@ -566,10 +558,10 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
 
 
 def resolve_minus(url, filename):
-    r = '"name": "%s".*?"id": "([^\s]*?)".*?"secure_prefix":"(.*?)",' % filename
+    r = '"id": "([^\s]*?)", "modal_image_width": 0, "thumbnails": "", "is_mature": false, "has_hdvideo": false, "orig_mlist_name": "", "name": "%s".*?"secure_prefix": "(.*?)",' % filename
     html = GetURL(url)
     r = re.search(r, html, re.DOTALL)
-    return 'http://i.minus.com%s/d%s.zip' % (r.group(2), r.group(1))
+    return 'http://i.minus.com%s/d%s/%s' % (r.group(2), r.group(1), filename)
 
 
 def resolve_180upload(url):
@@ -1044,10 +1036,10 @@ def Startup_Routines():
      DLDirStartup()
 
      # Run the login startup routines
-     if LoginStartup(): 
+     LoginStartup()
      
-         # Run the container checking startup routines, if enable meta is set to true
-         if meta_setting=='true': ContainerStartup()
+     # Run the container checking startup routines, if enable meta is set to true
+     if meta_setting=='true': ContainerStartup()
      
      #Rescan Next Aired on startup - actually only rescans every 24hrs
      xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
