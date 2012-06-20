@@ -1,3 +1,6 @@
+  [B]v1.1.12 (Wednesday, 20 June 2012):[/B]
+  - Fixed minus.com resolver for metadata zips
+
   [B]v1.1.11 (Tuesday, 19 June 2012):[/B]
   - Added ShareBees user login support - does not detect free user vs premium as of now
   - Fixed ShareBees resolver for site changes
