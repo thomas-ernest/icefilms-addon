@@ -574,14 +574,27 @@ def resolve_180upload(url):
         print '180Upload - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
         
-        data1 = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        data2 = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        data3 = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        op = 'download1'
+        id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+        method_free = 'Free download'
         
-        data = {'op': data1, 'id': data2, 'rand': data3}
+        data = {'op': op, 'id': id, 'fname': fname, 'method_free': method_free}
         
-        dialog.update(50)
+        dialog.update(33)
         
+        print '180Upload - Requesting POST URL: %s' % url
+        html = net.http_POST(url, data).content
+        
+        op = 'download2'
+        id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = 'Free download'
+
+        data = {'op': op, 'id': id, 'rand': rand, 'fname': fname, 'method_free': method_free, 'down_direct': 1}
+
+        dialog.update(66)
+
         print '180Upload - Requesting POST URL: %s' % url
         html = net.http_POST(url, data).content
         link = re.search('<span style="background:#f9f9f9;border:1px dotted #bbb;padding:7px;">.+?<a href="(.+?)">', html,re.DOTALL).group(1)
@@ -990,6 +1003,7 @@ def resolve_billionuploads(url):
         
         print 'BillionUploads - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
+        print html
         
         dialog.update(50)
         
@@ -999,7 +1013,7 @@ def resolve_billionuploads(url):
             raise Exception('File is currently unavailable on the host')
 
         #Set POST data values
-        op = re.search('<Form name="F1" method="POST" action="" onSubmit=".+?">.+?<input type="hidden" name="op" value="(.+?)">', html, re.DOTALL).group(1)
+        op = 'download2'
         rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
         method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
@@ -1011,7 +1025,7 @@ def resolve_billionuploads(url):
         html = net.http_POST(url, data).content
 
         dialog.update(100)
-        link = re.search('<a href="(.+?)">Download</a>', html).group(1)
+        link = re.search('<a href="(.+?)"><span class="style1">Download', html).group(1)
         dialog.close()
         
         return link
@@ -1771,31 +1785,15 @@ def MOVIEINDEX(url):
     # we do this to fix the problem when there is no imdb_id. 
     # I have found only one movie with this problem, but we must check this...
     link = re.sub('<a name=i id=>','<a name=i id=None>',link)
-
-    #Display the first text and movie that won't be shown otherwise....
-    firstText = re.compile('<h3>(.+?)</h3>').findall(link)
-    if firstText:
-        if firstText[0].startswith('Rated'):
-            firstText[0] = string.split(firstText[0], '<')[0]
-            regex = '<h3>(.+?)<div'
-        else:
-            regex = '<h3>(.+?)</h3>'
-        VaddDir('[COLOR blue]' + firstText[0] + '[/COLOR]', '', 0, '', False)
-    else:
-        regex = '<h3>(.+?)</h3>'
-    scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(link)
-    tmplist = []
-    tmplist.append(scrape[0])
-    getMeta(tmplist, 100)        
     
-    #Break the remaining source into seperate lines and check if it contains text
-    temp = re.compile('(<br>.+?<br>)').findall(link)
-    for entry in temp:
-        text = re.compile(regex).findall(entry)
-        if text:
-            VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
-        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(entry)
-        if scrape:
+    temp = re.compile('(<h3>|<a name=i id=.+?></a><img class=star><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
+    for tag, link, longname, name in temp:
+        if tag == '<h3>':
+            VaddDir('[COLOR blue]' + link + '[/COLOR]', '', 0, '', False)
+        else:
+            # I'm lazy so lets just put the string back together and re.compile it again to pass in a proper object to getMeta
+            string = tag + link + longname + name
+            scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(string)
             getMeta(scrape, 100)
 
     # Enable library mode & set the right view for the content
@@ -3031,7 +3029,7 @@ class MyPlayer (xbmc.Player):
      def play(self, url, listitem):
         print 'Now im playing... %s' % url
 
-        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(url, listitem)            
+        xbmc.Player(xbmc.PLAYER_CORE_AUTO).play(url, listitem)            
         
      def isplaying(self):
         xbmc.Player.isPlaying(self)
