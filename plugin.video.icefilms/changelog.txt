@@ -1,3 +1,8 @@
+  [B]v1.1.13 (Wednesday, 08 August 2012):[/B]
+  - Fixed 180Upload resolver
+  - Changed to use PLAYER_CORE_AUTO instead of PLAYER_CORE_DVDPLAYER so that it picks up default player
+  - Fixed Recently Added, Popular, Rating, Release lists where movies were missing
+
   [B]v1.1.12 (Wednesday, 20 June 2012):[/B]
   - Fixed minus.com resolver for metadata zips
 
