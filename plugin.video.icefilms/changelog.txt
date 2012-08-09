@@ -1,3 +1,6 @@
+  [B]v1.1.14 (Thursday, 09 August 2012):[/B]
+  - Fixed BillionUploads resolver
+
   [B]v1.1.13 (Wednesday, 08 August 2012):[/B]
   - Fixed 180Upload resolver
   - Changed to use PLAYER_CORE_AUTO instead of PLAYER_CORE_DVDPLAYER so that it picks up default player
