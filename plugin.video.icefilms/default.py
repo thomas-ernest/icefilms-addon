@@ -1003,8 +1003,11 @@ def resolve_billionuploads(url):
         
         print 'BillionUploads - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
-        print html
         
+        #They need to wait for the link to activate in order to get the proper 2nd page
+        dialog.close()
+        do_wait('Waiting on link to activate', '', 3)
+        dialog.create('Resolving', 'Resolving BillionUploads Link...') 
         dialog.update(50)
         
         #Check page for any error msgs
@@ -1023,9 +1026,9 @@ def resolve_billionuploads(url):
         
         print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
-
         dialog.update(100)
-        link = re.search('<a href="(.+?)"><span class="style1">Download', html).group(1)
+        link = re.search('<a href="(.+?)">Download</a>', html).group(1)
+        #link = link + "|referer=" + url
         dialog.close()
         
         return link
