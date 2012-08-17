@@ -1028,7 +1028,7 @@ def resolve_billionuploads(url):
         html = net.http_POST(url, data).content
         dialog.update(100)
         link = re.search('<a href="(.+?)">Download</a>', html).group(1)
-        #link = link + "|referer=" + url
+        link = link + "|referer=" + url
         dialog.close()
         
         return link
