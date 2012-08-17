@@ -1,3 +1,6 @@
+  [B]v1.1.15 (Thursday, 09 August 2012):[/B]
+  - Fixed BillionUploads resolver (again)
+
   [B]v1.1.14 (Thursday, 09 August 2012):[/B]
   - Fixed BillionUploads resolver
 
