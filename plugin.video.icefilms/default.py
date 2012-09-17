@@ -558,8 +558,9 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
 
 
 def resolve_minus(url, filename):
-    r = '"id": "([^\s]*?)", "modal_image_width": 0, "thumbnails": "", "is_mature": false, "has_hdvideo": false, "orig_mlist_name": "", "name": "%s".*?"secure_prefix": "(.*?)",' % filename
+    r = '"id": "([^\s]*?)", "modal_image_width": 0, "thumbnails": "", "caption_html": "", "has_hdvideo": false, "orig_mlist_name": "", "name": "%s".*?"secure_prefix": "(.+?)",' % filename
     html = GetURL(url)
+    print html
     r = re.search(r, html, re.DOTALL)
     return 'http://i.minus.com%s/d%s/%s' % (r.group(2), r.group(1), filename)
 
@@ -576,10 +577,10 @@ def resolve_180upload(url):
         
         op = 'download1'
         id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = 'Free download'
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        method_free = ''
         
-        data = {'op': op, 'id': id, 'fname': fname, 'method_free': method_free}
+        data = {'op': op, 'id': id, 'rand': rand, 'method_free': method_free}
         
         dialog.update(33)
         
@@ -589,9 +590,9 @@ def resolve_180upload(url):
         op = 'download2'
         id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
         rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = 'Free download'
+        method_free = ''
 
-        data = {'op': op, 'id': id, 'rand': rand, 'fname': fname, 'method_free': method_free, 'down_direct': 1}
+        data = {'op': op, 'id': id, 'rand': rand, 'method_free': method_free, 'down_direct': 1}
 
         dialog.update(66)
 
@@ -1027,7 +1028,7 @@ def resolve_billionuploads(url):
         print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
         dialog.update(100)
-        link = re.search('<a href="(.+?)">Download</a>', html).group(1)
+        link = re.search('&product_download_url=(.+?)"', html).group(1)
         link = link + "|referer=" + url
         dialog.close()
         
