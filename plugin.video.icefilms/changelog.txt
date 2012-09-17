@@ -1,3 +1,10 @@
+  [B]v1.1.17 (Monday, 17 September 2012):[/B]
+  - Fixed BillionUploads resolver
+  - Fixed Metadata downloads
+  
+  [B]v1.1.16 (Tuesday, 11 August 2012):[/B]
+  - Fixed 180Uploads resolver
+
   [B]v1.1.15 (Thursday, 09 August 2012):[/B]
   - Fixed BillionUploads resolver (again)
 
