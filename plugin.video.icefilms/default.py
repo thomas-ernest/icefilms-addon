@@ -832,51 +832,44 @@ def resolve_glumbouploads(url):
         print 'GlumboUploads - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
         
-        dialog.update(50)
+        dialog.update(33)
         
         #Set POST data values
-        op = re.search('''<Form method="POST" action=''>.+?<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
+        op = 'download1'
         usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
         fname = re.search("""input\[name="fname"\]'\).attr\('value', '(.+?)'""", html).group(1)
-        method_free = re.search('<input class="slowdownload" title="Slow download" type="submit" name="method_free" value="(.+?)">', html).group(1)
-
+        method_free = 'Free Download'
         
         data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
         
         print 'GlumboUploads - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
+
+        dialog.update(66)
+        
+        countdown = re.search('var cdnum = ([0-9]+);', html).group(1)
+
+        #They need to wait for the link to activate in order to get the proper 2nd page
+        dialog.close()
+        do_wait('Waiting on link to activate', '', int(countdown))
+        dialog.create('Resolving', 'Resolving GlumboUploads Link...') 
+        dialog.update(66)
+
+        #Set POST data values
+        op = 'download2'
+        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+        
+        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': 1}
+        
+        print 'GlumboUploads - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
         
         dialog.update(100)
+        link = re.search('This download link will work for your IP for 24 hours<br><br>.+?<a href="(.+?)">', html, re.DOTALL).group(1)
+        dialog.close()
         
-        #sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        #sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
-        #sPattern += '\s+?</script>'
-
-        link = None
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        
-        if r:
-            sJavascript = r.group(1)
-            sUnpacked = jsunpack.unpack(sJavascript)
-            print(sUnpacked)
-            
-            #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
-            #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)video.+'
-            sPattern += '"custommode='
-            r = re.search(sPattern, sUnpacked)              
-            
-            #Video link found
-            if r:
-                link = r.group(1) + fname
-                dialog.close()
-                return link
-
-        if not link:
-            print '***** GlumboUploads - Link Not Found'
-            raise Exception("Unable to resolve GlumboUploads")
+        return link
 
     except Exception, e:
         print '**** GlumboUploads Error occured: %s' % e
@@ -977,13 +970,13 @@ def resolve_movreel(url):
         rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
         method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
         
-        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free}
+        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': 1}
 
         print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
         
         dialog.update(100)
-        link = re.search('<div class="t_download"></div></a> -->.+?<a href="(.+?)"><div class="t_download"></div></a>', html, re.DOTALL).group(1)
+        link = re.search('<a id="lnk_download" href="(.+?)">Download Original Video</a>', html, re.DOTALL).group(1)
         dialog.close()
         
         return link
