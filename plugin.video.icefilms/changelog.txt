@@ -1,3 +1,6 @@
+  [B]v1.1.18 (Wednesday, 10 October 2012):[/B]
+  - Fixed MovReel & GlumboUploads resolvers
+  
   [B]v1.1.17 (Monday, 17 September 2012):[/B]
   - Fixed BillionUploads resolver
   - Fixed Metadata downloads
