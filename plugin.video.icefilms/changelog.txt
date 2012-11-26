@@ -1,3 +1,6 @@
+  [B]v1.1.20 (Monday, 26 November 2012):[/B]
+  - Small update to fix errors using Frodo Beta 1 when entering TV Episodes
+
   [B]v1.1.19 (Saturday, 17 November 2012):[/B]
   - Changed regex on grabbing sec value for sources, updated to reflect site changes
 
