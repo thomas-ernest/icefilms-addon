@@ -4368,7 +4368,7 @@ elif mode==12:
         TVSEASONS(url,imdbnum)
 
 elif mode==13:
-        print ""+url
+        print ""+ str(url)
         TVEPISODES(name,url,None,imdbnum)
 
 # Some tv shows will not be correctly identified, so to load their sources need to check on mode==14
