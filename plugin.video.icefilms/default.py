@@ -962,6 +962,12 @@ def resolve_movreel(url):
         print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
 
+        #Check for download limit error msg
+        if re.search('<p class="err">.+?</p>', html):
+            print '***** Download limit reached'
+            errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
+            raise Exception(errortxt)
+
         dialog.update(66)
         
         #Set POST data values
@@ -1412,7 +1418,13 @@ def check_video_meta(name, metaget):
         episode_info = re.search('([0-9]+)x([0-9]+)', name)
         season = int(episode_info.group(1))
         episode = int(episode_info.group(2))
-        episode_title = re.search('(.+?) [0-9]+x[0-9]+', name).group(1)
+        
+        #Grab episode title, check for regex on it both ways
+        episode_title = re.search('(.+?) [0-9]+x[0-9]+', name)
+        if not episode_title:
+            episode_title = re.search('[0-9]+x[0-9]+ (.+)', name)
+
+        episode_title = episode_title.group(1)
         tv_meta = metaget.get_meta('tvshow',episode_title)
         meta=metaget.get_episode_meta(episode_title, tv_meta['imdb_id'], season, episode)
     else:
@@ -2096,6 +2108,7 @@ def GETMIRRORS(url,link):
     print "getting mirrors for: %s" % url
         
     #hacky method -- save page source to cache
+    cache.delete('mirror')
     cache.set('mirror', link)
     
     #check for the existence of categories, and set values.
@@ -2427,7 +2440,7 @@ def SOURCE(page, sources):
 
 def DVDRip(url):
         link=cache.get('mirror')
-#string for all text under standard def border
+        #string for all text under standard def border
         defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
         for scrape in defcat:
                 SOURCE(link, scrape)
@@ -2435,7 +2448,7 @@ def DVDRip(url):
 
 def HD720p(url):
         link=cache.get('mirror')
-#string for all text under hd720p border
+        #string for all text under hd720p border
         defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
         for scrape in defcat:
                 SOURCE(link, scrape)
@@ -2443,7 +2456,7 @@ def HD720p(url):
 
 def DVDScreener(url):
         link=cache.get('mirror')
-#string for all text under dvd screener border
+        #string for all text under dvd screener border
         defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
         for scrape in defcat:
                 SOURCE(link, scrape)
