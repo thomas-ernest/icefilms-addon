@@ -1,3 +1,9 @@
+  [B]v1.1.21 (Wednesday, 12 December 2012):[/B]
+  - Fix for no sources problem - common cache was loading a blank entry for the 'mirror' link
+  - Fixed search function that was returning bad url's for results
+  - Fixed error in search results where an episode was returning a different naming format
+  - Added MovReel download limit exceeded error check
+
   [B]v1.1.20 (Monday, 26 November 2012):[/B]
   - Small update to fix errors using Frodo Beta 1 when entering TV Episodes
 
