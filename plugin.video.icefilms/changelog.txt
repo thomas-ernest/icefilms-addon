@@ -1,3 +1,6 @@
+  [B]v1.1.22 (Wednesday, 12 December 2012):[/B]
+  - Fix for no sources again! Stopped using commoncache for mirror page source
+ 
   [B]v1.1.21 (Wednesday, 12 December 2012):[/B]
   - Fix for no sources problem - common cache was loading a blank entry for the 'mirror' link
   - Fixed search function that was returning bad url's for results
