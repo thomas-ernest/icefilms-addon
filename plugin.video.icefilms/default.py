@@ -150,6 +150,8 @@ def handle_file(filename,getmode=''):
      #bad python code to add a get file routine.
      if filename == 'smallicon':
           return_file = xbmcpath(art,'smalltransparent2.png')
+     elif filename == 'mirror':
+          return_file = xbmcpath(datapath,'MirrorPageSource.txt')
      elif filename == 'homepage':
           return_file = xbmcpath(art,'homepage.png')
      elif filename == 'movies':
@@ -2108,8 +2110,10 @@ def GETMIRRORS(url,link):
     print "getting mirrors for: %s" % url
         
     #hacky method -- save page source to cache
-    cache.delete('mirror')
-    cache.set('mirror', link)
+    #cache.delete('mirror')
+    #cache.set('mirror', link)
+    mirrorfile=handle_file('mirror','')
+    save(mirrorfile, link)
     
     #check for the existence of categories, and set values.
     if re.search('<div class=ripdiv><b>DVDRip / Standard Def</b>', link) is not None: dvdrip = 1
@@ -2439,7 +2443,8 @@ def SOURCE(page, sources):
           setView(None, 'default-view')
 
 def DVDRip(url):
-        link=cache.get('mirror')
+        #link=cache.get('mirror')
+        link=handle_file('mirror','open')
         #string for all text under standard def border
         defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
         for scrape in defcat:
@@ -2447,7 +2452,8 @@ def DVDRip(url):
         setView(None, 'default-view')
 
 def HD720p(url):
-        link=cache.get('mirror')
+        #link=cache.get('mirror')
+        link=handle_file('mirror','open')
         #string for all text under hd720p border
         defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
         for scrape in defcat:
@@ -2455,7 +2461,8 @@ def HD720p(url):
         setView(None, 'default-view')
 
 def DVDScreener(url):
-        link=cache.get('mirror')
+        #link=cache.get('mirror')
+        link=handle_file('mirror','open')
         #string for all text under dvd screener border
         defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
         for scrape in defcat:
@@ -2463,8 +2470,9 @@ def DVDScreener(url):
         setView(None, 'default-view')
         
 def R5R6(url):
-        link=cache.get('mirror')
-#string for all text under r5/r6 border
+        #link=cache.get('mirror')
+        link=handle_file('mirror','open')
+        #string for all text under r5/r6 border
         defcat=re.compile('<div class=ripdiv><b>R5/R6 DVDRip</b>(.+?)</div>').findall(link)
         for scrape in defcat:
                 SOURCE(link, scrape)
