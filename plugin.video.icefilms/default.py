@@ -272,6 +272,7 @@ def LoginStartup():
      rapid_account = str2bool(selfAddon.getSetting('rapidshare-account'))
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
      sharebees_account = str2bool(selfAddon.getSetting('sharebees-account'))
+     movreel_account = str2bool(selfAddon.getSetting('movreel-account'))
      HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
 
      #Verify Read-Debrid Account
@@ -346,6 +347,29 @@ def LoginStartup():
              print '**** ShareBees Error: %s' % e
              Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
              pass
+
+
+     #Verify MovReel Account
+     if movreel_account:
+         loginurl='http://www.movreel.com/login.html'
+         op = 'login'
+         login = selfAddon.getSetting('movreel-username')
+         password = selfAddon.getSetting('movreel-password')
+         data = {'op': op, 'login': login, 'password': password}
+         cookiejar = os.path.join(cookie_path,'movreel.lwp')
+        
+         try:
+             html = net.http_POST(loginurl, data).content
+             if re.search('op=logout', html):
+                net.save_cookies(cookiejar)
+             else:
+                Notify('big','Movreel','Login failed.', '')
+                print 'Movreel Account: login failed'
+         except Exception, e:
+             print '**** Movreel Error: %s' % e
+             Notify('big','Movreel Login Failed','Failed to connect with Movreel.', '', '', 'Please check your internet connection.')
+             pass
+
 
      #Verify MegaUpload Account
 #     elif mega_account:
@@ -932,10 +956,16 @@ def resolve_jumbofiles(url):
     except Exception, e:
         print '**** JumboFiles Error occured: %s' % e
         raise
-        
+
+
 def resolve_movreel(url):
 
     try:
+
+        if str2bool(selfAddon.getSetting('movreel-account')):
+            print 'ShareBees - Setting Cookie file'
+            cookiejar = os.path.join(cookie_path,'movreel.lwp')
+            net.set_cookies(cookiejar)
 
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
@@ -2502,13 +2532,29 @@ class TwoSharedDownloader:
      
           
 def SHARED2_HANDLER(url):
-          downloader2Shared = TwoSharedDownloader()
-          vidFile = downloader2Shared.returnLink(url)
+          #downloader2Shared = TwoSharedDownloader()
+          #vidFile = downloader2Shared.returnLink(url)
 
-          print '2Shared Direct Link: '+vidFile
-          finalUrl = [1]
-          finalUrl[0] = vidFile
-          return finalUrl
+          #print '2Shared Direct Link: '+vidFile
+          #finalUrl = [1]
+          #finalUrl[0] = vidFile
+          #return finalUrl
+
+          html = net.http_GET(url).content
+          
+          #Check if a download limit msg is showing
+          if re.search('Your free download limit is over.', html):
+              wait_time = re.search('<span id="timeToWait">(.+?)</span>', html).group(1)
+              Notify('big','2Shared Download Limit Exceeded','You have reached your download limit', '', '', 'You must wait ' + wait_time + ' to try again' )
+              return None
+          
+          #If no download limit msg lets grab link, must post to it first for download to activate
+          else:
+              d3fid = re.search('<input type="hidden" name="d3fid" value="(.+?)">', html).group(1)
+              d3link = re.search('<input type="hidden" name="d3link" value="(.+?)">', html).group(1)
+              data = {'d3fid': d3fid, 'd3link': d3link}
+              html = net.http_POST(url, data).content
+              return d3link
 
 
 def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save_cookie = False):
