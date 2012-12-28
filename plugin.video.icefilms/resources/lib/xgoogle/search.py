@@ -250,9 +250,9 @@ class GoogleSearch(object):
         title = ''.join(title_a.findAll(text=True))
         title = self._html_unescape(title)
         url = title_a['href']
-        match = re.compile(r'url=(.+?)&rct').findall(url)[0]
+        match = re.match(r'/url\?q=(http[^&]+)&', url)
         if match:
-            url = urllib.unquote(match)
+            url = urllib.unquote(match.group(1))
         return title, url
 
     def _extract_description(self, result):
