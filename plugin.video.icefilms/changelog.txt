@@ -1,3 +1,8 @@
+  [B]v1.1.23 (Friday, 28 December 2012):[/B]
+  - Fixed 2Shared sources - now has strict download limits
+  - Fixed search function failing, reverted back to original code
+  - Added Movreel login support
+
   [B]v1.1.22 (Wednesday, 12 December 2012):[/B]
   - Fix for no sources again! Stopped using commoncache for mirror page source
  
