@@ -563,8 +563,7 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
      #link = Handle_Vidlink(url)
      #filename = re.search('[^/]+$', link).group(0)
      
-     #Use Minus.com to download meta packs
-     link = resolve_minus(url, filename)
+     link = url + filename
      
      #define the path to save it to
      filepath=os.path.normpath(os.path.join(work_folder,filename))
