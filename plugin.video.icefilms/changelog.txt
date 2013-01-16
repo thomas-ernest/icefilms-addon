@@ -1,3 +1,6 @@
+  [B]v1.1.24 (Tuesday, 15 January 2012):[/B]
+  - Moved metadata zips to new host (thanks tuxen!)
+  
   [B]v1.1.23 (Friday, 28 December 2012):[/B]
   - Fixed 2Shared sources - now has strict download limits
   - Fixed search function failing, reverted back to original code
