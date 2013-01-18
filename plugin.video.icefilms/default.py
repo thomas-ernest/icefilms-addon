@@ -1825,17 +1825,28 @@ def MOVIEINDEX(url):
     # we do this to fix the problem when there is no imdb_id. 
     # I have found only one movie with this problem, but we must check this...
     link = re.sub('<a name=i id=>','<a name=i id=None>',link)
-    
+
+    #initialise meta class before loop    
+    if meta_setting=='true':
+        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        meta_installed = metaget.check_meta_installed(addon_id)
+        
     temp = re.compile('(<h3>|<a name=i id=.+?></a><img class=star><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
     for tag, link, longname, name in temp:
         if tag == '<h3>':
             VaddDir('[COLOR blue]' + link + '[/COLOR]', '', 0, '', False)
         else:
-            # I'm lazy so lets just put the string back together and re.compile it again to pass in a proper object to getMeta
             string = tag + link + longname + name
             scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(string)
-            getMeta(scrape, 100)
-
+            for imdb_id,url,name in scrape:
+                if meta_setting=='true':
+                    ADD_ITEM(metaget,meta_installed,imdb_id,url,name,100, totalitems=len(temp))
+                else:
+                    #add without metadata -- imdb is still passed for use with Add to Favourites
+                    for imdb_id,url,name in scrape:
+                        name=CLEANUP(name)
+                        addDir(name,iceurl+url,100,'',imdb='tt'+str(imdb_id), totalItems=len(scrape))
+ 
     # Enable library mode & set the right view for the content
     setView('movies', 'movies-view')
 
@@ -1845,6 +1856,11 @@ def TVINDEX(url):
 
     link=GetURL(url)
 
+    #initialise meta class before loop    
+    if meta_setting=='true':
+        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        meta_installed = metaget.check_meta_installed(addon_id)
+        
     #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
     #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
     firstText = re.compile('<h3>(.+?)</h3>').findall(link)
@@ -1857,10 +1873,12 @@ def TVINDEX(url):
         VaddDir('[COLOR blue]' + firstText[0] + '[/COLOR]', '', 0, '',False)
     else:
         regex = '<h3>(.+?)</h3>'
-    scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(link)
-    tmplist = []
-    tmplist.append(scrape[0])
-    getMeta(tmplist, 12)
+    scrape=re.search('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>', link)
+
+    if meta_setting=='true':
+        ADD_ITEM(metaget,meta_installed,scrape.group(1),scrape.group(2),scrape.group(3),12, totalitems=1)
+    else:
+        addDir(scrape.group(3),iceurl + scrape.group(2),12,'',imdb='tt'+str(scrape.group(1)), totalItems=1)
     
     #Break the remaining source into seperate lines and check if it contains a text entry
     temp = re.compile('r>(.+?)<b').findall(link)
@@ -1870,7 +1888,14 @@ def TVINDEX(url):
             VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '',False)
         scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
         if scrape:
-            getMeta(scrape, 12)
+            for imdb_id,url,name in scrape:
+                if meta_setting=='true':
+                    ADD_ITEM(metaget,meta_installed,imdb_id,url,name,12, totalitems=len(temp))
+                else:
+                    #add without metadata -- imdb is still passed for use with Add to Favourites
+                    for imdb_id,url,name in scrape:
+                        name=CLEANUP(name)
+                        addDir(name,iceurl+url,12,'',imdb='tt'+str(imdb_id), totalItems=len(scrape))
     
     # Enable library mode & set the right view for the content
     setView('tvshows', 'tvshows-view')
@@ -1983,7 +2008,8 @@ def TVEPLINKS(source, season, imdb_id):
     
     # Enable library mode & set the right view for the content
     setView('episodes', 'episodes-view')
-             
+
+
 def LOADMIRRORS(url):
      # This proceeds from the file page to the separate frame where the mirrors can be found,
      # then executes code to scrape the mirrors
@@ -2778,7 +2804,7 @@ def Handle_Vidlink(url):
      ismovreel = re.search('movreel\.com/', url)
      isbillion = re.search('billionuploads\.com/', url)
      
-     host = re.search('//(.+?)/', url).group(1)
+     host = re.search('//[w\.]*(.+?)/', url).group(1)
          
     #Using real-debrid to get the generated premium link
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
@@ -3845,43 +3871,8 @@ def cleanUnicode(string):
         return string
 
 
-def getMeta(scrape, mode):
-
-    #check settings over whether to display the number of episodes next to tv show name.
-    #show_num_of_eps=selfAddon.getSetting('display-show-eps')
-    
-    #print scrape
-
-    #add with metadata
-    if meta_setting=='true':
-    
-        #initialise meta class before loop
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
-        meta_installed = metaget.check_meta_installed(addon_id)
-
-        #determine whether to show number of eps
-        #if scrape[3] and show_num_of_eps == 'true' and mode == 12:
-        #    for imdb_id,url,name,num_of_eps in scrape:
-        #        num_of_eps=re.sub('<','',num_of_eps)
-        #        num_of_eps=re.sub('isode','',num_of_eps)#turn Episode{s} into Ep(s)
-        #        ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode,num_of_eps, totalitems=len(scrape))
-        #if mode == 12: # fix for tvshows with num of episodes disabled
-        #    for imdb_id,url,name in scrape:
-        #        ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
-        #else:
-        for imdb_id,url,name in scrape:
-            ADD_ITEM(metaget,meta_installed,imdb_id,url,name,mode, totalitems=len(scrape))
-                
-    #add without metadata -- imdb is still passed for use with Add to Favourites
-    else:
-        for imdb_id,url,name in scrape:
-            name=CLEANUP(name)
-            addDir(name,iceurl+url,mode,'',imdb='tt'+str(imdb_id), totalItems=len(scrape))
-            
-
 def ADD_ITEM(metaget, meta_installed, imdb_id,url,name,mode,num_of_eps=False, totalitems=0):
             #clean name of unwanted stuff
-            print name
             name=CLEANUP(name)
             if url.startswith('http://www.icefilms.info') == False:
                 url=iceurl+url
