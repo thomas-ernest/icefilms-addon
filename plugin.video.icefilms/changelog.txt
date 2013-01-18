@@ -1,3 +1,7 @@
+  [B]v1.1.25 (Friday, 18 January 2012):[/B]
+  - Fixed 2Shared links not getting picked up into Real-Debrid
+  - Optimized getting metadata for movie/tvshow lists, should speed up low power devices
+
   [B]v1.1.24 (Tuesday, 15 January 2012):[/B]
   - Moved metadata zips to new host (thanks tuxen!)
   
