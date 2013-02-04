@@ -56,7 +56,7 @@ import jsunpack
 #Common Cache
 import xbmcvfs
 # plugin constants
-dbg = True # Set to false if you don't want debugging
+dbg = False # Set to false if you don't want debugging
 
 #Common Cache
 try:
@@ -982,36 +982,45 @@ def resolve_movreel(url):
             raise Exception('File is currently unavailable on the host')
 
         #Set POST data values
+        print html
         op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
         postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="submit" name="method_free" style=".+?" value="(.+?)">', html).group(1)
+        method_free = re.search('<input type="(submit|hidden)" name="method_free" (style=".*?" )*value="(.*?)">', html).group(3)
+        method_premium = re.search('<input type="(hidden|submit)" name="method_premium" (style=".*?" )*value="(.*?)">', html).group(3)
         
-        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'referer': url, 'fname': fname, 'method_free': method_free}
+        if method_free:
+            usr_login = ''
+            fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
+            data = {'op': op, 'usr_login': usr_login, 'id': postid, 'referer': url, 'fname': fname, 'method_free': method_free}
+        else:
+            rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+            data = {'op': op, 'id': postid, 'referer': url, 'rand': rand, 'method_premium': method_premium}
         
         print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
 
-        #Check for download limit error msg
-        if re.search('<p class="err">.+?</p>', html):
-            print '***** Download limit reached'
-            errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
-            raise Exception(errortxt)
+        #Only do next post if Free account, skip to last page for download link if Premium
+        if method_free:
+            #Check for download limit error msg
+            if re.search('<p class="err">.+?</p>', html):
+                print '***** Download limit reached'
+                errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
+                raise Exception(errortxt)
+    
+            dialog.update(66)
+            
+            #Set POST data values
+            op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
+            postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
+            rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
+            method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
+            
+            data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': 1}
+    
+            print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
+            html = net.http_POST(url, data).content
 
-        dialog.update(66)
-        
-        #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
-        
-        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': 1}
-
-        print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-        
+        #Get download link
         dialog.update(100)
         link = re.search('<a id="lnk_download" href="(.+?)">Download Original Video</a>', html, re.DOTALL).group(1)
         dialog.close()
@@ -1034,18 +1043,50 @@ def resolve_billionuploads(url):
         
         print 'BillionUploads - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
-        
-        #They need to wait for the link to activate in order to get the proper 2nd page
-        dialog.close()
-        do_wait('Waiting on link to activate', '', 3)
-        dialog.create('Resolving', 'Resolving BillionUploads Link...') 
-        dialog.update(50)
-        
+               
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
             print '***** BillionUploads - Site reported maintenance mode'
             raise Exception('File is currently unavailable on the host')
 
+        #Captcha
+        captchaimg = re.search('<img src="(http://BillionUploads.com/captchas/.+?)"', html).group(1)
+        
+        dialog.close()
+        
+        #Grab Image and display it
+        img = xbmcgui.ControlImage(550,15,240,100,captchaimg)
+        wdlg = xbmcgui.WindowDialog()
+        wdlg.addControl(img)
+        wdlg.show()
+        
+        #Small wait to let user see image
+        time.sleep(3)
+        
+        #Prompt keyboard for user input
+        kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+        kb.doModal()
+        capcode = kb.getText()
+        
+        #Check input
+        if (kb.isConfirmed()):
+          userInput = kb.getText()
+          if userInput != '':
+              capcode = kb.getText()
+          elif userInput == '':
+               Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+               return None
+        else:
+            return None
+        wdlg.close()
+
+        #They need to wait for the link to activate in order to get the proper 2nd page
+        dialog.close()
+        do_wait('Waiting on link to activate', '', 3)
+               
+        dialog.create('Resolving', 'Resolving BillionUploads Link...') 
+        dialog.update(50)
+        
         #Set POST data values
         op = 'download2'
         rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
@@ -1053,7 +1094,7 @@ def resolve_billionuploads(url):
         method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
         down_direct = re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1)
                 
-        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
+        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct, 'code': capcode}
         
         print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
