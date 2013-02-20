@@ -1,3 +1,6 @@
+  [B]v1.1.27 (Tuesday, 19 February 2013):[/B]
+  - Fixed BillionUploads - Changed to check for captcha
+
   [B]v1.1.26 (Sunday, 03 February 2013):[/B]
   - Fixed BillionUploads - Now has captcha
   - Added full support for MovReel premium accounts
