@@ -1,3 +1,9 @@
+  [B]v1.1.28 (Tuesday, 19 February 2013):[/B]
+  - Fixed script error when adding HD items to favourites
+  - Added ability to enable/disable Next Aired in addon settings
+  - Updated VidHog resolver
+  - Added EpicShare resolver
+
   [B]v1.1.27 (Tuesday, 19 February 2013):[/B]
   - Fixed BillionUploads - Changed to check for captcha
 
