@@ -59,6 +59,7 @@
     <string id="30504">    Buffer Delay (seconds)</string>
 
    <!-- Next Aired -->
+   <string id="45004">Enable Next Aired</string>
    <string id="45000">Rescan tv guide data</string>    
    <string id="45001">Display</string>
    <string id="45002">Enable background fanart</string>
