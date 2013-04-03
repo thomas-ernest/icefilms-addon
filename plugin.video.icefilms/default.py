@@ -1742,6 +1742,9 @@ def DoEpListSearch(search):
         
         match=re.compile('<h3 class="r"><a href="'+tvurl+'(.+?)"(.+?)">(.+?)</h3>').findall(link)
         match = sorted(match, key=lambda result: result[2])
+        if len(match) == 0:
+          link = link.replace('<b>', '').replace('</b>', '')
+          match=re.compile('<h3 class="r"><a href="/url\?q='+tvurl+'(.+?)&amp;(.+?)">(.+?)</h3>').findall(link)
         find_meta_for_search_results(match, 12, search)
 
 
