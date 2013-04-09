@@ -682,14 +682,13 @@ def resolve_vidhog(url):
         guid = re.search('http://vidhog.com/(.+)$', url).group(1)
         
         vid_embed_url = 'http://vidhog.com/vidembed-%s%s' % (guid, extension)
-        print vid_embed_url
         
         request = urllib2.Request(vid_embed_url)
         request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Referer', url)
         response = urllib2.urlopen(request)
         redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
         download_link = redirect_url + filename
-        print download_link
         
         dialog.update(100)
 
@@ -1118,14 +1117,13 @@ def resolve_epicshare(url):
         guid = re.search('http://epicshare.net/(.+)$', url).group(1)
         
         vid_embed_url = 'http://epicshare.net/vidembed-%s%s' % (guid, extension)
-        print vid_embed_url
         
         request = urllib2.Request(vid_embed_url)
         request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Referer', url)
         response = urllib2.urlopen(request)
         redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
         download_link = redirect_url + filename
-        print download_link
         
         dialog.update(100)
 
@@ -1742,9 +1740,6 @@ def DoEpListSearch(search):
         
         match=re.compile('<h3 class="r"><a href="'+tvurl+'(.+?)"(.+?)">(.+?)</h3>').findall(link)
         match = sorted(match, key=lambda result: result[2])
-        if len(match) == 0:
-          link = link.replace('<b>', '').replace('</b>', '')
-          match=re.compile('<h3 class="r"><a href="/url\?q='+tvurl+'(.+?)&amp;(.+?)">(.+?)</h3>').findall(link)
         find_meta_for_search_results(match, 12, search)
 
 
