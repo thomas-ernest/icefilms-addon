@@ -1,4 +1,4 @@
-  [B]v1.1.28 (Tuesday, 19 February 2013):[/B]
+  [B]v1.1.28 (Tuesday, 09 April 2013):[/B]
   - Fixed script error when adding HD items to favourites
   - Added ability to enable/disable Next Aired in addon settings
   - Updated VidHog resolver
