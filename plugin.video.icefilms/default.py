@@ -599,39 +599,73 @@ def resolve_180upload(url):
         
         print '180Upload - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
+
+        dialog.update(50)
+                
+        captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+        result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+        solution = ''.join(str(int(num[1])-48) for num in result)
         
-        op = 'download1'
-        id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = ''
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+
+        if r:
+            for name, value in r:
+                data[name] = value
+                data.update({'code':solution})
+        else:
+            raise Exception('Unable to resolve 180Upload Link')
         
-        data = {'op': op, 'id': id, 'rand': rand, 'method_free': method_free}
+        #Check for Google Captcha image
+        google_cap = re.search('<script type="text/javascript" src="(http://www.google.com/recaptcha.+?)"></script>', html)
+
+        if google_cap:
+           dialog.close()
+           html = net.http_GET(google_cap.group(1)).content
+           part = re.search("challenge \: \\'(.+?)\\'", html)
+           captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+           img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+           wdlg = xbmcgui.WindowDialog()
+           wdlg.addControl(img)
+           wdlg.show()
         
-        dialog.update(33)
-        
+           xbmc.sleep(5)
+
+           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+           kb.doModal()
+           capcode = kb.getText()
+   
+           if (kb.isConfirmed()):
+               userInput = kb.getText()
+               if userInput != '':
+                   solution = kb.getText()
+               elif userInput == '':
+                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+                   return False
+           else:
+               return False
+               
+           wdlg.close()
+           dialog.create('Resolving', 'Resolving 180Upload Link...') 
+           dialog.update(50)
+           data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+
         print '180Upload - Requesting POST URL: %s' % url
         html = net.http_POST(url, data).content
-        
-        op = 'download2'
-        id = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = ''
-
-        data = {'op': op, 'id': id, 'rand': rand, 'method_free': method_free, 'down_direct': 1}
-
-        dialog.update(66)
-
-        print '180Upload - Requesting POST URL: %s' % url
-        html = net.http_POST(url, data).content
-        link = re.search('<span style="background:#f9f9f9;border:1px dotted #bbb;padding:7px;">.+?<a href="(.+?)">', html,re.DOTALL).group(1)
-        print '180Upload Link Found: %s' % link
-    
         dialog.update(100)
-        dialog.close()
-        return link
+        
+        link = re.search('<a href="(.+?)" onclick="thanks\(\)">Download now!</a>', html)
+        if link:
+            print '180Upload Link Found: %s' % link.group(1)
+            return link.group(1)
+        else:
+            raise Exception('Unable to resolve 180Upload Link')
+
     except Exception, e:
         print '**** 180Upload Error occured: %s' % e
         raise
+    finally:
+        dialog.close()
     
 
 def resolve_speedyshare(url):
@@ -1740,6 +1774,9 @@ def DoEpListSearch(search):
         
         match=re.compile('<h3 class="r"><a href="'+tvurl+'(.+?)"(.+?)">(.+?)</h3>').findall(link)
         match = sorted(match, key=lambda result: result[2])
+        if len(match) == 0:
+            link = link.replace('<b>', '').replace('</b>', '')
+            match=re.compile('<h3 class="r"><a href="/url\?q='+tvurl+'(.+?)&amp;(.+?)">(.+?)</h3>').findall(link)         	
         find_meta_for_search_results(match, 12, search)
 
 
@@ -2150,15 +2187,15 @@ def LOADMIRRORS(url):
                #if season name file exists
                if cache.get('mediatvshowname'):
                     seasonname=cache.get('mediatvshowname')
-                    cache.set('mediapath','TV Shows/'+showname+'/'+seasonname)
+                    cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
                else:
-                    cache.set('mediapath','TV Shows/'+showname)
+                    cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
           except:
                print "FAILED TO SAVE TV SHOW FILE PATH!"
      else:
           
           try:
-              cache.set('mediapath','Movies/'+namematch[0])
+              cache.set('mediapath','Movies/' + Clean_Windows_String(namematch[0]))
           except:
               pass
 
@@ -2392,9 +2429,9 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif isbillion:
                               fullname=sourcestring+' | BU | '+partname
                               logo = billionpic
-                        elif isepicshare:
-                              fullname=sourcestring+' | ES | '+partname
-                              logo = ''
+                        #elif isepicshare:
+                        #      fullname=sourcestring+' | ES | '+partname
+                        #      logo = ''
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -2749,8 +2786,8 @@ def Get_Path(srcname,vidname):
           SpecialDirs=selfAddon.getSetting('use-special-structure')
 
           if SpecialDirs == 'true':
-               mediapath=Clean_Windows_String(os.path.normpath(cache.get('mediapath')))
-               mediapath=os.path.join(downloadPath,mediapath)              
+               mediapath=os.path.normpath(cache.get('mediapath'))
+               mediapath=os.path.join(downloadPath, mediapath)              
                
                if not os.path.exists(mediapath):
                     try:
