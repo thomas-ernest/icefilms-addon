@@ -1,3 +1,8 @@
+  [B]v1.1.29 (Thursday, 09 May 2013):[/B]
+  - Fixed 180Upload resolver - now uses captcha
+  - Disabled EpicShare resolver until solution can be found
+  - Corrected download folders
+  
   [B]v1.1.28 (Tuesday, 09 April 2013):[/B]
   - Fixed script error when adding HD items to favourites
   - Added ability to enable/disable Next Aired in addon settings
