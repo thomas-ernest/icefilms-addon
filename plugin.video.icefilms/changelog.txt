@@ -1,3 +1,7 @@
+  [B]v1.1.30 (Sunday, 12 May 2013):[/B]
+  - Fixed 180Upload resolver again - switched to SolveMedia captcha
+  - Updated EpicShare resolver with same SolveMedia solution
+  
   [B]v1.1.29 (Thursday, 09 May 2013):[/B]
   - Fixed 180Upload resolver - now uses captcha
   - Disabled EpicShare resolver until solution can be found
