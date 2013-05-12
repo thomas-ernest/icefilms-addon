@@ -597,39 +597,36 @@ def resolve_180upload(url):
         dialog.create('Resolving', 'Resolving 180Upload Link...')
         dialog.update(0)
         
+        puzzle_img = os.path.join(datapath, "180_puzzle.png")
+        
         print '180Upload - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
 
         dialog.update(50)
                 
-        captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-        result = sorted(captcha, key=lambda ltr: int(ltr[0]))
-        solution = ''.join(str(int(num[1])-48) for num in result)
-        
         data = {}
         r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
         if r:
             for name, value in r:
                 data[name] = value
-                data.update({'code':solution})
         else:
             raise Exception('Unable to resolve 180Upload Link')
         
-        #Check for Google Captcha image
-        google_cap = re.search('<script type="text/javascript" src="(http://www.google.com/recaptcha.+?)"></script>', html)
+        #Check for SolveMedia Captcha image
+        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
 
-        if google_cap:
+        if solvemedia:
            dialog.close()
-           html = net.http_GET(google_cap.group(1)).content
-           part = re.search("challenge \: \\'(.+?)\\'", html)
-           captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-           img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+           html = net.http_GET(solvemedia.group(1)).content
+           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
+           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
+           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
            wdlg = xbmcgui.WindowDialog()
            wdlg.addControl(img)
            wdlg.show()
         
-           xbmc.sleep(5)
+           xbmc.sleep(3000)
 
            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
            kb.doModal()
@@ -648,7 +645,8 @@ def resolve_180upload(url):
            wdlg.close()
            dialog.create('Resolving', 'Resolving 180Upload Link...') 
            dialog.update(50)
-           data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+           if solution:
+               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
 
         print '180Upload - Requesting POST URL: %s' % url
         html = net.http_POST(url, data).content
@@ -726,13 +724,13 @@ def resolve_vidhog(url):
         
         dialog.update(100)
 
-        dialog.close()
-
         return download_link
         
     except Exception, e:
         print '**** VidHog Error occured: %s' % e
         raise
+    finally:
+        dialog.close()
 
 
 def resolve_uploadorb(url):
@@ -843,7 +841,6 @@ def resolve_sharebees(url):
             #Video link found
             if r:
                 link = r.group(2) + fname
-                dialog.close()
                 return link
 
         if not link:
@@ -853,6 +850,8 @@ def resolve_sharebees(url):
     except Exception, e:
         print '**** ShareBees Error occured: %s' % e
         raise
+    finally:
+        dialog.close()
 
 
 def resolve_glumbouploads(url):
@@ -1032,13 +1031,14 @@ def resolve_movreel(url):
         #Get download link
         dialog.update(100)
         link = re.search('<a id="lnk_download" href="(.+?)">Download Original Video</a>', html, re.DOTALL).group(1)
-        dialog.close()
         
         return link
 
     except Exception, e:
         print '**** Movreel Error occured: %s' % e
         raise
+    finally:
+        dialog.close()
 
 
 def resolve_billionuploads(url):
@@ -1115,18 +1115,22 @@ def resolve_billionuploads(url):
         dialog.update(100)
         link = re.search('&product_download_url=(.+?)"', html).group(1)
         link = link + "|referer=" + url
-        dialog.close()
+
         
         return link
 
     except Exception, e:
         print '**** BillionUploads Error occured: %s' % e
         raise
+    finally:
+        dialog.close()
 
 
 def resolve_epicshare(url):
 
     try:
+        
+        puzzle_img = os.path.join(datapath, "epicshare_puzzle.png")
         
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
@@ -1146,28 +1150,72 @@ def resolve_epicshare(url):
             print '***** EpicShare - File not found'
             raise Exception('File has been deleted')
 
-        filename = re.search('<h2>(.+)</h2>', html).group(1)
-        extension = re.search('(\.[^\.]*$)', filename).group(1)
-        guid = re.search('http://epicshare.net/(.+)$', url).group(1)
-        
-        vid_embed_url = 'http://epicshare.net/vidembed-%s%s' % (guid, extension)
-        
-        request = urllib2.Request(vid_embed_url)
-        request.add_header('User-Agent', USER_AGENT)
-        request.add_header('Referer', url)
-        response = urllib2.urlopen(request)
-        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
-        download_link = redirect_url + filename
-        
-        dialog.update(100)
 
-        dialog.close()
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** EpicShare - Cannot find data values'
+            raise Exception('Unable to resolve EpicShare Link')
+        
+        #Check for SolveMedia Captcha image
+        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
+
+        if solvemedia:
+           dialog.close()
+           html = net.http_GET(solvemedia.group(1)).content
+           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
+           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
+           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
+           wdlg = xbmcgui.WindowDialog()
+           wdlg.addControl(img)
+           wdlg.show()
+        
+           xbmc.sleep(3000)
+
+           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+           kb.doModal()
+           capcode = kb.getText()
+   
+           if (kb.isConfirmed()):
+               userInput = kb.getText()
+               if userInput != '':
+                   solution = kb.getText()
+               elif userInput == '':
+                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+                   return False
+           else:
+               return False
+               
+           wdlg.close()
+           dialog.create('Resolving', 'Resolving EpicShare Link...') 
+           dialog.update(50)
+           if solution:
+               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+
+        print 'EpicShare - Requesting POST URL: %s' % url
+        html = net.http_POST(url, data).content
+        dialog.update(100)
+        
+        link = re.search('<a id="lnk_download"  href="(.+?)">', html)
+        if link:
+            print 'EpicShare Link Found: %s' % link.group(1)
+            return link.group(1)
+        else:
+            print '***** EpicShare - Cannot find final link'
+            raise Exception('Unable to resolve EpicShare Link')
 
         return download_link
         
     except Exception, e:
         print '**** EpicShare Error occured: %s' % e
         raise
+
+    finally:
+        dialog.close()
 
 
 def Startup_Routines():
@@ -2429,9 +2477,9 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif isbillion:
                               fullname=sourcestring+' | BU | '+partname
                               logo = billionpic
-                        #elif isepicshare:
-                        #      fullname=sourcestring+' | ES | '+partname
-                        #      logo = ''
+                        elif isepicshare:
+                              fullname=sourcestring+' | ES | '+partname
+                              logo = ''
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
