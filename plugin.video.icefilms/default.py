@@ -664,27 +664,6 @@ def resolve_180upload(url):
         raise
     finally:
         dialog.close()
-    
-
-def resolve_speedyshare(url):
-
-    try:    
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving SpeedyShare Link...')
-        dialog.update(50)
-        
-        print 'SpeedyShare - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.close()
-        
-        host = 'http://speedy.sh'
-        #host = re.search("<input value='(http://www[0-9]*.speedy.sh)/.+?'", html).group(1)
-        link = re.search("<a class=downloadfilename href='(.+?)'>", html).group(1)
-        return host + link
-    except Exception, e:
-        print '**** SpeedyShare Error occured: %s' % e
-        raise
 
 
 def resolve_vidhog(url):
@@ -731,63 +710,6 @@ def resolve_vidhog(url):
         raise
     finally:
         dialog.close()
-
-
-def resolve_uploadorb(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving UploadOrb Link...')       
-        dialog.update(0)
-        
-        print 'UploadOrb - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(33)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** UploadOrb - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-
-        #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="submit" name="method_free" value="(.+?)" class="btn2">', html).group(1)
-        
-        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
-        
-        print 'UploadOrb - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        dialog.update(66)
-        
-        #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
-        down_direct = int(re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1))
-        
-        data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
-        print data
-        
-        print 'UploadOrb - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-        
-        dialog.update(100)
-        link = re.search('ACTION="(.+?)">', html).group(1)
-        dialog.close()
-        
-        return link
-
-    except Exception, e:
-        print '**** UploadOrb Error occured: %s' % e
-        raise
 
 
 def resolve_sharebees(url):
@@ -854,124 +776,12 @@ def resolve_sharebees(url):
         dialog.close()
 
 
-def resolve_glumbouploads(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving GlumboUploads Link...')       
-        dialog.update(0)
-        
-        print 'GlumboUploads - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(33)
-        
-        #Set POST data values
-        op = 'download1'
-        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search("""input\[name="fname"\]'\).attr\('value', '(.+?)'""", html).group(1)
-        method_free = 'Free Download'
-        
-        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
-        
-        print 'GlumboUploads - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        dialog.update(66)
-        
-        countdown = re.search('var cdnum = ([0-9]+);', html).group(1)
-
-        #They need to wait for the link to activate in order to get the proper 2nd page
-        dialog.close()
-        do_wait('Waiting on link to activate', '', int(countdown))
-        dialog.create('Resolving', 'Resolving GlumboUploads Link...') 
-        dialog.update(66)
-
-        #Set POST data values
-        op = 'download2'
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        
-        data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': 1}
-        
-        print 'GlumboUploads - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-        
-        dialog.update(100)
-        link = re.search('This download link will work for your IP for 24 hours<br><br>.+?<a href="(.+?)">', html, re.DOTALL).group(1)
-        dialog.close()
-        
-        return link
-
-    except Exception, e:
-        print '**** GlumboUploads Error occured: %s' % e
-        raise
-
-def resolve_jumbofiles(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving JumboFiles Link...')       
-        dialog.update(0)
-        
-        print 'JumboFiles - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(33)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** JumboFiles - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-
-        #Set POST data values
-        #op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        op = 'download1'
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        #method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
-        method_free = 'method_free'
-                
-        data = {'op': op, 'id': postid, 'referer': url, 'method_free': method_free}
-        
-        print 'JumboFiles - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        dialog.update(66)
-
-        #Set POST data values
-        #op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        op = 'download2'
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        method_free = 'method_free'
-                
-        data = {'op': op, 'id': postid, 'rand': rand, 'method_free': method_free}
-        
-        print 'JumboFiles - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content        
-
-        dialog.update(100)        
-        link = re.search('<FORM METHOD="LINK" ACTION="(.+?)">', html).group(1)
-        dialog.close()
-        
-        return link
-
-    except Exception, e:
-        print '**** JumboFiles Error occured: %s' % e
-        raise
-
-
 def resolve_movreel(url):
 
     try:
 
         if str2bool(selfAddon.getSetting('movreel-account')):
-            print 'ShareBees - Setting Cookie file'
+            print 'MovReel - Setting Cookie file'
             cookiejar = os.path.join(cookie_path,'movreel.lwp')
             net.set_cookies(cookiejar)
 
@@ -1207,13 +1017,246 @@ def resolve_epicshare(url):
         else:
             print '***** EpicShare - Cannot find final link'
             raise Exception('Unable to resolve EpicShare Link')
-
-        return download_link
         
     except Exception, e:
         print '**** EpicShare Error occured: %s' % e
         raise
 
+    finally:
+        dialog.close()
+
+
+def resolve_megarelease(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving MegaRelease Link...')       
+        dialog.update(0)
+        
+        print 'MegaRelease - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('<b>File Not Found</b>', html):
+            print '***** MegaRelease - File Not Found'
+            raise Exception('File Not Found')
+
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** MegaRelease - Cannot find data values'
+            raise Exception('Unable to resolve MegaRelease Link')
+        
+        print 'MegaRelease - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+        link = re.search('<a href="(.+?)">Download', html)
+        
+        if link:
+            print 'MegaRelease Link Found: %s' % link.group(1)
+            link = link.group(1) + "|referer=" + url
+            return link
+        else:
+            print '***** MegaRelease - Cannot find final link'
+            raise Exception('Unable to resolve MegaRelease Link')
+
+    except Exception, e:
+        print '**** MegaRelease Error occured: %s' % e
+        raise
+    finally:
+        dialog.close()
+
+
+def resolve_lemupload(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving LemUpload Link...')       
+        dialog.update(0)
+        
+        print 'LemUpload - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('<b>File Not Found</b>', html):
+            print '***** LemUpload - File Not Found'
+            raise Exception('File Not Found')
+
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** LemUpload - Cannot find data values'
+            raise Exception('Unable to resolve LemUpload Link')
+        
+        print 'LemUpload - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+
+        link = re.search('<a href="(.+?)">Download', html)
+        
+        if link:
+            print 'LemUpload Link Found: %s' % link.group(1)
+            link = link.group(1) + "|referer=" + url
+            return link
+        else:
+            print '***** LemUpload - Cannot find final link'
+            raise Exception('Unable to resolve LemUpload Link')
+
+    except Exception, e:
+        print '**** LemUpload Error occured: %s' % e
+        raise
+    finally:
+        dialog.close()
+
+
+def resolve_hugefiles(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving HugeFiles Link...')       
+        dialog.update(0)
+        
+        print 'HugeFiles - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('<b>File Not Found</b>', html):
+            print '***** HugeFiles - File Not Found'
+            raise Exception('File Not Found')
+
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** HugeFiles - Cannot find data values'
+            raise Exception('Unable to resolve HugeFiles Link')
+        
+        data['method_free'] = 'Free Download'
+        file_name = data['fname']
+
+        print 'HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+
+        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        sPattern += '\s+?</script>'
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        if r:
+            sJavascript = r.group(1)
+            sUnpacked = jsunpack.unpack(sJavascript)
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)
+            if r:
+                return r.group(1)
+            else:
+                print '***** HugeFiles - Cannot find final link'
+                raise Exception('Unable to resolve HugeFiles Link')
+        else:
+            print '***** HugeFiles - Cannot find final link'
+            raise Exception('Unable to resolve HugeFiles Link')
+        
+    except Exception, e:
+        print '**** HugeFiles Error occured: %s' % e
+        raise
+    finally:
+        dialog.close()
+
+
+def resolve_entroupload(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving EntroUpload Link...')       
+        dialog.update(0)
+        
+        print 'EntroUpload - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+        
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('<b>File Not Found</b>', html):
+            print '***** EntroUpload - File Not Found'
+            raise Exception('File Not Found')
+
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** EntroUpload - Cannot find data values'
+            raise Exception('Unable to resolve EntroUpload Link')
+        
+        data['method_free'] = 'Free Download'
+        file_name = data['fname']
+
+        print 'EntroUpload - Requesting POST URL: %s DATA: %s' % (url, data)
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+
+        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        sPattern += '\s+?</script>'
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        if r:
+            sJavascript = r.group(1)
+            sUnpacked = jsunpack.unpack(sJavascript)
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)
+            if r:
+                return r.group(1)
+            else:
+                print '***** EntroUpload - Cannot find final link'
+                raise Exception('Unable to resolve EntroUpload Link')
+        else:
+            print '***** EntroUpload - Cannot find final link'
+            raise Exception('Unable to resolve EntroUpload Link')
+        
+    except Exception, e:
+        print '**** EntroUpload Error occured: %s' % e
+        raise
     finally:
         dialog.close()
 
@@ -2430,15 +2473,15 @@ def PART(scrap,sourcenumber,args,cookie):
                         is2shared = re.search('\.2shared\.com/', url)
                         israpid = re.search('rapidshare\.com/', url)
                         is180 = re.search('180upload\.com/', url)
-                        isspeedy = re.search('speedy\.sh/', url)
                         isvidhog = re.search('vidhog\.com/', url)
-                        isuploadorb = re.search('uploadorb\.com/', url)
                         issharebees = re.search('sharebees\.com/', url)
-                        isglumbo = re.search('glumbouploads\.com/', url)
-                        isjumbo = re.search('jumbofiles\.com/', url)
                         ismovreel = re.search('movreel\.com/', url)
                         isbillion = re.search('billionuploads\.com/', url)
                         isepicshare = re.search('epicshare\.net/', url)
+                        ismegarelease = re.search('megarelease\.org/', url)
+                        islemupload = re.search('lemuploads\.com/', url)
+                        ishugefiles = re.search('hugefiles\.net/', url)
+                        isentroupload = re.search('entroupload\.com/', url)
 
                         partname='Part '+partnum
                         if ismega:
@@ -2453,24 +2496,12 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif is180:
                               fullname=sourcestring+' | 180 | '+partname
                               logo = u180pic
-                        elif isspeedy:
-                              fullname=sourcestring+' | SS | '+partname
-                              logo = speedypic
                         elif isvidhog:
                               fullname=sourcestring+' | VH | '+partname
                               logo = vihogpic
-                        elif isuploadorb:
-                              fullname=sourcestring+' | UO | '+partname
-                              logo = uploadorbpic
                         elif issharebees:
                               fullname=sourcestring+' | SB | '+partname
                               logo = sharebeespic
-                        elif isglumbo:
-                              fullname=sourcestring+' | GU | '+partname
-                              logo = glumbopic
-                        elif isjumbo:
-                              fullname=sourcestring+' | JF | '+partname
-                              logo = jumbopic
                         elif ismovreel:
                               fullname=sourcestring+' | MR | '+partname
                               logo = movreelpic
@@ -2480,6 +2511,18 @@ def PART(scrap,sourcenumber,args,cookie):
                         elif isepicshare:
                               fullname=sourcestring+' | ES | '+partname
                               logo = ''
+                        elif ismegarelease:
+                              fullname=sourcestring+' | MG | '+partname
+                              logo = ''
+                        elif islemupload:
+                              fullname=sourcestring+' | LU | '+partname
+                              logo = ''
+                        elif ishugefiles:
+                              fullname=sourcestring+' | HF | '+partname
+                              logo = ''
+                        elif isentroupload:
+                              fullname=sourcestring+' | EU | '+partname
+                              logo = ''                                                      
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -2511,15 +2554,15 @@ def PART(scrap,sourcenumber,args,cookie):
                     is2shared = re.search('\.2shared\.com/', url)
                     israpid = re.search('rapidshare\.com/', url)
                     is180 = re.search('180upload\.com/', url)
-                    isspeedy = re.search('speedy\.sh/', url)
                     isvidhog = re.search('vidhog\.com/', url)
-                    isuploadorb = re.search('uploadorb\.com/', url)
                     issharebees = re.search('sharebees\.com/', url)
-                    isglumbo = re.search('glumbouploads\.com/', url)
-                    isjumbo = re.search('jumbofiles\.com/', url)
                     ismovreel = re.search('movreel\.com/', url)
                     isbillion = re.search('billionuploads\.com/', url)
                     isepicshare = re.search('epicshare\.net/', url)
+                    ismegarelease = re.search('megarelease\.org/', url)
+                    islemupload = re.search('lemuploads\.com/', url)
+                    ishugefiles = re.search('hugefiles\.net/', url)
+                    isentroupload = re.search('entroupload\.com/', url)
                     
                     if ismega is not None:
                          fullname=sourcestring+' | MU | Full'
@@ -2537,29 +2580,13 @@ def PART(scrap,sourcenumber,args,cookie):
                          fullname=sourcestring+' | 180  | Full'
                          addExecute(fullname,url,get_default_action(),u180pic)
 
-                    elif isspeedy is not None:
-                         fullname=sourcestring+' | SS  | Full'
-                         addExecute(fullname,url,get_default_action(),speedypic)
-
                     elif isvidhog is not None:
                          fullname=sourcestring+' | VH  | Full'
                          addExecute(fullname,url,get_default_action(),vihogpic)
 
-                    elif isuploadorb is not None:
-                         fullname=sourcestring+' | UO  | Full'
-                         addExecute(fullname,url,get_default_action(),uploadorbpic)
-
                     elif issharebees:
                          fullname=sourcestring+' | SB  | Full'
                          addExecute(fullname,url,get_default_action(),sharebeespic)
-
-                    elif isglumbo:
-                         fullname=sourcestring+' | GU  | Full'
-                         addExecute(fullname,url,get_default_action(),glumbopic)
-
-                    elif isjumbo:
-                         fullname=sourcestring+' | JF  | Full'
-                         addExecute(fullname,url,get_default_action(),jumbopic)
 
                     elif ismovreel:
                          fullname=sourcestring+' | MR  | Full'
@@ -2573,6 +2600,21 @@ def PART(scrap,sourcenumber,args,cookie):
                          fullname=sourcestring+' | ES  | Full'
                          addExecute(fullname,url,get_default_action(),'')
 
+                    elif ismegarelease:
+                         fullname=sourcestring+' | MG  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+
+                    elif islemupload:
+                         fullname=sourcestring+' | LU  | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+ 
+                    elif ishugefiles:
+                         fullname=sourcestring+' | HF | Full'
+                         addExecute(fullname,url,get_default_action(),'')
+                          
+                    elif isentroupload:
+                         fullname=sourcestring+' | EU | Full'
+                         addExecute(fullname,url,get_default_action(),'')
 
 def GetSource(id, args, cookie):
     m = random.randrange(100, 300) * -1
@@ -2959,15 +3001,15 @@ def Handle_Vidlink(url):
      is2shared = re.search('\.2shared\.com/', url)
      israpid = re.search('rapidshare\.com/', url)
      is180 = re.search('180upload\.com/', url)
-     isspeedy = re.search('speedy\.sh/', url)
      isvidhog = re.search('vidhog\.com/', url)
-     isuploadorb = re.search('uploadorb\.com/', url)
      issharebees = re.search('sharebees\.com/', url)
-     isglumbo = re.search('glumbouploads\.com/', url)
-     isjumbo = re.search('jumbofiles\.com/', url)
      ismovreel = re.search('movreel\.com/', url)
      isbillion = re.search('billionuploads\.com/', url)
      isepicshare = re.search('epicshare\.net/', url)
+     ismegarelease = re.search('megarelease\.org/', url)
+     islemupload = re.search('lemuploads\.com/', url)
+     ishugefiles = re.search('hugefiles\.net/', url)
+     isentroupload = re.search('entroupload\.com/', url)
      
      host = re.search('//[w\.]*(.+?)/', url).group(1)
          
@@ -3009,24 +3051,12 @@ def Handle_Vidlink(url):
 
      elif is180:
           return resolve_180upload(url)
-          
-     elif isspeedy:
-          return resolve_speedyshare(url)
 
      elif isvidhog:
           return resolve_vidhog(url)
 
-     elif isuploadorb:
-          return resolve_uploadorb(url)
-
      elif issharebees:
           return resolve_sharebees(url)
-
-     elif isglumbo:
-          return resolve_glumbouploads(url)
-
-     elif isjumbo:
-          return resolve_jumbofiles(url)
 
      elif ismovreel:
           return resolve_movreel(url)
@@ -3036,6 +3066,18 @@ def Handle_Vidlink(url):
 
      elif isepicshare:
           return resolve_epicshare(url)
+
+     elif ismegarelease:
+          return resolve_megarelease(url)
+
+     elif islemupload:
+          return resolve_lemupload(url)
+
+     elif ishugefiles:
+          return resolve_hugefiles(url)
+
+     elif isentroupload:
+          return resolve_entroupload(url)
 
      elif israpid:
           
