@@ -8,24 +8,16 @@
     <string id="30108">Number of search results per page</string>
 
     <!-- ACCOUNTS -->
-    <string id="30200">Use Megaupload account</string>
-    <string id="30201">    Username</string>
-    <string id="30202">    Password</string>
-    <string id="30204">Use Megavideo if possible (Low Quality)</string>
+    <string id="30250">Hide successful login notifications</string>
     <string id="30220">RealDebrid account</string>
     <string id="30221">    Username</string>
     <string id="30222">    Password</string>     
-    <string id="30210">Use RapidShare SSL</string>
-    <string id="30211">RapidPro account</string>
-    <string id="30212">    Username</string>
-    <string id="30213">    Password</string>
-    <string id="30214">ShareBees account</string>
-    <string id="30215">    Username</string>
-    <string id="30216">    Password</string>    
     <string id="30217">Movreel account</string>
     <string id="30218">    Username</string>
     <string id="30219">    Password</string>    
-    <string id="30250">Hide successful login notifications</string>
+    <string id="30214">ShareBees account</string>
+    <string id="30215">    Username</string>
+    <string id="30216">    Password</string>    
 
     <!-- DOWNLOADS -->
     <string id="30300">Downloads folder:</string>
