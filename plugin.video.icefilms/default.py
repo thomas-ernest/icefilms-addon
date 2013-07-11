@@ -46,7 +46,7 @@ sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 
 #imports of things bundled in the addon
 import container_urls,clean_dirs,htmlcleaner
-import megaroutines, rapidroutines, debridroutines
+import debridroutines
 from metahandler import metahandlers
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
@@ -129,17 +129,6 @@ def Notify(typeq,title,message,times, line2='', line3=''):
      elif typeq == 'big':
           dialog = xbmcgui.Dialog()
           dialog.ok(' '+title+' ', ' '+message+' ', line2, line3)
-     elif typeq == 'megaalert1':
-          ip = xbmc.getIPAddress()
-          title='Megaupload Alert for IP '+ip
-          message="Either you've reached your daily download limit\n or your IP is already downloading a file."
-          dialog = xbmcgui.Dialog()
-          dialog.ok(' '+title+' ', ' '+message+' ')
-     elif typeq == 'megaalert2':
-          ip = xbmc.getIPAddress()
-          title='Megaupload Info for IP '+ip
-          message="No problems! You have not reached your limit."
-          dialog = xbmcgui.Dialog()
           dialog.ok(' '+title+' ', ' '+message+' ')
      else:
           dialog = xbmcgui.Dialog()
@@ -171,30 +160,28 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art,'search.png')
      elif filename == 'standup':
           return_file = xbmcpath(art,'standup.png')
-     elif filename == 'megapic':
-          return_file = xbmcpath(art,'megaupload.png')
      elif filename == 'shared2pic':
           return_file = xbmcpath(art,'2shared.png')
-     elif filename == 'rapidpic':
-          return_file = xbmcpath(art,'rapidshare.png')
      elif filename == '180pic':
           return_file = xbmcpath(art,'180upload.png')
-     elif filename == 'speedypic':
-          return_file = xbmcpath(art,'speedyshare.png')
      elif filename == 'vihogpic':
           return_file = xbmcpath(art,'vidhog.png')
-     elif filename == 'uploadorbpic':
-          return_file = xbmcpath(art,'uploadorb.png')
      elif filename == 'sharebeespic':
           return_file = xbmcpath(art,'sharebees.png')
-     elif filename == 'glumbopic':
-          return_file = xbmcpath(art,'glumbo.png')
      elif filename == 'movreelpic':
           return_file = xbmcpath(art,'movreel.png')
-     elif filename == 'jumbopic':
-          return_file = xbmcpath(art,'jumbofiles.png')
      elif filename == 'billionpic':
           return_file = xbmcpath(art,'billion.png')
+     elif filename == 'entropic':
+          return_file = xbmcpath(art,'entroupload.png')
+     elif filename == 'epicpic':
+          return_file = xbmcpath(art,'epicshare.png')
+     elif filename == 'hugepic':
+          return_file = xbmcpath(art,'hugefiles.png')
+     elif filename == 'lempic':
+          return_file = xbmcpath(art,'lemuploads.png')
+     elif filename == 'megarpic':
+          return_file = xbmcpath(art,'megarelease.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art,'local_file.jpg')
 
@@ -268,8 +255,6 @@ def LoginStartup():
 
      #Get whether user has set an account to use.
      
-     #mega_account = str2bool(selfAddon.getSetting('megaupload-account'))
-     rapid_account = str2bool(selfAddon.getSetting('rapidshare-account'))
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
      sharebees_account = str2bool(selfAddon.getSetting('sharebees-account'))
      movreel_account = str2bool(selfAddon.getSetting('movreel-account'))
@@ -292,39 +277,6 @@ def LoginStartup():
               print '**** Real-Debrid Error: %s' % e
               Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
               pass
-
-     #Verify RapidShare Account
-     if rapid_account:
-         rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
-         rapiduser = selfAddon.getSetting('rapidshare-username')
-         rapidpass = selfAddon.getSetting('rapidshare-password')
-
-         try:
-             if rapiduser and rapidpass:
-
-                 rs = rapidroutines.rapidshare(use_ssl=rapidssl)
-                 account_details = rs.check_account(login=rapiduser, password=rapidpass)
-                 
-                 if account_details:
-                     cache.delete('rapid_cookie')
-                     cache.set('rapid_cookie', account_details['cookie'])
-                     print 'RapidShare Account: login succeeded'
-                     if not HideSuccessfulLogin:
-                         Notify('small','RapidShare', 'Account login successful.','')
-                 else:
-                     Notify('big','RapidShare','Login failed.', '', line2='RapidShare will load with no account.')
-                     print 'RapidShare Account: login failed'
-             else:
-                   print 'RapidShare: No login details specified, using no account'
-                   Notify('big','RapidShare','Login failed. RapidShare will load with no account.','')
-         
-         except Exception, e:
-              print '**** RapidShare Error: %s' % e
-              Notify('big','RapidShare Failed','Failed to connect with RapidShare.', '', '', 'Please check your internet connection.')
-              pass
-     else:
-          cache.delete('rapid_cookie')
-          print 'Rapid Account: no account set'
 
 
      #Verify ShareBees Account
@@ -371,44 +323,6 @@ def LoginStartup():
              pass
 
 
-     #Verify MegaUpload Account
-#     elif mega_account:
-#     
-#          mu=megaroutines.megaupload(translatedicedatapath)
-#
-#          #delete old logins
-#          mu.delete_login()
-#          
-#          #check for megaupload login and do it
-#          
-#          megauser = selfAddon.getSetting('megaupload-username')
-#          megapass = selfAddon.getSetting('megaupload-password')
-#
-#          try:
-#              login=mu.set_login(megauser,megapass)
-#                       
-#              if megapass != '' and megauser != '':
-#                   if login is False:
-#                        print 'Account: '+'login failed'
-#                        Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
-#                   elif login is True:
-#                        print 'Account: '+'login succeeded'
-#                        if not HideSuccessfulLogin:
-#                             Notify('small','Megaupload', 'Account login successful.','')
-#                             
-#              if megapass == '' or megauser == '':
-#                   print 'no login details specified, using no account'
-#                   Notify('big','Megaupload','Login failed. Megaupload will load with no account.','')
-#              return True
-#          except Exception, e:
-#              print '**** MegaUpload Error: %s' % e
-#              Notify('big','Megaupload Failed','Failed to connect with MegaUpload.', '', '', 'Please check your internet connection.')
-#              pass
-#              return False
-
-
-              
-                                
 def ContainerStartup():
 
      #Check for previous Icefilms metadata install and delete
@@ -580,14 +494,6 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
           
      print '*** Handling meta install'
      return mc.install_metadata_container(filepath, installtype)
-
-
-def resolve_minus(url, filename):
-    r = '"id": "([^\s]*?)", "modal_image_width": 0, "thumbnails": "", "caption_html": "", "has_hdvideo": false, "orig_mlist_name": "", "name": "%s".*?"secure_prefix": "(.+?)",' % filename
-    html = GetURL(url)
-    print html
-    r = re.search(r, html, re.DOTALL)
-    return 'http://i.minus.com%s/d%s/%s' % (r.group(2), r.group(1), filename)
 
 
 def resolve_180upload(url):
@@ -828,13 +734,16 @@ def resolve_movreel(url):
             dialog.update(66)
             
             #Set POST data values
-            op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-            postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-            rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-            method_free = re.search('<input type="hidden" name="method_free" value="(.+?)">', html).group(1)
-            
-            data = {'op': op, 'id': postid, 'rand': rand, 'referer': url, 'method_free': method_free, 'down_direct': 1}
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
     
+            if r:
+                for name, value in r:
+                    data[name] = value
+            else:
+                print '***** Movreel - Cannot find data values'
+                raise Exception('Unable to resolve Movreel Link')
+
             print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
             html = net.http_POST(url, data).content
 
@@ -1052,6 +961,14 @@ def resolve_megarelease(url):
         if r:
             for name, value in r:
                 data[name] = value
+
+            #Check for captcha
+            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+            if captcha:
+                result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+                solution = ''.join(str(int(num[1])-48) for num in result)
+            data.update({'code':solution})
+
         else:
             print '***** MegaRelease - Cannot find data values'
             raise Exception('Unable to resolve MegaRelease Link')
@@ -1099,11 +1016,19 @@ def resolve_lemupload(url):
 
         #Set POST data values
         data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', html)
         
         if r:
             for name, value in r:
                 data[name] = value
+
+            #Check for captcha
+            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+            if captcha:
+                result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+                solution = ''.join(str(int(num[1])-48) for num in result)
+            data.update({'code':solution})
+                        
         else:
             print '***** LemUpload - Cannot find data values'
             raise Exception('Unable to resolve LemUpload Link')
@@ -1171,20 +1096,25 @@ def resolve_hugefiles(url):
         dialog.update(100)
 
         sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+[np_vid|SWFObject].+?)'
         sPattern += '\s+?</script>'
         r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
         if r:
             sJavascript = r.group(1)
             sUnpacked = jsunpack.unpack(sJavascript)
+            print sUnpacked
             sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
             sPattern += '"custommode='
             r = re.search(sPattern, sUnpacked)
             if r:
                 return r.group(1)
             else:
-                print '***** HugeFiles - Cannot find final link'
-                raise Exception('Unable to resolve HugeFiles Link')
+                r = re.search("addVariable\('file','(.+?)'\);", sUnpacked)
+                if r:
+                    return r.group(1)
+                else:
+                    print '***** HugeFiles - Cannot find final link'
+                    raise Exception('Unable to resolve HugeFiles Link')
         else:
             print '***** HugeFiles - Cannot find final link'
             raise Exception('Unable to resolve HugeFiles Link')
@@ -1260,6 +1190,81 @@ def resolve_entroupload(url):
     finally:
         dialog.close()
 
+
+def resolve_donevideo(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving DoneVideo Link...')       
+        dialog.update(0)
+        
+        print 'DoneVideo - Requesting GET URL: %s' % url
+        html = net.http_GET(url).content
+    
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+          for name, value in r:
+              data[name] = value
+        else:
+            print '***** DoneVideo - Cannot find data values'
+            raise Exception('Unable to resolve DoneVideo Link')
+        
+        data['method_free'] = 'Continue to Video'
+        print 'DoneVideo - Requesting POST URL: %s' % url
+        
+        html = net.http_POST(url, data).content
+        
+        dialog.update(50)
+                
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+          for name, value in r:
+              data[name] = value
+        else:
+          print 'Could not resolve link'
+        
+        data['method_free'] = 'Continue to Video'
+        
+        print 'DoneVideo - Requesting POST URL: %s' % url
+        
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+        
+        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        print r.group(1)
+
+        if r:
+          sJavascript = r.group(1)
+          sUnpacked = jsunpack.unpack(sJavascript)
+          sUnpacked = sUnpacked.replace("\\","")
+                   
+        r = re.search("addVariable.+?'file','(.+?)'", sUnpacked)
+                
+        if r:
+            return r.group(1)
+        else:
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)
+            if r:
+                return r.group(1)
+            else:
+                print '***** DoneVideo - Cannot find final link'
+                raise Exception('Unable to resolve DoneVideo Link')
+
+    except Exception, e:
+        print '**** DoneVideo Error occured: %s' % e
+        raise
+    finally:
+        dialog.close()
 
 def Startup_Routines():
      
@@ -2430,99 +2435,62 @@ def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
         if r5r6 == 1:
                 addDir('R5/R6 DVDRip',url,104,os.path.join(art,'source_types','r5r6.png'), imdb=imdbnum)
 
+def determine_source(url):
+
+    host_list = [('2shared.com', '2S', handle_file('shared2pic',''), 'SHARED2_HANDLER'),
+                ('180upload.com', '180', handle_file('180pic',''), 'resolve_180upload'),
+                ('vidhog.com', 'VH', handle_file('vihogpic',''), 'resolve_vidhog'),
+                ('sharebees.com', 'SB', handle_file('sharebeespic',''), 'resolve_sharebees'),
+                ('movreel.com', 'MR', handle_file('movreelpic',''), 'resolve_movreel'),
+                ('billionuploads.com', 'BU',  handle_file('billionpic',''), 'resolve_billionuploads'),
+                ('epicshare.net', 'ES',  handle_file('epicpic',''), 'resolve_epicshare'),
+                ('megarelease.org', 'MG',  handle_file('megarpic',''), 'resolve_megarelease'),
+                ('lemuploads.com', 'LU',  handle_file('lempic',''), 'resolve_lemupload'),
+                ('hugefiles.net', 'HF',  handle_file('hugepic',''), 'resolve_hugefiles'),
+                ('entroupload.com', 'EU',  handle_file('entropic',''), 'resolve_entroupload'),
+                ('donevideo.com', 'DV', '', 'resolve_donevideo')
+                ]
+
+    hoster = re.search('https?://[www\.]*([^/]+)/', url)
+
+    if hoster:
+        source_info = {}
+        domain = hoster.group(1)
+       
+        host_index = [y[0] for y in host_list].index(domain)
+       
+        return host_list[host_index]
+
 
 def PART(scrap,sourcenumber,args,cookie):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
      
-     megapic=handle_file('megapic','')
-     shared2pic=handle_file('shared2pic','')
-     rapidpic=handle_file('rapidpic','')
-     u180pic=handle_file('180pic','')
-     speedypic=handle_file('speedypic','')
-     vihogpic=handle_file('vihogpic','')
-     uploadorbpic=handle_file('uploadorbpic','')
-     sharebeespic=handle_file('sharebeespic','')
-     glumbopic=handle_file('glumbopic','')
-     movreelpic=handle_file('movreelpic','')
-     jumbopic=handle_file('jumbopic','')
-     billionpic=handle_file('billionpic','')
-     
      #if source exists proceed.
-     if checkforsource is not None:
+     if checkforsource:
           
           #check if source contains multiple parts
           multiple_part = re.search('<p>Source #'+sourcenumber+':', scrap)
           
-          if multiple_part is not None:
+          if multiple_part:
                print sourcestring+' has multiple parts'
                #get all text under source if it has multiple parts
                multi_part_source=re.compile('<p>Source #'+sourcenumber+': (.+?)PART 1(.+?)</i><p>').findall(scrap)
 
                #put scrape back together
                for sourcescrape1,sourcescrape2 in multi_part_source:
-                    scrape=sourcescrape1+'PART 1'+sourcescrape2
+                    scrape=sourcescrape1 + 'PART 1' + sourcescrape2
                     pair = re.compile("onclick='go\((\d+)\)'>PART\s+(\d+)").findall(scrape)
 
                     for id, partnum in pair:
                         url = GetSource(id, args, cookie)
 
-                        # check if source is megaupload or 2shared, and add all parts as links
-                        ismega = re.search('\.megaupload\.com/', url)
-                        is2shared = re.search('\.2shared\.com/', url)
-                        israpid = re.search('rapidshare\.com/', url)
-                        is180 = re.search('180upload\.com/', url)
-                        isvidhog = re.search('vidhog\.com/', url)
-                        issharebees = re.search('sharebees\.com/', url)
-                        ismovreel = re.search('movreel\.com/', url)
-                        isbillion = re.search('billionuploads\.com/', url)
-                        isepicshare = re.search('epicshare\.net/', url)
-                        ismegarelease = re.search('megarelease\.org/', url)
-                        islemupload = re.search('lemuploads\.com/', url)
-                        ishugefiles = re.search('hugefiles\.net/', url)
-                        isentroupload = re.search('entroupload\.com/', url)
+                        hoster = determine_source(url)
 
                         partname='Part '+partnum
-                        if ismega:
-                              fullname=sourcestring+' | MU | '+partname
-                              logo = megapic
-                        elif is2shared:
-                              fullname=sourcestring+' | 2S | '+partname
-                              logo = shared2pic
-                        elif israpid:
-                              fullname=sourcestring+' | RS | '+partname
-                              logo = rapidpic
-                        elif is180:
-                              fullname=sourcestring+' | 180 | '+partname
-                              logo = u180pic
-                        elif isvidhog:
-                              fullname=sourcestring+' | VH | '+partname
-                              logo = vihogpic
-                        elif issharebees:
-                              fullname=sourcestring+' | SB | '+partname
-                              logo = sharebeespic
-                        elif ismovreel:
-                              fullname=sourcestring+' | MR | '+partname
-                              logo = movreelpic
-                        elif isbillion:
-                              fullname=sourcestring+' | BU | '+partname
-                              logo = billionpic
-                        elif isepicshare:
-                              fullname=sourcestring+' | ES | '+partname
-                              logo = ''
-                        elif ismegarelease:
-                              fullname=sourcestring+' | MG | '+partname
-                              logo = ''
-                        elif islemupload:
-                              fullname=sourcestring+' | LU | '+partname
-                              logo = ''
-                        elif ishugefiles:
-                              fullname=sourcestring+' | HF | '+partname
-                              logo = ''
-                        elif isentroupload:
-                              fullname=sourcestring+' | EU | '+partname
-                              logo = ''                                                      
+                        fullname=sourcestring + ' | ' + hoster[1] + ' | '+partname
+                        logo = hoster[2]
 
                         try:
                             sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -2542,7 +2510,7 @@ def PART(scrap,sourcenumber,args,cookie):
                             addExecute(fullname,url,get_default_action(),logo)                                                
 
           # if source does not have multiple parts...
-          elif multiple_part is None:
+          else:
                # print sourcestring+' is single part'
                # find corresponding '<a rel=?' entry and add as a one-link source
                source5=re.compile('<a\s+rel='+sourcenumber+'.+?onclick=\'go\((\d+)\)\'>Source\s+#'+sourcenumber+':').findall(scrap)
@@ -2550,71 +2518,11 @@ def PART(scrap,sourcenumber,args,cookie):
 
                for id in source5:
                     url = GetSource(id, args, cookie)
-                    ismega = re.search('\.megaupload\.com/', url)
-                    is2shared = re.search('\.2shared\.com/', url)
-                    israpid = re.search('rapidshare\.com/', url)
-                    is180 = re.search('180upload\.com/', url)
-                    isvidhog = re.search('vidhog\.com/', url)
-                    issharebees = re.search('sharebees\.com/', url)
-                    ismovreel = re.search('movreel\.com/', url)
-                    isbillion = re.search('billionuploads\.com/', url)
-                    isepicshare = re.search('epicshare\.net/', url)
-                    ismegarelease = re.search('megarelease\.org/', url)
-                    islemupload = re.search('lemuploads\.com/', url)
-                    ishugefiles = re.search('hugefiles\.net/', url)
-                    isentroupload = re.search('entroupload\.com/', url)
                     
-                    if ismega is not None:
-                         fullname=sourcestring+' | MU | Full'
-                         addExecute(fullname,url,get_default_action(),megapic)
-                    
-                    elif is2shared is not None:
-                         fullname=sourcestring+' | 2S  | Full'
-                         addExecute(fullname,url,get_default_action(),shared2pic)
+                    hoster = determine_source(url)
+                    fullname=sourcestring + ' | ' + hoster[1] + ' | Full'
+                    addExecute(fullname,url,get_default_action(),hoster[2])
 
-                    elif israpid is not None:
-                         fullname=sourcestring+' | RS  | Full'
-                         addExecute(fullname,url,get_default_action(),rapidpic)
-
-                    elif is180 is not None:
-                         fullname=sourcestring+' | 180  | Full'
-                         addExecute(fullname,url,get_default_action(),u180pic)
-
-                    elif isvidhog is not None:
-                         fullname=sourcestring+' | VH  | Full'
-                         addExecute(fullname,url,get_default_action(),vihogpic)
-
-                    elif issharebees:
-                         fullname=sourcestring+' | SB  | Full'
-                         addExecute(fullname,url,get_default_action(),sharebeespic)
-
-                    elif ismovreel:
-                         fullname=sourcestring+' | MR  | Full'
-                         addExecute(fullname,url,get_default_action(),movreelpic)
-
-                    elif isbillion:
-                         fullname=sourcestring+' | BU  | Full'
-                         addExecute(fullname,url,get_default_action(),billionpic)
-
-                    elif isepicshare:
-                         fullname=sourcestring+' | ES  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
-
-                    elif ismegarelease:
-                         fullname=sourcestring+' | MG  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
-
-                    elif islemupload:
-                         fullname=sourcestring+' | LU  | Full'
-                         addExecute(fullname,url,get_default_action(),'')
- 
-                    elif ishugefiles:
-                         fullname=sourcestring+' | HF | Full'
-                         addExecute(fullname,url,get_default_action(),'')
-                          
-                    elif isentroupload:
-                         fullname=sourcestring+' | EU | Full'
-                         addExecute(fullname,url,get_default_action(),'')
 
 def GetSource(id, args, cookie):
     m = random.randrange(100, 300) * -1
@@ -2834,13 +2742,6 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
 
      return body
 
-def WaitIf():
-     #killing playback is necessary if switching playing of one megaup/2share stream to another
-     if xbmc.Player().isPlayingVideo() == True:
-               #currentvid=xbmc.Player().getPlayingFile()
-               #isice = re.search('.megaupload', currentvid)
-                xbmc.Player().stop()
-
 
 #Quick helper function used to strip characters that are invalid for Windows filenames/folders
 def Clean_Windows_String(string):
@@ -2996,24 +2897,11 @@ def handle_wait(time_to_wait,title,text):
          return True
 
 def Handle_Vidlink(url):
-     #video link preflight, pays attention to settings / checks if url is mega or 2shared
-     ismega = re.search('\.megaupload\.com/', url)
-     is2shared = re.search('\.2shared\.com/', url)
-     israpid = re.search('rapidshare\.com/', url)
-     is180 = re.search('180upload\.com/', url)
-     isvidhog = re.search('vidhog\.com/', url)
-     issharebees = re.search('sharebees\.com/', url)
-     ismovreel = re.search('movreel\.com/', url)
-     isbillion = re.search('billionuploads\.com/', url)
-     isepicshare = re.search('epicshare\.net/', url)
-     ismegarelease = re.search('megarelease\.org/', url)
-     islemupload = re.search('lemuploads\.com/', url)
-     ishugefiles = re.search('hugefiles\.net/', url)
-     isentroupload = re.search('entroupload\.com/', url)
-     
-     host = re.search('//[w\.]*(.+?)/', url).group(1)
+
+     #Determine who our source is, grab all needed info
+     hoster = determine_source(url)
          
-    #Using real-debrid to get the generated premium link
+     #Using real-debrid to get the generated premium link
      debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
 
      if debrid_account:
@@ -3021,88 +2909,19 @@ def Handle_Vidlink(url):
           debridpass = selfAddon.getSetting('realdebrid-password')
           rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
           
-          if rd.valid_host(host):
+          if rd.valid_host(hoster[0]):
               if rd.Login():
                    download_details = rd.Resolve(url)
                    link = download_details['download_link']
                    if not link:
-                       Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_link['message'])
+                       Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_details['message'])
                        return None
                    else:
                        print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
                        return link
 
-     if ismega:
-          WaitIf()
-          
-          mu = megaroutines.megaupload(datapath)
-          link = mu.resolve_megaup(url)
-
-          finished = do_wait('MegaUpload', link[3], link[4])
-
-          if finished:
-               return link[0]
-          else:
-               return None
-
-     elif is2shared:
-          shared2url=SHARED2_HANDLER(url)
-          return shared2url
-
-     elif is180:
-          return resolve_180upload(url)
-
-     elif isvidhog:
-          return resolve_vidhog(url)
-
-     elif issharebees:
-          return resolve_sharebees(url)
-
-     elif ismovreel:
-          return resolve_movreel(url)
-
-     elif isbillion:
-          return resolve_billionuploads(url)
-
-     elif isepicshare:
-          return resolve_epicshare(url)
-
-     elif ismegarelease:
-          return resolve_megarelease(url)
-
-     elif islemupload:
-          return resolve_lemupload(url)
-
-     elif ishugefiles:
-          return resolve_hugefiles(url)
-
-     elif isentroupload:
-          return resolve_entroupload(url)
-
-     elif israpid:
-          
-          account = selfAddon.getSetting('rapidshare-account')
-          if account == 'true':
-              rapid_cookie = cache.get('rapid_cookie')
-          else:
-              rapid_cookie = ''
-          
-          rapidssl = str2bool(selfAddon.getSetting('rapidshare-ssl'))
-          rs = rapidroutines.rapidshare(use_ssl=rapidssl)
-          download_details = rs.resolve_link(url, cookie=rapid_cookie)
-          
-          #Check if the returned status is good, else display the returned error message
-          if download_details['status'] == '1':
-          
-              finished = do_wait('RapidShare', '', download_details['wait_time'])
-
-              if finished == True:
-                   return download_details['download_link']
-              else:
-                   return None
-          else:
-              Notify('big','RapidShare','Error occurred attempting to stream the file.','', line2=download_details['message'])
-              return None
+     #Dynamic call to proper resolve function returned from determine_source()
+     return getattr(sys.modules[__name__], "%s" % hoster[3])(url)
 
 
 def PlayFile(name,url):
@@ -3665,15 +3484,6 @@ def Download_Source(name,url,stacked=False):
                 print 'download failed'
                 return False
 
-
-def Check_Mega_Limits(name,url):
-     WaitIf()
-     mu=megaroutines.megaupload(datapath)
-     limit=mu.dls_limited()
-     if limit is True:
-          Notify('megaalert1','','','')
-     elif limit is False:
-          Notify('megaalert2','','','')
 
 def Kill_Streaming(name,url):
      xbmc.Player().stop()     
@@ -4684,9 +4494,6 @@ elif mode==200:
 elif mode==201:
         Stream_Source(name, url, download=True, stacked=stacked_parts)
         #Download_Source(name,url)
-
-elif mode==202:
-        Check_Mega_Limits(name,url)
 
 elif mode==203:
         Kill_Streaming(name,url)
