@@ -1,3 +1,9 @@
+  [B]v1.1.32 (Wednesday, 10 July 2013):[/B]
+  - Added new resolver: DoneVideo
+  - Updated MegaRelease and LemUploads resolvers
+  - Added captcha check to HugeFiles resolver
+  - Cleaned/Optimized a lot of code - hopefully some slight speed ups on small devices
+  
   [B]v1.1.31 (Sunday, 26 May 2013):[/B]
   - Added 4 new resolvers:
          - LemUploads
