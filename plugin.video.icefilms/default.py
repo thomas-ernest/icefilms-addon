@@ -958,10 +958,43 @@ def resolve_megarelease(url):
         data = {}
         r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
         
-        if r:
-            for name, value in r:
-                data[name] = value
+        for name, value in r:
+            data[name] = value
 
+        captchaimg = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+        
+        if captchaimg:
+            dialog.close()
+            html = net.http_GET(captchaimg.group(1)).content
+            part = re.search("challenge \: \\'(.+?)\\'", html)
+            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+            wdlg = xbmcgui.WindowDialog()
+            wdlg.addControl(img)
+            wdlg.show()
+    
+            time.sleep(3)
+    
+            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+            kb.doModal()
+            capcode = kb.getText()
+    
+            if (kb.isConfirmed()):
+                userInput = kb.getText()
+                if userInput != '':
+                    solution = kb.getText()
+                elif userInput == '':
+                    Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+                    return False
+            else:
+                return False
+            wdlg.close()
+            dialog.close() 
+            dialog.create('Resolving', 'Resolving MegaRelease Link...') 
+            dialog.update(50)
+            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+        
+        else:
             #Check for captcha
             captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
             if captcha:
@@ -969,10 +1002,6 @@ def resolve_megarelease(url):
                 solution = ''.join(str(int(num[1])-48) for num in result)
             data.update({'code':solution})
 
-        else:
-            print '***** MegaRelease - Cannot find data values'
-            raise Exception('Unable to resolve MegaRelease Link')
-        
         print 'MegaRelease - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
 
@@ -1018,21 +1047,50 @@ def resolve_lemupload(url):
         data = {}
         r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', html)
         
-        if r:
-            for name, value in r:
-                data[name] = value
+        for name, value in r:
+            data[name] = value
 
+        captchaimg = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+        
+        if captchaimg:
+            dialog.close()
+            html = net.http_GET(captchaimg.group(1)).content
+            part = re.search("challenge \: \\'(.+?)\\'", html)
+            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+            wdlg = xbmcgui.WindowDialog()
+            wdlg.addControl(img)
+            wdlg.show()
+    
+            time.sleep(3)
+    
+            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+            kb.doModal()
+            capcode = kb.getText()
+    
+            if (kb.isConfirmed()):
+                userInput = kb.getText()
+                if userInput != '':
+                    solution = kb.getText()
+                elif userInput == '':
+                    Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+                    return False
+            else:
+                return False
+            wdlg.close()
+            dialog.close() 
+            dialog.create('Resolving', 'Resolving LemUpload Link...') 
+            dialog.update(50)
+            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+        
+        else:
             #Check for captcha
             captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
             if captcha:
                 result = sorted(captcha, key=lambda ltr: int(ltr[0]))
                 solution = ''.join(str(int(num[1])-48) for num in result)
             data.update({'code':solution})
-                        
-        else:
-            print '***** LemUpload - Cannot find data values'
-            raise Exception('Unable to resolve LemUpload Link')
-        
+                               
         print 'LemUpload - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
 
@@ -2680,7 +2738,7 @@ def SHARED2_HANDLER(url):
           #return finalUrl
 
           html = net.http_GET(url).content
-          
+
           #Check if a download limit msg is showing
           if re.search('Your free download limit is over.', html):
               wait_time = re.search('<span id="timeToWait">(.+?)</span>', html).group(1)
