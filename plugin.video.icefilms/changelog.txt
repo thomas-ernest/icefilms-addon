@@ -1,3 +1,6 @@
+  [B]v1.1.33 (Tuesday, 16 July 2013):[/B]
+  - Updated MegaRelease and LemUploads resolvers for captcha support
+  
   [B]v1.1.32 (Wednesday, 10 July 2013):[/B]
   - Added new resolver: DoneVideo
   - Updated MegaRelease and LemUploads resolvers
