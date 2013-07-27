@@ -70,14 +70,11 @@ cache = StorageServer.StorageServer(addon_id)
 ############## Constants / Variables ###############
 
 # global constants
-USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
-ICEFILMS_REFERRER = 'http://www.icefilms.info'
-
-# global constants
 ICEFILMS_URL = selfAddon.getSetting('icefilms-url')
 ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php'
 ICEFILMS_REFERRER = 'http://www.icefilms.info'
-USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
+ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
 #useful global strings:
 iceurl = ICEFILMS_URL
@@ -602,6 +599,7 @@ def resolve_vidhog(url):
         
         request = urllib2.Request(vid_embed_url)
         request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Accept', ACCEPT)
         request.add_header('Referer', url)
         response = urllib2.urlopen(request)
         redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
@@ -2768,6 +2766,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
          req = urllib2.Request(url)
 
      req.add_header('User-Agent', USER_AGENT)
+     req.add_header('Accept', ACCEPT)
 
      # as of 2011-06-02, IceFilms sources aren't displayed unless a valid referrer header is supplied:
      # http://forum.xbmc.org/showpost.php?p=810288&postcount=1146
