@@ -1,3 +1,6 @@
+  [B]v1.1.34 (Saturday, 27 July 2013):[/B]
+  - Fixed http 403 errors by updating user agent and adding Accept 
+  
   [B]v1.1.33 (Tuesday, 16 July 2013):[/B]
   - Updated MegaRelease and LemUploads resolvers for captcha support
   
