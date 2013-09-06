@@ -2900,7 +2900,7 @@ def Item_Meta(name):
           params = get_params()
 
           if video_type == 'movie':
-               listitem.setInfo('video', {'title': video['name'], 'year': video['year'], 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+               listitem.setInfo('video', {'title': video['name'], 'year': video['year'], 'type': 'movie', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
 
           if video_type == 'episode':               
                show = cache.get('tvshowname')
