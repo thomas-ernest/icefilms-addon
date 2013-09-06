@@ -2888,17 +2888,25 @@ def Item_Meta(name):
           else: poster = get_poster
 
           try: get_mpaa=cache.get('mpaa')
-          except: mpaa = None
+          except: mpaa = ''
           else: mpaa = get_mpaa
           
           #srcname=handle_file('sourcename','open')
           srcname=name
 
           listitem = xbmcgui.ListItem(srcname)
-          if not mpaa:
-               listitem.setInfo('video', {'Title': vidname, 'plotoutline': description, 'plot': description})
-          if mpaa:
-               listitem.setInfo('video', {'Title': vidname, 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+          
+          video = get_video_name(vidname)
+          params = get_params()
+
+          if video_type == 'movie':
+               listitem.setInfo('video', {'title': video['name'], 'year': video['year'], 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+
+          if video_type == 'episode':               
+               show = cache.get('tvshowname')
+               show = get_video_name(show)
+               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': show['year'], 'episode': params['episode'], 'season': params['season'], 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+          
           listitem.setThumbnailImage(poster)
 
           return listitem
