@@ -4083,7 +4083,7 @@ def get_episode(season, episode, imdb_id, url, metaget, meta_installed, tmp_seas
         #add without metadata -- imdb is still passed for use with Add to Favourites
         else:
             episode=CLEANUP(episode)
-            addDir(episode,iceurl+url,100,'',imdb='tt'+str(imdb_id),totalItems=totalitems)                
+            addDir(episode,iceurl+url,14,'',imdb='tt'+str(imdb_id),totalItems=totalitems)                
 
               
 def find_meta_for_search_results(results, mode, search=''):
