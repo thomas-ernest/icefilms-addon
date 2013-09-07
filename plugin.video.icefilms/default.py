@@ -108,6 +108,15 @@ downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
 art = icepath+'/resources/art'
 
+#######################################################
+class NoRedirection(urllib2.HTTPErrorProcessor):
+    # Stop Urllib2 from bypassing the 503 page.    
+    def http_response(self, request, response):
+        code, msg, hdrs = response.code, response.msg, response.info()
+
+        return response
+    https_response = http_response
+
 ####################################################
 
 def xbmcpath(path,filename):
@@ -523,7 +532,14 @@ def resolve_180upload(url):
            dialog.close()
            html = net.http_GET(solvemedia.group(1)).content
            hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
+           
+           #Check for alternate puzzle type - stored in a div
+           alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
+           if alt_puzzle:
+               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
+           else:
+               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
+           
            img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
            wdlg = xbmcgui.WindowDialog()
            wdlg.addControl(img)
@@ -768,27 +784,56 @@ def resolve_billionuploads(url):
         dialog.update(0)
         
         print 'BillionUploads - Requesting GET URL: %s' % url
+        import cookielib
+        cj = cookielib.CookieJar()
+        opener = urllib2.build_opener(NoRedirection, urllib2.HTTPCookieProcessor(cj))
+        urllib2.install_opener(opener)
+        
         html = net.http_GET(url).content
-               
+        dialog.update(50)
+              
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
             print '***** BillionUploads - Site reported maintenance mode'
             raise Exception('File is currently unavailable on the host')
 
+        # Check for file not found
+        if re.search('File Not Found', html):
+            print '***** BillionUploads - File Not Found'
+            raise Exception('File Not Found - Likely Deleted')  
+
+        #New CloudFlare checks
+        jschl=re.compile('name="jschl_vc" value="(.+?)"/>').findall(html)
+        if jschl:
+            jschl = jschl[0]    
+        
+            maths=re.compile('value = (.+?);').findall(html)[0].replace('(','').replace(')','')
+
+            domain_url = re.compile('(https?://.+?/)').findall(url)[0]
+            domain = re.compile('https?://(.+?)/').findall(domain_url)[0]
+            
+            time.sleep(5)
+            
+            normal = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+            normal.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36')]
+            link = domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))
+            print 'BillionUploads - Requesting GET URL: %s' % link
+            final= normal.open(domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))).read()
+            html = normal.open(url).read()
+                    
         #Set POST data values
-        op = 'download2'
-        rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="hidden" name="method_free" value="(.*?)">', html).group(1)
-        down_direct = re.search('<input type="hidden" name="down_direct" value="(.+?)">', html).group(1)
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        for name, value in r:
+            data[name] = value
         
         #Captcha
         captchaimg = re.search('<img src="(http://BillionUploads.com/captchas/.+?)"', html)
-        
-        dialog.close()
-        
+       
         #If Captcha image exists
         if captchaimg:
+            
+            dialog.close()
             #Grab Image and display it
             img = xbmcgui.ControlImage(550,15,240,100,captchaimg.group(1))
             wdlg = xbmcgui.WindowDialog()
@@ -815,27 +860,71 @@ def resolve_billionuploads(url):
                 return None
             wdlg.close()
             
-            data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct, 'code': capcode}
+            #Add captcha code to post data
+            data.update({'code':capcode})
+            
+            #Re-create progress dialog
+            dialog.create('Resolving', 'Resolving BillionUploads Link...') 
 
-        else:
-            data = {'op': op, 'rand': rand, 'id': postid, 'referer': url, 'method_free': method_free, 'down_direct': down_direct}
-
-        #They need to wait for the link to activate in order to get the proper 2nd page
-        dialog.close()
-        do_wait('Waiting on link to activate', '', 3)
-               
-        dialog.create('Resolving', 'Resolving BillionUploads Link...') 
+        #Some new data values
+        data.update({'submit_btn':''})
+        data.update({'geekref':'yeahman'})
+             
         dialog.update(50)
         
         print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
         dialog.update(100)
-        link = re.search('&product_download_url=(.+?)"', html).group(1)
-        link = link + "|referer=" + url
-
         
-        return link
+        def custom_range(start, end, step):
+            while start <= end:
+                yield start
+                start += step
 
+        def checkwmv(e):
+            s = ""
+            
+            # Create an array containing A-Z,a-z,0-9,+,/
+            i=[]
+            u=[[65,91],[97,123],[48,58],[43,44],[47,48]]
+            for z in range(0, len(u)):
+                for n in range(u[z][0],u[z][1]):
+                    i.append(chr(n))
+            #print i
+
+            # Create a dict with A=0, B=1, ...
+            t = {}
+            for n in range(0, 64):
+                t[i[n]]=n
+            #print t
+
+            for n in custom_range(0, len(e), 72):
+
+                a=0
+                h=e[n:n+72]
+                c=0
+
+                #print h
+                for l in range(0, len(h)):            
+                    f = t.get(h[l], 'undefined')
+                    if f == 'undefined':
+                        continue
+                    a= (a<<6) + f
+                    c = c + 6
+
+                    while c >= 8:
+                        c = c - 8
+                        s = s + chr( (a >> c) % 256 )
+            return s
+
+        dll = re.compile('<input type="hidden" id="dl" value="(.+?)">').findall(html)[0]
+        dl = dll.split('GvaZu')[1]
+        dl = checkwmv(dl)
+        dl = checkwmv(dl)
+        print 'Link Found: %s' % dl                
+
+        return dl
+        
     except Exception, e:
         print '**** BillionUploads Error occured: %s' % e
         raise
@@ -936,85 +1025,44 @@ def resolve_epicshare(url):
 def resolve_megarelease(url):
 
     try:
-
+        
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving MegaRelease Link...')       
+        dialog.create('Resolving', 'Resolving MegaRelease Link...')
         dialog.update(0)
         
         print 'MegaRelease - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
-        
+
         dialog.update(50)
         
         #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** MegaRelease - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
         if re.search('<b>File Not Found</b>', html):
-            print '***** MegaRelease - File Not Found'
-            raise Exception('File Not Found')
+            print '***** MegaRelease - File not found'
+            raise Exception('File has been deleted')
 
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        filename = re.search('You have requested <font color="red">(.+?)</font>', html).group(1)
+        filename = filename.split('/')[-1]
+        extension = re.search('(\.[^\.]*$)', filename).group(1)
+        guid = re.search('http://megarelease.org/(.+)$', url).group(1)
         
-        for name, value in r:
-            data[name] = value
-
-        captchaimg = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+        vid_embed_url = 'http://megarelease.org/vidembed-%s%s' % (guid, extension)
         
-        if captchaimg:
-            dialog.close()
-            html = net.http_GET(captchaimg.group(1)).content
-            part = re.search("challenge \: \\'(.+?)\\'", html)
-            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-    
-            time.sleep(3)
-    
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-    
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '':
-                    solution = kb.getText()
-                elif userInput == '':
-                    Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                    return False
-            else:
-                return False
-            wdlg.close()
-            dialog.close() 
-            dialog.create('Resolving', 'Resolving MegaRelease Link...') 
-            dialog.update(50)
-            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+        request = urllib2.Request(vid_embed_url)
+        request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Accept', ACCEPT)
+        request.add_header('Referer', url)
+        response = urllib2.urlopen(request)
+        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
+        download_link = redirect_url + filename
         
-        else:
-            #Check for captcha
-            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-            if captcha:
-                result = sorted(captcha, key=lambda ltr: int(ltr[0]))
-                solution = ''.join(str(int(num[1])-48) for num in result)
-            data.update({'code':solution})
-
-        print 'MegaRelease - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        #Get download link
         dialog.update(100)
-        link = re.search('<a href="(.+?)">Download', html)
-        
-        if link:
-            print 'MegaRelease Link Found: %s' % link.group(1)
-            link = link.group(1) + "|referer=" + url
-            return link
-        else:
-            print '***** MegaRelease - Cannot find final link'
-            raise Exception('Unable to resolve MegaRelease Link')
 
+        return download_link
+        
     except Exception, e:
         print '**** MegaRelease Error occured: %s' % e
         raise
@@ -1025,88 +1073,45 @@ def resolve_megarelease(url):
 def resolve_lemupload(url):
 
     try:
-
+        
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving LemUpload Link...')       
+        dialog.create('Resolving', 'Resolving LemUploads Link...')
         dialog.update(0)
         
-        print 'LemUpload - Requesting GET URL: %s' % url
+        print 'LemUploads - Requesting GET URL: %s' % url
         html = net.http_GET(url).content
-        
+
         dialog.update(50)
         
         #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            print '***** LemUploads - Site reported maintenance mode'
+            raise Exception('File is currently unavailable on the host')
         if re.search('<b>File Not Found</b>', html):
-            print '***** LemUpload - File Not Found'
-            raise Exception('File Not Found')
+            print '***** LemUpload - File not found'
+            raise Exception('File has been deleted')
 
-        #Set POST data values
-        data = {}
-        r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', html)
+        filename = re.search('<h2>(.+?)</h2>', html).group(1)
+        extension = re.search('(\.[^\.]*$)', filename).group(1)
+        guid = re.search('http://lemuploads.com/(.+)$', url).group(1)
         
-        for name, value in r:
-            data[name] = value
-
-        captchaimg = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+        vid_embed_url = 'http://lemuploads.com/vidembed-%s%s' % (guid, extension)
         
-        if captchaimg:
-            dialog.close()
-            html = net.http_GET(captchaimg.group(1)).content
-            part = re.search("challenge \: \\'(.+?)\\'", html)
-            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-    
-            time.sleep(3)
-    
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-    
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '':
-                    solution = kb.getText()
-                elif userInput == '':
-                    Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                    return False
-            else:
-                return False
-            wdlg.close()
-            dialog.close() 
-            dialog.create('Resolving', 'Resolving LemUpload Link...') 
-            dialog.update(50)
-            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+        request = urllib2.Request(vid_embed_url)
+        request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Accept', ACCEPT)
+        request.add_header('Referer', url)
+        response = urllib2.urlopen(request)
+        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
+        download_link = redirect_url + filename
         
-        else:
-            #Check for captcha
-            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-            if captcha:
-                result = sorted(captcha, key=lambda ltr: int(ltr[0]))
-                solution = ''.join(str(int(num[1])-48) for num in result)
-            data.update({'code':solution})
-                               
-        print 'LemUpload - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        #Get download link
         dialog.update(100)
 
-        link = re.search('<a href="(.+?)">Download', html)
+        return download_link
         
-        if link:
-            print 'LemUpload Link Found: %s' % link.group(1)
-            link = link.group(1) + "|referer=" + url
-            return link
-        else:
-            print '***** LemUpload - Cannot find final link'
-            raise Exception('Unable to resolve LemUpload Link')
-
     except Exception, e:
-        print '**** LemUpload Error occured: %s' % e
+        print '**** LemUploads Error occured: %s' % e
         raise
     finally:
         dialog.close()
