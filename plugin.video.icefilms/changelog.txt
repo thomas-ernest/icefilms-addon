@@ -1,3 +1,9 @@
+  [B]v1.1.35 (Saturday, 07 September 2013):[/B]
+  - Fixed BillionUploads resolver (the-one)
+  - Added new check on 180Uploads resolver - alternate captcha image
+  - Fixed item meta data being set on player, enable trakt to properly scrobble (minipretzel)
+  - Minor resolver updates
+
   [B]v1.1.34 (Saturday, 27 July 2013):[/B]
   - Fixed http 403 errors by updating user agent and adding Accept 
   
