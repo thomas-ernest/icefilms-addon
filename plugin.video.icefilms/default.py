@@ -868,7 +868,11 @@ def resolve_billionuploads(url):
 
         #Some new data values
         data.update({'submit_btn':''})
-        data.update({'geekref':'yeahman'})
+        r = re.search('document\.getElementById\(\'grease\'\)\.innerHTML=decodeURIComponent\(\"(.+?)\"\);', html)
+        if r:
+            r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', urllib.unquote(r.group(1)).decode('utf8') )
+            for name, value in r:
+                data.update({name:value})
              
         dialog.update(50)
         
@@ -2903,14 +2907,17 @@ def Item_Meta(name):
           
           video = get_video_name(vidname)
           params = get_params()
+          
+          if not video['year']:
+              video['year'] = 0
 
           if video_type == 'movie':
-               listitem.setInfo('video', {'title': video['name'], 'year': video['year'], 'type': 'movie', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+               listitem.setInfo('video', {'title': video['name'], 'year': int(video['year']), 'type': 'movie', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
 
           if video_type == 'episode':               
                show = cache.get('tvshowname')
                show = get_video_name(show)
-               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': show['year'], 'episode': params['episode'], 'season': params['season'], 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': int(show['year']), 'episode': int(params['episode']), 'season': int(params['season']), 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
           
           listitem.setThumbnailImage(poster)
 
@@ -3022,7 +3029,7 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
     last_part = False
     current_part = 1
 
-    while last_part == False:
+    while not last_part:
         
         #If it's a stacked source, grab url one by one
         if stacked == True:
@@ -3039,10 +3046,8 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
                 last_part = True
                 break
         else:
-            last_part = True        
-
-        print 'Last video part: %s' % str(last_part)
-        
+            last_part = True
+            
         #Grab the final playable link
         try:
             link = Handle_Vidlink(url)
@@ -3883,6 +3888,7 @@ def setView(content, viewType):
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_MPAA_RATING )
     
 #Movie Favourites folder.
 def MOVIE_FAVOURITES(url):
