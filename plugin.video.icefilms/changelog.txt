@@ -1,3 +1,9 @@
+  [B]v1.1.36 (Friday, 01 November 2013):[/B]
+  - Fixed BillionUploads resolver
+  - Fixed Movreel resolver
+  - Added option to hide folders in Recently Added, Popular sections
+  - Removed 'Homepage' option and moved sections to main listing
+
   [B]v1.1.35 (Saturday, 07 September 2013):[/B]
   - Fixed BillionUploads resolver (the-one)
   - Added new check on 180Uploads resolver - alternate captcha image
