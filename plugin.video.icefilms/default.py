@@ -47,7 +47,13 @@ sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 #imports of things bundled in the addon
 import container_urls,clean_dirs,htmlcleaner
 import debridroutines
-from metahandler import metahandlers
+
+try:
+    from metahandler import metahandlers
+except:
+    print 'Failed to import script.module.metahandler'
+    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
+
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
@@ -763,9 +769,11 @@ def resolve_movreel(url):
 
         #Get download link
         dialog.update(100)
-        link = re.search('<a id="lnk_download" href="(.+?)">Download Original Video</a>', html, re.DOTALL).group(1)
-        
-        return link
+        link = re.search('<a href="(.+)">Download Link</a>', html)
+        if link:
+            return link.group(1)
+        else:
+        	  raise Exception("Unable to find final link")
 
     except Exception, e:
         print '**** Movreel Error occured: %s' % e
@@ -868,7 +876,7 @@ def resolve_billionuploads(url):
 
         #Some new data values
         data.update({'submit_btn':''})
-        r = re.search('document\.getElementById\(\'grease\'\)\.innerHTML=decodeURIComponent\(\"(.+?)\"\);', html)
+        r = re.search('document\.getElementById\(\'.+\'\)\.innerHTML=decodeURIComponent\(\"(.+?)\"\);', html)
         if r:
             r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', urllib.unquote(r.group(1)).decode('utf8') )
             for name, value in r:
@@ -1405,16 +1413,16 @@ def CATEGORIES():  #  (homescreen of addon)
           search=handle_file('search','')
 
           #add directories
-          HideHomepage = selfAddon.getSetting('hide-homepage')
-          
+
+          addDir('Favourites',iceurl,57,os.path.join(art,'favourites.png'))          
           addDir('TV Shows',iceurl+'tv/a-z/1',50,tvshows)
           addDir('Movies',iceurl+'movies/a-z/1',51,movies)
           addDir('Music',iceurl+'music/a-z/1',52,music)
           addDir('Stand Up Comedy',iceurl+'standup/a-z/1',53,standup)
           addDir('Other',iceurl+'other/a-z/1',54,other)
-          if HideHomepage == 'false':
-                addDir('Homepage',iceurl+'index',56,homepage)
-          addDir('Favourites',iceurl,57,os.path.join(art,'favourites.png'))
+          addDir('Recently Added',iceurl+'index',60,os.path.join(art,'recently added.png'))
+          addDir('Latest Releases',iceurl+'index',61,os.path.join(art,'latest releases.png'))
+          addDir('Being Watched Now',iceurl+'index',62,os.path.join(art,'being watched now.png'))          
           addDir('Search',iceurl,55,search)
           
           #Only show if prepare_zip = True - meaning you are creating a meta pack
@@ -1678,12 +1686,6 @@ def CLEAR_FAVOURITES(url):
           except:
                pass
 
-def ICEHOMEPAGE(url):
-        addDir('Recently Added',iceurl+'index',60,os.path.join(art,'recently added.png'))
-        addDir('Latest Releases',iceurl+'index',61,os.path.join(art,'latest releases.png'))
-        addDir('Being Watched Now',iceurl+'index',62,os.path.join(art,'being watched now.png'))
-        setView(None, 'default-view')
-
 
 def check_episode(name):
     #Episode will have eg. 01x15 within the name, else we can assume it's a movie
@@ -1735,6 +1737,13 @@ def check_video_meta(name, metaget):
     return meta
 
 
+# Quick helper method to check and add listing tag folders - popularity, recently added etc.
+def folder_tags(folder_text):
+    hide_tags = str2bool(selfAddon.getSetting('hide-tags'))
+    if not hide_tags:
+        VaddDir(folder_text, '', 0, '', False)
+        
+
 def RECENT(url):
         link=GetURL(url)
 
@@ -1751,8 +1760,10 @@ def RECENT(url):
                 recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
                 for scraped in recadd:
                     text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    
                     #Add the first line
-                    VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
+                    folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+                    
                     mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
                     for url,name,hd in mirlinks:
                             url=iceurl+url
@@ -1793,8 +1804,10 @@ def LATEST(url):
                 latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
                 for scraped in latrel:
                     text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    
                     #Add the first line
-                    VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '', False)
+                    folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+                    
                     mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
                     for url,name,hd in mirlinks:
                             url=iceurl+url
@@ -2102,8 +2115,10 @@ def MOVIEINDEX(url):
         
     temp = re.compile('(<h3>|<a name=i id=.+?></a><img class=star><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
     for tag, link, longname, name in temp:
+
         if tag == '<h3>':
-            VaddDir('[COLOR blue]' + link + '[/COLOR]', '', 0, '', False)
+            folder_tags('[COLOR blue]' + link + '[/COLOR]')
+
         else:
             string = tag + link + longname + name
             scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(string)
@@ -2139,7 +2154,7 @@ def TVINDEX(url):
             regex = '<h3>(.+?)<div'
         else:
             regex = '<h3>(.+?)</h3>'
-        VaddDir('[COLOR blue]' + firstText[0] + '[/COLOR]', '', 0, '',False)
+        folder_tags('[COLOR blue]' + firstText[0] + '[/COLOR]')
     else:
         regex = '<h3>(.+?)</h3>'
     scrape=re.search('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>', link)
@@ -2154,7 +2169,7 @@ def TVINDEX(url):
     for entry in temp:
         text = re.compile(regex).findall(entry)
         if text:
-            VaddDir('[COLOR blue]' + text[0] + '[/COLOR]', '', 0, '',False)
+            folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
         scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
         if scrape:
             for imdb_id,url,name in scrape:
@@ -3596,32 +3611,7 @@ def Download(url, dest, displayname=False):
             return False
         return True
 
-'''     
-def QuietDownload(url, dest):
-#possibly useful in future addon versions
-     
-        #dp = xbmcgui.DialogProgress() 
-        #dp.create('Downloading', '', name) 
-        start_time = time.time() 
-        try: 
-            #urllib.urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(nb, bs, fs, dp, start_time))
-            urllib.urlretrieve(url, dest)
-            #xbmc.Player().play(dest)
-        except: 
-            #delete partially downloaded file 
-            while os.path.exists(dest): 
-                try: 
-                    #os.remove(dest) 
-                    break 
-                except: 
-                     pass 
-            #only handle StopDownloading (from cancel), ContentTooShort (from urlretrieve), and OS (from the race condition); let other exceptions bubble 
-            if sys.exc_info()[0] in (urllib.ContentTooShortError, StopDownloading, OSError): 
-                return 'false' 
-            else: 
-                raise 
-        return 'downloaded' 
-'''
+
 def QuietDownload(url, dest, videoname):
     #quote parameters passed to download script     
     q_url = urllib.quote_plus(url)
@@ -4416,9 +4406,6 @@ elif mode==55:
         print ""+url
         SEARCH(url)
 
-elif mode==56:
-        print ""+url
-        ICEHOMEPAGE(url)
 
 elif mode==57:
         print ""+url
