@@ -1,5 +1,6 @@
 import urllib, urllib2
 import re, os, cookielib
+import simplejson as json
 
 class RealDebrid:
 
@@ -17,7 +18,7 @@ class RealDebrid:
             cj = cookielib.LWPCookieJar()
             cj.load(self.cookie_file)
             req = urllib2.Request(url)
-            req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')   
+            req.add_header('User-Agent', 'XBMC Plugin')   
             opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
             response = opener.open(req)
 
@@ -37,39 +38,34 @@ class RealDebrid:
 
     def Resolve(self, url):
         print 'DebridRoutines - Resolving url: %s' % url
-        url = 'http://real-debrid.com/ajax/deb.php?lang=en&sl=1&link=%s' % url
+        url = 'https://real-debrid.com/ajax/unrestrict.php?link=%s' % url
         source = self.GetURL(url)
+        jsonresult = json.loads(source)
         print 'DebridRoutines - Returned Source: %s' % source
         download_details = {}
         download_details['download_link'] = ''
         download_details['message'] = ''
-        if source == '<span id="generation-error">Your file is unavailable on the hoster.</span>':
-            download_details['message'] = 'The file is unavailable on the hoster'
-            return download_details
-        elif re.search('This hoster is not included in our free offer', source):
-            download_details['message'] = 'This hoster is not included in our free offer'
-            return download_details
-        elif re.search('<span id="generation-error">No server is available for this hoster.</span>', source):
-            download_details['message'] = 'No server is available for this hoster'
+        if 'generated_links' in jsonresult:
+            generated_links = jsonresult['generated_links']
+            link = generated_links[0][2]
+            download_details['download_link'] = link
             return download_details
         else:
-            link = re.search('ok"><a href="(.+?)"', source).group(1)
-            print 'DebridRoutines - Resolved Link: %s' % link
-            download_details['download_link'] = link
+            message = jsonresult['message']
+            download_details['message'] = message
             return download_details
 
 
     def valid_host(self, host):
-        url = 'http://real-debrid.com/lib/api/hosters.php'
+        url = 'https://real-debrid.com/api/hosters.php'
         allhosts = self.GetURL(url)
-        if host in allhosts:
+        if re.search(host, allhosts):
             return True
         else:
             return False
 
-
     def  checkLogin(self):
-        url = 'http://real-debrid.com/lib/api/account.php'
+        url = 'https://real-debrid.com/api/account.php'
         source = self.GetURL(url)
         if source is not None and re.search('expiration', source):
             return False
@@ -82,8 +78,9 @@ class RealDebrid:
             cj = cookielib.LWPCookieJar()
             login_data = urllib.urlencode({'user' : self.username, 'pass' : self.password})
             url = 'https://real-debrid.com/ajax/login.php?' + login_data
+            print 'DebridRoutines - Requesting URL: %s' % url
             req = urllib2.Request(url)
-            req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+            req.add_header('User-Agent', 'XBMC Plugin')
             cj = cookielib.LWPCookieJar()
             opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 
