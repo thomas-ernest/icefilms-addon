@@ -4,7 +4,7 @@
        version="1.1.37"
        provider-name="Eldorado (originator: anarchintosh)">
     <requires>
-        <import addon="xbmc.python" version="2.0"/>
+        <import addon="xbmc.python" version="2.1.0"/>
         <import addon="script.module.simplejson"/>
         <import addon="script.module.elementtree"/>
         <import addon="script.module.beautifulsoup"/>
