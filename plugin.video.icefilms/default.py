@@ -2309,20 +2309,17 @@ def LOADMIRRORS(url):
      if not namematch:
          Notify('big','Error Loading Sources','An error occured loading sources.\nCheck your connection and/or the Icefilms site.','')
          callEndOfDirectory = False
-         return
-     
+         return 
      try:
          cache.set('videoname',namematch[0])
      except:
          pass
-
      # get and save description
      match2=re.compile('<th>Description:</th><td>(.+?)<').findall(link)
      try:
           cache.set('description',match2[0])
      except:
           pass
-     
      # get and save poster link
      try:
           imgcheck1 = re.search('<img width=250 src=', link)
@@ -2443,7 +2440,6 @@ def CAPTCHAENTER(surl):
                Notify('big', 'No text entered!', 'To try again, close this box and then: \n Press backspace twice, and reselect your video.', '')               
 
 def GETMIRRORS(url,link):
-# This scrapes the megaupload mirrors from the separate url used for the video frame.
 # It also displays them in an informative fashion to user.
 # Displays in three directory levels: HD / DVDRip etc , Source, PART
     print "getting mirrors for: %s" % url
@@ -2506,14 +2502,18 @@ def GETMIRRORS(url,link):
                 
 def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
        
-        if dvdrip == 1:
-                addDir('DVDRip',url,101,os.path.join(art,'source_types','dvd.png'), imdb=imdbnum)
         if hd720p == 1:
-                addDir('HD 720p',url,102,os.path.join(art,'source_types','hd720p.png'), imdb=imdbnum)
+                HD720p(url)
+                #addDir('HD 720p',url,102,os.path.join(art,'source_types','hd720p.png'), imdb=imdbnum)
+        if dvdrip == 1:
+                DVDRip(url)
+                #addDir('DVDRip',url,101,os.path.join(art,'source_types','dvd.png'), imdb=imdbnum)
         if dvdscreener == 1:
-                addDir('DVD Screener',url,103,os.path.join(art,'source_types','dvdscreener.png'), imdb=imdbnum)
+                DVDScreener(url)
+                #addDir('DVD Screener',url,103,os.path.join(art,'source_types','dvdscreener.png'), imdb=imdbnum)
         if r5r6 == 1:
-                addDir('R5/R6 DVDRip',url,104,os.path.join(art,'source_types','r5r6.png'), imdb=imdbnum)
+                R5R6(url)
+                #addDir('R5/R6 DVDRip',url,104,os.path.join(art,'source_types','r5r6.png'), imdb=imdbnum)
 
 def determine_source(url):
 
@@ -2823,6 +2823,9 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
 
      return body
 
+############################################
+## Helper Functions
+############################################
 
 #Quick helper function used to strip characters that are invalid for Windows filenames/folders
 def Clean_Windows_String(string):
@@ -2832,6 +2835,13 @@ def Clean_Windows_String(string):
 #Helper function to convert strings to boolean values
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
+
+#Int parse  
+def intTryParse(value):
+    try:
+        return int(value), True
+    except ValueError:
+        return value, False
 
 
 def Get_Path(srcname,vidname):
@@ -2932,7 +2942,13 @@ def Item_Meta(name):
           if video_type == 'episode':               
                show = cache.get('tvshowname')
                show = get_video_name(show)
-               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': int(show['year']), 'episode': int(params['episode']), 'season': int(params['season']), 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+               episode_year = intTryParse(show['year'])
+               episode_num = intTryParse(params['episode'])
+               episode_season = intTryParse(params['season'])
+               print 'show:', show
+               print 'params:', params
+               
+               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': episode_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
           
           listitem.setThumbnailImage(poster)
 
@@ -3842,7 +3858,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
              episode = int(episode_info.group(2))
              mode = 100
 
-     if mode in (12, 13, 100, 101, 102, 103, 104):
+     if mode in (12, 13, 100, 101):
          u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdb)) + "&videoType=" + videoType + "&season=" + str(season) + "&episode=" + str(episode)
      else:
          u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname
@@ -4356,7 +4372,19 @@ try:
         search=urllib.unquote_plus(params["search"])
 except:
         pass
-print '==========================PARAMS:\nURL: %s\nNAME: %s\nMODE: %s\nIMDBNUM: %s\nVIDEOTYPE: %s\nMYHANDLE: %s\nPARAMS: %s' % ( url, name, mode, imdbnum, video_type, sys.argv[1], params )
+
+print '----------------Icefilms Addon Param Info----------------------'
+print '--- Version: ' + str(addon.get_version())
+print '--- Mode: ' + str(mode)
+print '--- URL: ' + str(url)
+print '--- Video Type: ' + str(video_type)
+print '--- Name: ' + str(name)
+print '--- IMDB: ' + str(imdbnum)
+print '--- Season: ' + str(season_num)
+print '--- Episode: ' + str(episode_num)
+print '--- MyHandle: ' + str(sys.argv[1])
+print '--- Params: ' + str(params)
+print '---------------------------------------------------------------'
 
 if mode==None: #or url==None or len(url)<1:
         print ""
@@ -4525,22 +4553,6 @@ elif mode==99:
 elif mode==100:
         print ""+url
         LOADMIRRORS(url)
-
-elif mode==101:
-        print ""+url
-        DVDRip(url)
-
-elif mode==102:
-        print ""+url
-        HD720p(url)
-
-elif mode==103:
-        print ""+url
-        DVDScreener(url)
-
-elif mode==104:
-        print ""+url
-        R5R6(url)
 
 elif mode==110:
         # if you dont use the "url", "name" params() then you need to define the value# along with the other params.
