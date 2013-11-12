@@ -875,13 +875,25 @@ def resolve_billionuploads(url):
             dialog.create('Resolving', 'Resolving BillionUploads Link...') 
 
         #Some new data values
-        data.update({'submit_btn':''})
+        data.update({'submit_btn':'', 'referer': '', 'method_free': '', 'method_premium':''})
+
+        r = re.search('document.createElement\(\'input\'\)\)\.attr\(\'type\',\'hidden\'\)\.attr\(\'name\',\'(.+?)\'\)\.val\(\$\(\'textarea\[source="(.+?)"\]\'\)\.val', html)
+        if r:
+            ra = re.search('<textarea source="%s" style="display: none;visibility: hidden">(.+?)</textarea>' % r.group(2), html)
+            if ra:
+                data.update({r.group(1):ra.group(1)})
+            
         r = re.search('document\.getElementById\(\'.+\'\)\.innerHTML=decodeURIComponent\(\"(.+?)\"\);', html)
         if r:
             r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', urllib.unquote(r.group(1)).decode('utf8') )
             for name, value in r:
                 data.update({name:value})
-             
+
+        #Remove some data items
+        r = re.findall('\(\'input\[name=\"(.+?)\"\]\'\)\.remove\(\);', html)
+        for keyval in r:
+            del data[keyval]
+        
         dialog.update(50)
         
         print 'BillionUploads - Requesting POST URL: %s DATA: %s' % (url, data)
