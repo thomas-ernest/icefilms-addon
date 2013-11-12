@@ -1,3 +1,9 @@
+  [B]v1.1.40 (Saturday, 02 November 2013):[/B]
+  - Fixed BillionUploads resolver
+  - Removed HD/DVD/etc source subfolders
+  - Updated Real-Debrid support
+  - Fixed bug when browsing to tv shows
+  
   [B]v1.1.37 (Saturday, 02 November 2013):[/B]
   - Fixed 180Uploads resolver
 
