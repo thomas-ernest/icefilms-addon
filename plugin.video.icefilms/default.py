@@ -2348,9 +2348,9 @@ def LOADMIRRORS(url):
      epcheck1 = re.search('Episodes</a>', link)
      epcheck2 = re.search('Episode</a>', link)
      if epcheck1 is not None or epcheck2 is not None:
-          if cache.get('mediatvshowname'):
+          if cache.get('tvshowname'):
                #open media file if it exists, as that has show name with date.
-               showname=cache.get('mediatvshowname')
+               showname=cache.get('tvshowname')
           else:
                #fall back to scraping show name without date from the page.
                print 'USING FALLBACK SHOW NAME'
@@ -2358,8 +2358,8 @@ def LOADMIRRORS(url):
                showname=fallbackshowname[0]
           try:
                #if season name file exists
-               if cache.get('mediatvshowname'):
-                    seasonname=cache.get('mediatvshowname')
+               if cache.get('tvshowname'):
+                    seasonname=cache.get('tvshowname')
                     cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
                else:
                     cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
@@ -2945,8 +2945,6 @@ def Item_Meta(name):
                episode_year = intTryParse(show['year'])
                episode_num = intTryParse(params['episode'])
                episode_season = intTryParse(params['season'])
-               print 'show:', show
-               print 'params:', params
                
                listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': episode_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
           
@@ -4078,7 +4076,7 @@ def get_episode(season, episode, imdb_id, url, metaget, meta_installed, tmp_seas
             episode=CLEANUP(episode)
              
             #Get tvshow name - don't want the year portion
-            showname=cache.get('mediatvshowname')
+            showname=cache.get('tvshowname')
             r=re.search('(.+?) [(][0-9]{4}[)]',showname)
             if r:
                 showname = r.group(1)
