@@ -1,4 +1,9 @@
-  [B]v1.1.40 (Saturday, 02 November 2013):[/B]
+  [B]v1.1.41 (Thursday, 14 November 2013):[/B]
+  - Fixed EpicShare resolver
+  - Fixed TV Show subtitles script error
+  - Added quality tags to source listings
+  
+  [B]v1.1.40 (Tuesday, 12 November 2013):[/B]
   - Fixed BillionUploads resolver
   - Removed HD/DVD/etc source subfolders
   - Updated Real-Debrid support
