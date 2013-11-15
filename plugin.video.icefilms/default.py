@@ -1030,7 +1030,7 @@ def resolve_epicshare(url):
         html = net.http_POST(url, data).content
         dialog.update(100)
         
-        link = re.search('<a id="lnk_download"  href="(.+?)">', html)
+        link = re.search('product_download_url=(.+?)"', html)
         if link:
             print 'EpicShare Link Found: %s' % link.group(1)
             return link.group(1)
@@ -2554,11 +2554,11 @@ def determine_source(url):
         return host_list[host_index]
 
 
-def PART(scrap,sourcenumber,args,cookie):
+def PART(scrap,sourcenumber,args,cookie,source_tag):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
-     
+         
      #if source exists proceed.
      if checkforsource:
           
@@ -2580,8 +2580,8 @@ def PART(scrap,sourcenumber,args,cookie):
 
                         hoster = determine_source(url)
 
-                        partname='Part '+partnum
-                        fullname=sourcestring + ' | ' + hoster[1] + ' | '+partname
+                        partname='Part '+ partnum
+                        fullname=sourcestring + ' | ' + hoster[1] + ' | ' + source_tag + partname
                         logo = hoster[2]
 
                         try:
@@ -2612,7 +2612,7 @@ def PART(scrap,sourcenumber,args,cookie):
                     url = GetSource(id, args, cookie)
                     
                     hoster = determine_source(url)
-                    fullname=sourcestring + ' | ' + hoster[1] + ' | Full'
+                    fullname=sourcestring + ' | ' + hoster[1] + source_tag + ' | Full '
                     addExecute(fullname,url,get_default_action(),hoster[2])
 
 
@@ -2636,7 +2636,7 @@ def GetSource(id, args, cookie):
     return url
 
 
-def SOURCE(page, sources):
+def SOURCE(page, sources, source_tag):
           # get settings
           # extract the ingredients used to generate the XHR request
           #
@@ -2700,7 +2700,7 @@ def SOURCE(page, sources):
           #...so it's not as CPU intensive as you might think.
 
           for thenumber in numlist:
-               PART(sources,thenumber,args,cookie)
+               PART(sources,thenumber,args,cookie, source_tag)
           setView(None, 'default-view')
 
 def DVDRip(url):
@@ -2709,7 +2709,7 @@ def DVDRip(url):
         #string for all text under standard def border
         defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
         for scrape in defcat:
-                SOURCE(link, scrape)
+                SOURCE(link, scrape, ' | [COLOR blue]DVD[/COLOR]')
         setView(None, 'default-view')
 
 def HD720p(url):
@@ -2718,7 +2718,7 @@ def HD720p(url):
         #string for all text under hd720p border
         defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
         for scrape in defcat:
-                SOURCE(link, scrape)
+                SOURCE(link, scrape, ' | [COLOR red]HD[/COLOR]')
         setView(None, 'default-view')
 
 def DVDScreener(url):
@@ -2727,7 +2727,7 @@ def DVDScreener(url):
         #string for all text under dvd screener border
         defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
         for scrape in defcat:
-                SOURCE(link, scrape)
+                SOURCE(link, scrape, ' | [COLOR yellow]DVDSCR[/COLOR]')
         setView(None, 'default-view')
         
 def R5R6(url):
@@ -2736,7 +2736,7 @@ def R5R6(url):
         #string for all text under r5/r6 border
         defcat=re.compile('<div class=ripdiv><b>R5/R6 DVDRip</b>(.+?)</div>').findall(link)
         for scrape in defcat:
-                SOURCE(link, scrape)
+                SOURCE(link, scrape, ' | [COLOR green]R5/R6[/COLOR]')
         setView(None, 'default-view')
         
 class TwoSharedDownloader:
@@ -2851,9 +2851,9 @@ def str2bool(v):
 #Int parse  
 def intTryParse(value):
     try:
-        return int(value), True
+        return int(value)
     except ValueError:
-        return value, False
+        return 0
 
 
 def Get_Path(srcname,vidname):
