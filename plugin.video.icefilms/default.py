@@ -53,7 +53,6 @@ try:
 except:
     print 'Failed to import script.module.metahandler'
     xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
-
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
@@ -101,6 +100,7 @@ url=None
 name=None
 mode=None
 imdbnum=None
+tmdbnum=None
 dirmode=None
 season_num=None
 episode_num=None
@@ -3824,6 +3824,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
                  liz.setProperty('fanart_image', meta['backdrop_url'])
              #if searchMode == False:
              contextMenuItems.append(('Movie Information', 'XBMC.Action(Info)'))
+             contextMenuItems.append(('Search for Similar', 'XBMC.RunPlugin(%s?mode=991&name=%s&url=%s&tmdbnum=%s&dirmode=%s&videoType=%s)' % (sys.argv[0], sysname, sysurl, urllib.quote_plus(str(meta['tmdb_id'])), dirmode, videoType)))
          #Add Refresh & Trailer Search context menu
          if searchMode==False:
              if mode in (12, 100):
@@ -4249,6 +4250,24 @@ def ChangeWatched(imdb_id, videoType, name, season, episode, year='', watched=''
         xbmc.executebuiltin("XBMC.Container.Refresh")
 
 
+def SimilarMovies(tmdb_id):
+    metaget=metahandlers.MetaData(preparezip=prepare_zip)
+    movie_list = metaget.similar_movies(tmdb_id)
+    name_list = []
+    filtered_movie_list = []
+    if movie_list:
+        for movie in movie_list:
+            if movie['id'] != None:
+                filtered_movie_list.append(movie)
+                name_list.append(movie['title'])
+    
+        dialog = xbmcgui.Dialog()
+        index = dialog.select('Select a movie to search in Icefilms', name_list)
+        print index
+        if index > -1:
+            xbmc.executebuiltin("XBMC.Container.Update(%s?mode=555&url=%s&search=%s&nextPage=0)" % (sys.argv[0], iceurl, name_list[index]))
+
+
 def addLocal(name,filename, listitem=False):
 
     if listitem == None:
@@ -4349,6 +4368,10 @@ try:
 except:
         pass
 try:
+        tmdbnum=urllib.unquote_plus(params["tmdbnum"])
+except:
+        pass
+try:
         mode=int(params["mode"])
 except:
         pass
@@ -4390,6 +4413,7 @@ print '--- URL: ' + str(url)
 print '--- Video Type: ' + str(video_type)
 print '--- Name: ' + str(name)
 print '--- IMDB: ' + str(imdbnum)
+print '--- TMDB: ' + str(tmdbnum)
 print '--- Season: ' + str(season_num)
 print '--- Episode: ' + str(episode_num)
 print '--- MyHandle: ' + str(sys.argv[1])
@@ -4399,6 +4423,10 @@ print '---------------------------------------------------------------'
 if mode==None: #or url==None or len(url)<1:
         print ""
         CATEGORIES()
+
+elif mode==991:
+       print "Mode 991 ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
+       SimilarMovies(tmdbnum)
 
 elif mode==999:
         print "Mode 999 ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
