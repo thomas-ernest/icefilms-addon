@@ -1,3 +1,6 @@
+[B]v1.2.1 (Monday, 30 December 2013):[/B]
+  - Fixed BillionUploads and HugeFiles resolvers
+  
   [B]v1.2.0 (Wednesday, 20 November 2013):[/B]
   - Added search for similar movies - highlight movie and open context menu
   
