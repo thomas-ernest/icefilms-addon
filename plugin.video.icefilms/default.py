@@ -792,12 +792,10 @@ def resolve_billionuploads(url):
         dialog.update(0)
         
         print 'BillionUploads - Requesting GET URL: %s' % url
-        import cookielib
-        cj = cookielib.CookieJar()
-        opener = urllib2.build_opener(NoRedirection, urllib2.HTTPCookieProcessor(cj))
-        urllib2.install_opener(opener)
-        
-        html = net.http_GET(url).content
+        import requests
+        response = requests.get(url)
+        html =response.text
+        html = html.encode("ascii", "ignore")
         dialog.update(50)
               
         #Check page for any error msgs
@@ -809,25 +807,6 @@ def resolve_billionuploads(url):
         if re.search('File Not Found', html):
             print '***** BillionUploads - File Not Found'
             raise Exception('File Not Found - Likely Deleted')  
-
-        #New CloudFlare checks
-        jschl=re.compile('name="jschl_vc" value="(.+?)"/>').findall(html)
-        if jschl:
-            jschl = jschl[0]    
-        
-            maths=re.compile('value = (.+?);').findall(html)[0].replace('(','').replace(')','')
-
-            domain_url = re.compile('(https?://.+?/)').findall(url)[0]
-            domain = re.compile('https?://(.+?)/').findall(domain_url)[0]
-            
-            time.sleep(5)
-            
-            normal = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-            normal.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36')]
-            link = domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))
-            print 'BillionUploads - Requesting GET URL: %s' % link
-            final= normal.open(domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))).read()
-            html = normal.open(url).read()
                     
         #Set POST data values
         data = {}
@@ -837,42 +816,6 @@ def resolve_billionuploads(url):
         
         #Captcha
         captchaimg = re.search('<img src="(http://BillionUploads.com/captchas/.+?)"', html)
-       
-        #If Captcha image exists
-        if captchaimg:
-            
-            dialog.close()
-            #Grab Image and display it
-            img = xbmcgui.ControlImage(550,15,240,100,captchaimg.group(1))
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-            
-            #Small wait to let user see image
-            time.sleep(3)
-            
-            #Prompt keyboard for user input
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-            
-            #Check input
-            if (kb.isConfirmed()):
-              userInput = kb.getText()
-              if userInput != '':
-                  capcode = kb.getText()
-              elif userInput == '':
-                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                   return None
-            else:
-                return None
-            wdlg.close()
-            
-            #Add captcha code to post data
-            data.update({'code':capcode})
-            
-            #Re-create progress dialog
-            dialog.create('Resolving', 'Resolving BillionUploads Link...') 
 
         #Some new data values
         data.update({'submit_btn':'', 'referer': '', 'method_free': '', 'method_premium':''})
@@ -1176,30 +1119,33 @@ def resolve_hugefiles(url):
 
         print 'HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
+        
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            print '***** HugeFiles - Cannot find data values'
+            raise Exception('Unable to resolve HugeFiles Link')
 
+        embed = re.search('<h2>Embed code</h2>.+?<IFRAME SRC="(.+?)"', html, re.DOTALL + re.IGNORECASE)
+        html = net.http_GET(embed.group(1)).content
+        
         #Get download link
         dialog.update(100)
 
-        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+[np_vid|SWFObject].+?)'
-        sPattern += '\s+?</script>'
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
+        r = re.findall(sPattern, html, re.DOTALL|re.I)
         if r:
-            sJavascript = r.group(1)
-            sUnpacked = jsunpack.unpack(sJavascript)
-            print sUnpacked
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
-            sPattern += '"custommode='
-            r = re.search(sPattern, sUnpacked)
-            if r:
-                return r.group(1)
-            else:
-                r = re.search("addVariable\('file','(.+?)'\);", sUnpacked)
-                if r:
-                    return r.group(1)
-                else:
-                    print '***** HugeFiles - Cannot find final link'
-                    raise Exception('Unable to resolve HugeFiles Link')
+            sUnpacked = jsunpack.unpack(r[0])
+            sUnpacked = sUnpacked.replace("\\'","")
+            r = re.findall('file,(.+?)\)\;s1',sUnpacked)
+            if not r:
+               r = re.findall('name="src"[0-9]*="(.+?)"/><embed',sUnpacked)
+            return r[0]
         else:
             print '***** HugeFiles - Cannot find final link'
             raise Exception('Unable to resolve HugeFiles Link')
