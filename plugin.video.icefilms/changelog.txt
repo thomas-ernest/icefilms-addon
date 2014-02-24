@@ -1,3 +1,8 @@
+[B]v1.3.0 (Sunday, 23 February 2014):[/B]
+  - Fixed BillionUploads resolvers
+  - Fixed TV Show download location and hopefully all tv show script errors
+  - Added new option to Addon Settings to set the meta data zip pack download location
+  
 [B]v1.2.1 (Monday, 30 December 2013):[/B]
   - Fixed BillionUploads and HugeFiles resolvers
   
