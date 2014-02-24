@@ -76,6 +76,9 @@ cache = StorageServer.StorageServer(addon_id)
 
 # global constants
 ICEFILMS_URL = selfAddon.getSetting('icefilms-url')
+if not ICEFILMS_URL.endswith("/"):
+    ICEFILMS_URL = ICEFILMS_URL + "/"
+
 ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php'
 ICEFILMS_REFERRER = 'http://www.icefilms.info'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
@@ -361,6 +364,14 @@ def ContainerStartup():
      containers = container_urls.get()  
 
      work_path = mc.work_path
+     
+     meta_location_option = str2bool(selfAddon.getSetting('meta_pack_location_option'))
+     if meta_location_option:
+         meta_pack_locaton = selfAddon.getSetting('meta_folder_location')
+         if not meta_pack_locaton.endswith("/"):
+             meta_pack_locaton = meta_pack_locaton + "/"
+     else:
+         meta_pack_locaton = containers['url']
                             
      if not meta_installed:
 
@@ -371,7 +382,7 @@ def ContainerStartup():
          if ret==True:
                  
               #download dem files
-              get_db_zip=Zip_DL_and_Install(containers['db_url'],containers['db_filename'], 'database', work_path, mc)
+              get_db_zip=Zip_DL_and_Install(meta_pack_locaton, containers['db_filename'], 'database', work_path, mc)
 
               #do nice notification
               if get_db_zip==True:
@@ -400,12 +411,10 @@ def ContainerStartup():
          if tv_covers =='true':
              if tv_posters == 'true':
                  tv_installed = meta_installed['tv_covers']
-                 tv_zip = containers['tv_covers_url']
                  tv_filename = containers['tv_covers_filename']
                  tv_size = containers['tv_cover_size']
              else:
                  tv_installed = meta_installed['tv_banners']
-                 tv_zip = containers['tv_banners_url']
                  tv_filename = containers['tv_banners_filename']
                  tv_size = containers['tv_banners_size']
 
@@ -414,7 +423,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(tv_zip, tv_filename, 'tv_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc)
                      
                      if get_cover_zip:
                          if tv_posters =='true':
@@ -435,7 +444,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(containers['mv_covers_url'],containers['mv_covers_filename'], 'movie_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc)
                      
                      if get_cover_zip:
                          mh.update_meta_installed(addon_id, movie_covers='true')
@@ -453,7 +462,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(containers['mv_backdrop_url'],containers['mv_backdrop_filename'], 'movie_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc)
                      
                      if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, movie_backdrops='true')
@@ -471,7 +480,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(containers['tv_backdrop_url'],containers['tv_backdrop_filename'], 'tv_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc)
                      
                      if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, tv_backdrops='true')
@@ -792,12 +801,70 @@ def resolve_billionuploads(url):
         dialog.update(0)
         
         print 'BillionUploads - Requesting GET URL: %s' % url
-        import requests
-        response = requests.get(url)
-        html =response.text
-        html = html.encode("ascii", "ignore")
-        dialog.update(50)
-              
+        cookie_file = 'billionuploads.cookies'
+        
+        cj = cookielib.LWPCookieJar()
+        if os.path.exists(cookie_file):
+            try: cj.load(cookie_file,True)
+            except: cj.save(cookie_file,True)
+        else: cj.save(cookie_file,True)
+        
+        normal = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        headers = [
+            ('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0'),
+            ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+            ('Accept-Language', 'en-US,en;q=0.5'),
+            ('Accept-Encoding', ''),
+            ('DNT', '1'),
+            ('Connection', 'keep-alive'),
+            ('Pragma', 'no-cache'),
+            ('Cache-Control', 'no-cache')
+        ]
+        normal.addheaders = headers
+        class NoRedirection(urllib2.HTTPErrorProcessor):
+            # Stop Urllib2 from bypassing the 503 page.
+            def http_response(self, request, response):
+                code, msg, hdrs = response.code, response.msg, response.info()
+                return response
+            https_response = http_response
+        opener = urllib2.build_opener(NoRedirection, urllib2.HTTPCookieProcessor(cj))
+        opener.addheaders = normal.addheaders
+        response = opener.open(url).read()
+        decoded = re.search('(?i)var z="";var b="([^"]+?)"', response)
+        if decoded:
+            decoded = decoded.group(1)
+            z = []
+            for i in range(len(decoded)/2):
+                z.append(int(decoded[i*2:i*2+2],16))
+            decoded = ''.join(map(unichr, z))
+            incapurl = re.search('(?i)"GET","(/_Incapsula_Resource[^"]+?)"', decoded)
+            if incapurl:
+                incapurl = 'http://billionuploads.com'+incapurl.group(1)
+                opener.open(incapurl)
+                cj.save(cookie_file,True)
+                response = opener.open(url).read()
+                    
+        ga = re.search('(?i)"text/javascript" src="(/ga[^"]+?)"', response)
+        if ga:
+            jsurl = 'http://billionuploads.com'+ga.group(1)
+            p  = "p=%7B%22appName%22%3A%22Netscape%22%2C%22platform%22%3A%22Win32%22%2C%22cookies%22%3A1%2C%22syslang%22%3A%22en-US%22"
+            p += "%2C%22userlang%22%3A%22en-US%22%2C%22cpu%22%3A%22WindowsNT6.1%3BWOW64%22%2C%22productSub%22%3A%2220100101%22%7D"
+            opener.open(jsurl, p)
+            response = opener.open(url).read()
+        
+        if re.search('(?i)url=/distil_r_drop.html', response) and filename:
+            url += '/' + filename
+            response = normal.open(url).read()
+        jschl=re.compile('name="jschl_vc" value="(.+?)"/>').findall(response)
+        if jschl:
+            jschl = jschl[0]    
+            maths=re.compile('value = (.+?);').findall(response)[0].replace('(','').replace(')','')
+            domain_url = re.compile('(https?://.+?/)').findall(url)[0]
+            domain = re.compile('https?://(.+?)/').findall(domain_url)[0]
+            final= normal.open(domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))).read()
+            html = normal.open(url).read()
+        else: html = response
+        
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
             print '***** BillionUploads - Site reported maintenance mode'
@@ -807,15 +874,12 @@ def resolve_billionuploads(url):
         if re.search('File Not Found', html):
             print '***** BillionUploads - File Not Found'
             raise Exception('File Not Found - Likely Deleted')  
-                    
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        for name, value in r:
-            data[name] = value
         
-        #Captcha
-        captchaimg = re.search('<img src="(http://BillionUploads.com/captchas/.+?)"', html)
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.*?)">', html)
+        for name, value in r: data[name] = value
+        if not data:
+            print None
 
         #Some new data values
         data.update({'submit_btn':'', 'referer': '', 'method_free': '', 'method_premium':''})
@@ -2306,9 +2370,9 @@ def LOADMIRRORS(url):
      epcheck1 = re.search('Episodes</a>', link)
      epcheck2 = re.search('Episode</a>', link)
      if epcheck1 is not None or epcheck2 is not None:
-          if cache.get('tvshowname'):
+          if cache.get('mediatvshowname'):
                #open media file if it exists, as that has show name with date.
-               showname=cache.get('tvshowname')
+               showname=cache.get('mediatvshowname')
           else:
                #fall back to scraping show name without date from the page.
                print 'USING FALLBACK SHOW NAME'
@@ -2316,8 +2380,8 @@ def LOADMIRRORS(url):
                showname=fallbackshowname[0]
           try:
                #if season name file exists
-               if cache.get('tvshowname'):
-                    seasonname=cache.get('tvshowname')
+               if cache.get('mediatvshowname'):
+                    seasonname=cache.get('mediatvshowname')
                     cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
                else:
                     cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
