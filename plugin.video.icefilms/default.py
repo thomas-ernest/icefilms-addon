@@ -1224,6 +1224,8 @@ def resolve_hugefiles(url):
 
     try:
 
+        puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
+        
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving HugeFiles Link...')       
@@ -1253,22 +1255,80 @@ def resolve_hugefiles(url):
         data['method_free'] = 'Free Download'
         file_name = data['fname']
 
+        #Check for SolveMedia, Google Captcha image
+        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
+        recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+
+        if solvemedia:
+           dialog.close()
+           html = net.http_GET(solvemedia.group(1)).content
+           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
+           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
+           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
+           wdlg = xbmcgui.WindowDialog()
+           wdlg.addControl(img)
+           wdlg.show()
+        
+           xbmc.sleep(3000)
+
+           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+           kb.doModal()
+           capcode = kb.getText()
+   
+           if (kb.isConfirmed()):
+               userInput = kb.getText()
+               if userInput != '':
+                   solution = kb.getText()
+               elif userInput == '':
+                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
+                   return False
+           else:
+               return False
+               
+           wdlg.close()
+           dialog.create('Resolving', 'Resolving HugeFiles Link...') 
+           dialog.update(50)
+           if solution:
+               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+
+        elif recaptcha:
+            dialog.close()
+            html = net.http_GET(recaptcha.group(1)).content
+            part = re.search("challenge \: \\'(.+?)\\'", html)
+            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+            wdlg = xbmcgui.WindowDialog()
+            wdlg.addControl(img)
+            wdlg.show()
+    
+            time.sleep(3)
+    
+            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+            kb.doModal()
+            capcode = kb.getText()
+    
+            if (kb.isConfirmed()):
+                userInput = kb.getText()
+                if userInput != '':
+                    solution = kb.getText()
+                elif userInput == '':
+                    raise Exception ('You must enter text in the image to access video')
+            else:
+                raise Exception ('Captcha Error')
+            wdlg.close()
+            dialog.close() 
+            dialog.create('Resolving', 'Resolving HugeFiles Link...') 
+            dialog.update(50)
+            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+
+        else:
+            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+            result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+            solution = ''.join(str(int(num[1])-48) for num in result)
+            data.update({'code':solution})                
+
         print 'HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data)
         html = net.http_POST(url, data).content
-        
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            print '***** HugeFiles - Cannot find data values'
-            raise Exception('Unable to resolve HugeFiles Link')
-
-        embed = re.search('<h2>Embed code</h2>.+?<IFRAME SRC="(.+?)"', html, re.DOTALL + re.IGNORECASE)
-        html = net.http_GET(embed.group(1)).content
         
         #Get download link
         dialog.update(100)
