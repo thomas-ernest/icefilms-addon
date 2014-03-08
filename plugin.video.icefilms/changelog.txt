@@ -1,3 +1,9 @@
+[B]v1.4.0(Saturday, 8 March 2014):[/B]
+  - Added VidPlay resolver
+  - Added MegaFiles resolver
+  - Fixed bug where new unsupported sources would cause script errors
+  - Lots of internal code cleanups
+  
 [B]v1.3.1(Sunday, 2 March 2014):[/B]
   - Fixed HugeFiles resolver
 
