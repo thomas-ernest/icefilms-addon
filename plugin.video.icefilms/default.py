@@ -8,8 +8,7 @@
 #standard module imports
 import sys,os
 import time,re
-import urllib,urllib2,cookielib,base64
-import unicodedata
+import urllib,urllib2,base64
 import random
 import copy
 import threading
@@ -26,20 +25,19 @@ prepare_zip = False
 
 ##############################################################################################################
 
+import xbmc,xbmcplugin,xbmcgui,datetime
 
-import xbmc,xbmcplugin,xbmcgui,xbmcaddon, datetime
-
-#get path to me
-addon_id = 'plugin.video.icefilms'
-selfAddon = xbmcaddon.Addon(id=addon_id)
-icepath = selfAddon.getAddonInfo('path')
-
-''' Use t0mm0's common library for http calls '''
-from t0mm0.common.net import Net
-from t0mm0.common.addon import Addon
+''' Use addon common library for http calls '''
+from addon.common.net import Net
+from addon.common.addon import Addon
 net = Net()
+
+addon_id = 'plugin.video.icefilms'
 addon = Addon(addon_id)
 datapath = addon.get_profile()
+
+#get path to me
+icepath = addon.get_path()
 
 #append lib directory
 sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
@@ -69,13 +67,16 @@ try:
 except:
   import storageserverdummy as StorageServer
 cache = StorageServer.StorageServer(addon_id)
-   
+
+# Resolvers - Custom to Icefilms
+from resolvers import *  
+    
 ####################################################
 
 ############## Constants / Variables ###############
 
 # global constants
-ICEFILMS_URL = selfAddon.getSetting('icefilms-url')
+ICEFILMS_URL = addon.get_setting('icefilms-url')
 if not ICEFILMS_URL.endswith("/"):
     ICEFILMS_URL = ICEFILMS_URL + "/"
 
@@ -86,8 +87,8 @@ ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
 #useful global strings:
 iceurl = ICEFILMS_URL
-meta_setting = selfAddon.getSetting('use-meta')
-downloadPath = selfAddon.getSetting('download-folder')
+meta_setting = addon.get_setting('use-meta')
+downloadPath = addon.get_setting('download-folder')
 
 #Auto-watch
 currentTime = 1
@@ -115,7 +116,7 @@ metapath = os.path.join(datapath, 'mirror_page_meta_cache')
 cookie_path = os.path.join(datapath, 'cookies')
 downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
-art = icepath+'/resources/art'
+art = icepath + '/resources/art'
 
 #######################################################
 class NoRedirection(urllib2.HTTPErrorProcessor):
@@ -140,14 +141,11 @@ def Notify(typeq,title,message,times, line2='', line3=''):
           if times == '':
                times='5000'
           smallicon=handle_file('smallicon')
-          xbmc.executebuiltin("XBMC.Notification("+title+","+message+","+times+","+smallicon+")")
+          addon.show_small_popup(title=title, msg=message, delay=times, image=smallicon)
      elif typeq == 'big':
-          dialog = xbmcgui.Dialog()
-          dialog.ok(' '+title+' ', ' '+message+' ', line2, line3)
-          dialog.ok(' '+title+' ', ' '+message+' ')
+          addon.show_ok_dialog(message, title=title, is_error=False)
      else:
-          dialog = xbmcgui.Dialog()
-          dialog.ok(' '+title+' ', ' '+message+' ')
+          addon.show_ok_dialog(message, title=title, is_error=False)
 
 
 def handle_file(filename,getmode=''):
@@ -229,7 +227,7 @@ def appendfile(filename,contents):
 def DLDirStartup():
 
   # Startup routines for handling and creating special download directory structure 
-  SpecialDirs=selfAddon.getSetting('use-special-structure')
+  SpecialDirs=addon.get_setting('use-special-structure')
 
   if SpecialDirs == 'true':
 
@@ -270,15 +268,15 @@ def LoginStartup():
 
      #Get whether user has set an account to use.
      
-     debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
-     sharebees_account = str2bool(selfAddon.getSetting('sharebees-account'))
-     movreel_account = str2bool(selfAddon.getSetting('movreel-account'))
-     HideSuccessfulLogin = str2bool(selfAddon.getSetting('hide-successful-login-messages'))
+     debrid_account = str2bool(addon.get_setting('realdebrid-account'))
+     sharebees_account = str2bool(addon.get_setting('sharebees-account'))
+     movreel_account = str2bool(addon.get_setting('movreel-account'))
+     HideSuccessfulLogin = str2bool(addon.get_setting('hide-successful-login-messages'))
 
      #Verify Read-Debrid Account
      if debrid_account:
-         debriduser = selfAddon.getSetting('realdebrid-username')
-         debridpass = selfAddon.getSetting('realdebrid-password')
+         debriduser = addon.get_setting('realdebrid-username')
+         debridpass = addon.get_setting('realdebrid-password')
 
          try:
              rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
@@ -298,8 +296,8 @@ def LoginStartup():
      if sharebees_account:
          loginurl='http://www.sharebees.com/login.html'
          op = 'login'
-         login = selfAddon.getSetting('sharebees-username')
-         password = selfAddon.getSetting('sharebees-password')
+         login = addon.get_setting('sharebees-username')
+         password = addon.get_setting('sharebees-password')
          data = {'op': op, 'login': login, 'password': password}
          cookiejar = os.path.join(cookie_path,'sharebees.lwp')
         
@@ -320,8 +318,8 @@ def LoginStartup():
      if movreel_account:
          loginurl='http://www.movreel.com/login.html'
          op = 'login'
-         login = selfAddon.getSetting('movreel-username')
-         password = selfAddon.getSetting('movreel-password')
+         login = addon.get_setting('movreel-username')
+         password = addon.get_setting('movreel-password')
          data = {'op': op, 'login': login, 'password': password}
          cookiejar = os.path.join(cookie_path,'movreel.lwp')
         
@@ -365,9 +363,9 @@ def ContainerStartup():
 
      work_path = mc.work_path
      
-     meta_location_option = str2bool(selfAddon.getSetting('meta_pack_location_option'))
+     meta_location_option = str2bool(addon.get_setting('meta_pack_location_option'))
      if meta_location_option:
-         meta_pack_locaton = selfAddon.getSetting('meta_folder_location')
+         meta_pack_locaton = addon.get_setting('meta_folder_location')
          if not meta_pack_locaton.endswith("/"):
              meta_pack_locaton = meta_pack_locaton + "/"
      else:
@@ -401,11 +399,11 @@ def ContainerStartup():
      if meta_installed:
 
          #Get metadata settings
-         movie_fanart = selfAddon.getSetting('movie-fanart')
-         movie_covers = selfAddon.getSetting('movie-covers')
-         tv_covers = selfAddon.getSetting('tv-covers')
-         tv_posters = selfAddon.getSetting('tv-posters')
-         tv_fanart = selfAddon.getSetting('tv-fanart')
+         movie_fanart = addon.get_setting('movie-fanart')
+         movie_covers = addon.get_setting('movie-covers')
+         tv_covers = addon.get_setting('tv-covers')
+         tv_posters = addon.get_setting('tv-posters')
+         tv_fanart = addon.get_setting('tv-fanart')
      
          #TV Covers/Banners
          if tv_covers =='true':
@@ -495,9 +493,6 @@ def ContainerStartup():
 
 def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
 
-     #link = Handle_Vidlink(url)
-     #filename = re.search('[^/]+$', link).group(0)
-     
      link = url + filename
      
      #define the path to save it to
@@ -517,981 +512,6 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
      return mc.install_metadata_container(filepath, installtype)
 
 
-def resolve_180upload(url):
-
-    try:
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving 180Upload Link...')
-        dialog.update(0)
-        
-        puzzle_img = os.path.join(datapath, "180_puzzle.png")
-        
-        print '180Upload - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-                
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            raise Exception('Unable to resolve 180Upload Link')
-        
-        #Check for SolveMedia Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           
-           #Check for alternate puzzle type - stored in a div
-           alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
-           if alt_puzzle:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
-           else:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
-           
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
-        
-           xbmc.sleep(3000)
-
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving 180Upload Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
-
-        print '180Upload - Requesting POST URL: %s' % url
-        html = net.http_POST(url, data).content
-        dialog.update(100)
-        
-        link = re.search('id="lnk_download" href="([^"]+)', html)
-        if link:
-            print '180Upload Link Found: %s' % link.group(1)
-            return link.group(1)
-        else:
-            raise Exception('Unable to resolve 180Upload Link')
-
-    except Exception, e:
-        print '**** 180Upload Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_vidhog(url):
-
-    try:
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving VidHog Link...')
-        dialog.update(0)
-        
-        print 'VidHog - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** VidHog - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-        if re.search('<b>File Not Found</b>', html):
-            print '***** VidHog - File not found'
-            raise Exception('File has been deleted')
-
-        filename = re.search('<strong>\(<font color="red">(.+?)</font>\)</strong><br><br>', html).group(1)
-        extension = re.search('(\.[^\.]*$)', filename).group(1)
-        guid = re.search('http://vidhog.com/(.+)$', url).group(1)
-        
-        vid_embed_url = 'http://vidhog.com/vidembed-%s%s' % (guid, extension)
-        
-        request = urllib2.Request(vid_embed_url)
-        request.add_header('User-Agent', USER_AGENT)
-        request.add_header('Accept', ACCEPT)
-        request.add_header('Referer', url)
-        response = urllib2.urlopen(request)
-        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
-        download_link = redirect_url + filename
-        
-        dialog.update(100)
-
-        return download_link
-        
-    except Exception, e:
-        print '**** VidHog Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_sharebees(url):
-
-    try:
-        
-        if str2bool(selfAddon.getSetting('sharebees-account')):
-            print 'ShareBees - Setting Cookie file'
-            cookiejar = os.path.join(cookie_path,'sharebees.lwp')
-            net.set_cookies(cookiejar)
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving ShareBees Link...')       
-        dialog.update(0)
-        
-        print 'ShareBees - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(50)
-        
-        #Set POST data values
-        #op = re.search('''<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
-        op = 'download1'
-        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = "method_free"
-        
-        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
-        
-        print 'ShareBees - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-        
-        dialog.update(100)
-
-        link = None
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        
-        if r:
-            sJavascript = r.group(1)
-            sUnpacked = jsunpack.unpack(sJavascript)
-            print(sUnpacked)
-            
-            #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
-            #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
-            sPattern  = '''("video/divx"src="|addVariable\('file',')(.+?)video[.]'''
-            r = re.search(sPattern, sUnpacked)              
-            
-            #Video link found
-            if r:
-                link = r.group(2) + fname
-                return link
-
-        if not link:
-            print '***** ShareBees - Link Not Found'
-            raise Exception("Unable to resolve ShareBees")
-
-    except Exception, e:
-        print '**** ShareBees Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_movreel(url):
-
-    try:
-
-        if str2bool(selfAddon.getSetting('movreel-account')):
-            print 'MovReel - Setting Cookie file'
-            cookiejar = os.path.join(cookie_path,'movreel.lwp')
-            net.set_cookies(cookiejar)
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving Movreel Link...')       
-        dialog.update(0)
-        
-        print 'Movreel - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(33)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** Movreel - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-
-        #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="(submit|hidden)" name="method_free" (style=".*?" )*value="(.*?)">', html).group(3)
-        method_premium = re.search('<input type="(hidden|submit)" name="method_premium" (style=".*?" )*value="(.*?)">', html).group(3)
-        
-        if method_free:
-            usr_login = ''
-            fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-            data = {'op': op, 'usr_login': usr_login, 'id': postid, 'referer': url, 'fname': fname, 'method_free': method_free}
-        else:
-            rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-            data = {'op': op, 'id': postid, 'referer': url, 'rand': rand, 'method_premium': method_premium}
-        
-        print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        #Only do next post if Free account, skip to last page for download link if Premium
-        if method_free:
-            #Check for download limit error msg
-            if re.search('<p class="err">.+?</p>', html):
-                print '***** Download limit reached'
-                errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
-                raise Exception(errortxt)
-    
-            dialog.update(66)
-            
-            #Set POST data values
-            data = {}
-            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-    
-            if r:
-                for name, value in r:
-                    data[name] = value
-            else:
-                print '***** Movreel - Cannot find data values'
-                raise Exception('Unable to resolve Movreel Link')
-
-            print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
-            html = net.http_POST(url, data).content
-
-        #Get download link
-        dialog.update(100)
-        link = re.search('<a href="(.+)">Download Link</a>', html)
-        if link:
-            return link.group(1)
-        else:
-        	  raise Exception("Unable to find final link")
-
-    except Exception, e:
-        print '**** Movreel Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_billionuploads(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving BillionUploads Link...')       
-        dialog.update(0)
-        
-        print 'BillionUploads - Requesting GET URL: %s' % url
-        cookie_file = os.path.join(cookie_path,'billionuploads.lwp')
-        
-        cj = cookielib.LWPCookieJar()
-        if os.path.exists(cookie_file):
-            try: cj.load(cookie_file,True)
-            except: cj.save(cookie_file,True)
-        else: cj.save(cookie_file,True)
-        
-        normal = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        headers = [
-            ('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0'),
-            ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-            ('Accept-Language', 'en-US,en;q=0.5'),
-            ('Accept-Encoding', ''),
-            ('DNT', '1'),
-            ('Connection', 'keep-alive'),
-            ('Pragma', 'no-cache'),
-            ('Cache-Control', 'no-cache')
-        ]
-        normal.addheaders = headers
-        class NoRedirection(urllib2.HTTPErrorProcessor):
-            # Stop Urllib2 from bypassing the 503 page.
-            def http_response(self, request, response):
-                code, msg, hdrs = response.code, response.msg, response.info()
-                return response
-            https_response = http_response
-        opener = urllib2.build_opener(NoRedirection, urllib2.HTTPCookieProcessor(cj))
-        opener.addheaders = normal.addheaders
-        response = opener.open(url).read()
-        decoded = re.search('(?i)var z="";var b="([^"]+?)"', response)
-        if decoded:
-            decoded = decoded.group(1)
-            z = []
-            for i in range(len(decoded)/2):
-                z.append(int(decoded[i*2:i*2+2],16))
-            decoded = ''.join(map(unichr, z))
-            incapurl = re.search('(?i)"GET","(/_Incapsula_Resource[^"]+?)"', decoded)
-            if incapurl:
-                incapurl = 'http://billionuploads.com'+incapurl.group(1)
-                opener.open(incapurl)
-                cj.save(cookie_file,True)
-                response = opener.open(url).read()
-                
-        captcha = re.search('(?i)<iframe src="(/_Incapsula_Resource[^"]+?)"', response)
-        if captcha:
-            captcha = 'http://billionuploads.com'+captcha.group(1)
-            opener.addheaders.append(('Referer', url))
-            response = opener.open(captcha).read()
-            formurl = 'http://billionuploads.com'+re.search('(?i)<form action="(/_Incapsula_Resource[^"]+?)"', response).group(1)
-            resource = re.search('(?i)src=" (/_Incapsula_Resource[^"]+?)"', response)
-            if resource:
-                import random
-                resourceurl = 'http://billionuploads.com'+resource.group(1) + str(random.random())
-                opener.open(resourceurl)
-            recaptcha = re.search('(?i)<script type="text/javascript" src="(https://www.google.com/recaptcha/api[^"]+?)"', response)
-            if recaptcha:
-                response = opener.open(recaptcha.group(1)).read()
-                challenge = re.search('''(?i)challenge : '([^']+?)',''', response)
-                if challenge:
-                    challenge = challenge.group(1)
-                    captchaimg = 'https://www.google.com/recaptcha/api/image?c=' + challenge
-                    img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-                    wdlg = xbmcgui.WindowDialog()
-                    wdlg.addControl(img)
-                    wdlg.show()
-                    
-                    xbmc.sleep(3000)
-                    
-                    kb = xbmc.Keyboard('', 'Please enter the text in the image', False)
-                    kb.doModal()
-                    capcode = kb.getText()
-                    if (kb.isConfirmed()):
-                        userInput = kb.getText()
-                        if userInput != '': capcode = kb.getText()
-                        elif userInput == '':
-                            logerror('BillionUploads - Image-Text not entered')
-                            xbmc.executebuiltin("XBMC.Notification(Image-Text not entered.,BillionUploads,2000)")              
-                            return None
-                    else: return None
-                    wdlg.close()
-                    captchadata = {}
-                    captchadata['recaptcha_challenge_field'] = challenge
-                    captchadata['recaptcha_response_field'] = capcode
-                    opener.addheaders = headers
-                    opener.addheaders.append(('Referer', captcha))
-                    resultcaptcha = opener.open(formurl,urllib.urlencode(captchadata)).info()
-                    opener.addheaders = headers
-                    response = opener.open(url).read()
-                    
-        ga = re.search('(?i)"text/javascript" src="(/ga[^"]+?)"', response)
-        if ga:
-            jsurl = 'http://billionuploads.com'+ga.group(1)
-            p  = "p=%7B%22appName%22%3A%22Netscape%22%2C%22platform%22%3A%22Win32%22%2C%22cookies%22%3A1%2C%22syslang%22%3A%22en-US%22"
-            p += "%2C%22userlang%22%3A%22en-US%22%2C%22cpu%22%3A%22WindowsNT6.1%3BWOW64%22%2C%22productSub%22%3A%2220100101%22%7D"
-            opener.open(jsurl, p)
-            response = opener.open(url).read()
-#         pid = re.search('(?i)PID=([^"]+?)"', response)
-#         if pid:
-#             normal.addheaders += [('Cookie','D_UID='+pid.group(1)+';')]
-#             opener.addheaders = normal.addheaders
-        if re.search('(?i)url=/distil_r_drop.html', response) and filename:
-            url += '/' + filename
-            response = normal.open(url).read()
-        jschl=re.compile('name="jschl_vc" value="(.+?)"/>').findall(response)
-        if jschl:
-            jschl = jschl[0]    
-            maths=re.compile('value = (.+?);').findall(response)[0].replace('(','').replace(')','')
-            domain_url = re.compile('(https?://.+?/)').findall(url)[0]
-            domain = re.compile('https?://(.+?)/').findall(domain_url)[0]
-            final= normal.open(domain_url+'cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s'%(jschl,eval(maths)+len(domain))).read()
-            html = normal.open(url).read()
-        else: html = response
-        
-        if dialog.iscanceled(): return None
-        dialog.update(25)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** BillionUploads - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-
-        # Check for file not found
-        if re.search('File Not Found', html):
-            print '***** BillionUploads - File Not Found'
-            raise Exception('File Not Found - Likely Deleted')  
-
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.*?)">', html)
-        for name, value in r: data[name] = value
-        
-        if dialog.iscanceled(): return None
-        
-        captchaimg = re.search('<img src="((?:http://|www\.)?BillionUploads.com/captchas/.+?)"', html)            
-        if captchaimg:
-
-            img = xbmcgui.ControlImage(550,15,240,100,captchaimg.group(1))
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-            
-            kb = xbmc.Keyboard('', 'Please enter the text in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '': capcode = kb.getText()
-                elif userInput == '':
-                    showpopup('BillionUploads','[B]You must enter the text from the image to access video[/B]',5000, elogo)
-                    return None
-            else: return None
-            wdlg.close()
-            
-            data.update({'code':capcode})
-        
-        if dialog.iscanceled(): return None
-        dialog.update(50)
-        
-        data.update({'submit_btn':''})
-        enc_input = re.compile('decodeURIComponent\("(.+?)"\)').findall(html)
-        if enc_input:
-            dec_input = urllib2.unquote(enc_input[0])
-            r = re.findall(r'type="hidden" name="(.+?)" value="(.*?)">', dec_input)
-            for name, value in r:
-                data[name] = value
-        extradata = re.compile("append\(\$\(document.createElement\('input'\)\).attr\('type','hidden'\).attr\('name','(.*?)'\).val\((.*?)\)").findall(html)
-        if extradata:
-            for attr, val in extradata:
-                if 'source="self"' in val:
-                    val = re.compile('<textarea[^>]*?source="self"[^>]*?>([^<]*?)<').findall(html)[0]
-                data[attr] = val.strip("'")
-        r = re.findall("""'input\[name="([^"]+?)"\]'\)\.remove\(\)""", html)
-        
-        for name in r: del data[name]
-        
-        normal.addheaders.append(('Referer', url))
-        html = normal.open(url, urllib.urlencode(data)).read()
-        cj.save(cookie_file,True)
-        
-        if dialog.iscanceled(): return None
-        dialog.update(75)
-        
-        def custom_range(start, end, step):
-            while start <= end:
-                yield start
-                start += step
-
-        def checkwmv(e):
-            s = ""
-            i=[]
-            u=[[65,91],[97,123],[48,58],[43,44],[47,48]]
-            for z in range(0, len(u)):
-                for n in range(u[z][0],u[z][1]):
-                    i.append(chr(n))
-            t = {}
-            for n in range(0, 64): t[i[n]]=n
-            for n in custom_range(0, len(e), 72):
-                a=0
-                h=e[n:n+72]
-                c=0
-                for l in range(0, len(h)):            
-                    f = t.get(h[l], 'undefined')
-                    if f == 'undefined': continue
-                    a = (a<<6) + f
-                    c = c + 6
-                    while c >= 8:
-                        c = c - 8
-                        s = s + chr( (a >> c) % 256 )
-            return s
-
-        dll = re.compile('<input type="hidden" id="dl" value="(.+?)">').findall(html)
-        if dll:
-            dl = dll[0].split('GvaZu')[1]
-            dl = checkwmv(dl);
-            dl = checkwmv(dl);
-        else:
-            alt = re.compile('<source src="([^"]+?)"').findall(html)
-            if alt:
-                dl = alt[0]
-            else:
-                print '***** BillionUploads - No Video File Found'
-                raise Exception('Unable to resolve - No Video File Found')  
-        
-        if dialog.iscanceled(): return None
-        dialog.update(100)                    
-
-        return dl
-        
-    except Exception, e:
-        print '**** BillionUploads Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_epicshare(url):
-
-    try:
-        
-        puzzle_img = os.path.join(datapath, "epicshare_puzzle.png")
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving EpicShare Link...')
-        dialog.update(0)
-        
-        print 'EpicShare - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** EpicShare - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-        if re.search('<b>File Not Found</b>', html):
-            print '***** EpicShare - File not found'
-            raise Exception('File has been deleted')
-
-
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            print '***** EpicShare - Cannot find data values'
-            raise Exception('Unable to resolve EpicShare Link')
-        
-        #Check for SolveMedia Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
-        
-           xbmc.sleep(3000)
-
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving EpicShare Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
-
-        print 'EpicShare - Requesting POST URL: %s' % url
-        html = net.http_POST(url, data).content
-        dialog.update(100)
-        
-        link = re.search('product_download_url=(.+?)"', html)
-        if link:
-            print 'EpicShare Link Found: %s' % link.group(1)
-            return link.group(1)
-        else:
-            print '***** EpicShare - Cannot find final link'
-            raise Exception('Unable to resolve EpicShare Link')
-        
-    except Exception, e:
-        print '**** EpicShare Error occured: %s' % e
-        raise
-
-    finally:
-        dialog.close()
-
-
-def resolve_megarelease(url):
-
-    try:
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving MegaRelease Link...')
-        dialog.update(0)
-        
-        print 'MegaRelease - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** MegaRelease - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-        if re.search('<b>File Not Found</b>', html):
-            print '***** MegaRelease - File not found'
-            raise Exception('File has been deleted')
-
-        filename = re.search('You have requested <font color="red">(.+?)</font>', html).group(1)
-        filename = filename.split('/')[-1]
-        extension = re.search('(\.[^\.]*$)', filename).group(1)
-        guid = re.search('http://megarelease.org/(.+)$', url).group(1)
-        
-        vid_embed_url = 'http://megarelease.org/vidembed-%s%s' % (guid, extension)
-        
-        request = urllib2.Request(vid_embed_url)
-        request.add_header('User-Agent', USER_AGENT)
-        request.add_header('Accept', ACCEPT)
-        request.add_header('Referer', url)
-        response = urllib2.urlopen(request)
-        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
-        download_link = redirect_url + filename
-        
-        dialog.update(100)
-
-        return download_link
-        
-    except Exception, e:
-        print '**** MegaRelease Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_lemupload(url):
-
-    try:
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving LemUploads Link...')
-        dialog.update(0)
-        
-        print 'LemUploads - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            print '***** LemUploads - Site reported maintenance mode'
-            raise Exception('File is currently unavailable on the host')
-        if re.search('<b>File Not Found</b>', html):
-            print '***** LemUpload - File not found'
-            raise Exception('File has been deleted')
-
-        filename = re.search('<h2>(.+?)</h2>', html).group(1)
-        extension = re.search('(\.[^\.]*$)', filename).group(1)
-        guid = re.search('http://lemuploads.com/(.+)$', url).group(1)
-        
-        vid_embed_url = 'http://lemuploads.com/vidembed-%s%s' % (guid, extension)
-        
-        request = urllib2.Request(vid_embed_url)
-        request.add_header('User-Agent', USER_AGENT)
-        request.add_header('Accept', ACCEPT)
-        request.add_header('Referer', url)
-        response = urllib2.urlopen(request)
-        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
-        download_link = redirect_url + filename
-        
-        dialog.update(100)
-
-        return download_link
-        
-    except Exception, e:
-        print '**** LemUploads Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_hugefiles(url):
-
-    try:
-
-        puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving HugeFiles Link...')       
-        dialog.update(0)
-        
-        print 'HugeFiles - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('<b>File Not Found</b>', html):
-            print '***** HugeFiles - File Not Found'
-            raise Exception('File Not Found')
-
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            print '***** HugeFiles - Cannot find data values'
-            raise Exception('Unable to resolve HugeFiles Link')
-        
-        data['method_free'] = 'Free Download'
-        file_name = data['fname']
-
-        #Check for SolveMedia, Google Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-        recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
-        
-           xbmc.sleep(3000)
-
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   Notify('big', 'No text entered', 'You must enter text in the image to access video', '')
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving HugeFiles Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
-
-        elif recaptcha:
-            dialog.close()
-            html = net.http_GET(recaptcha.group(1)).content
-            part = re.search("challenge \: \\'(.+?)\\'", html)
-            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-    
-            time.sleep(3)
-    
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-    
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '':
-                    solution = kb.getText()
-                elif userInput == '':
-                    raise Exception ('You must enter text in the image to access video')
-            else:
-                raise Exception ('Captcha Error')
-            wdlg.close()
-            dialog.close() 
-            dialog.create('Resolving', 'Resolving HugeFiles Link...') 
-            dialog.update(50)
-            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
-
-        else:
-            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-            result = sorted(captcha, key=lambda ltr: int(ltr[0]))
-            solution = ''.join(str(int(num[1])-48) for num in result)
-            data.update({'code':solution})                
-
-        print 'HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-        
-        #Get download link
-        dialog.update(100)
-
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.findall(sPattern, html, re.DOTALL|re.I)
-        if r:
-            sUnpacked = jsunpack.unpack(r[0])
-            sUnpacked = sUnpacked.replace("\\'","")
-            r = re.findall('file,(.+?)\)\;s1',sUnpacked)
-            if not r:
-               r = re.findall('name="src"[0-9]*="(.+?)"/><embed',sUnpacked)
-            return r[0]
-        else:
-            print '***** HugeFiles - Cannot find final link'
-            raise Exception('Unable to resolve HugeFiles Link')
-        
-    except Exception, e:
-        print '**** HugeFiles Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_entroupload(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving EntroUpload Link...')       
-        dialog.update(0)
-        
-        print 'EntroUpload - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-        
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('<b>File Not Found</b>', html):
-            print '***** EntroUpload - File Not Found'
-            raise Exception('File Not Found')
-
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            print '***** EntroUpload - Cannot find data values'
-            raise Exception('Unable to resolve EntroUpload Link')
-        
-        data['method_free'] = 'Free Download'
-        file_name = data['fname']
-
-        print 'EntroUpload - Requesting POST URL: %s DATA: %s' % (url, data)
-        html = net.http_POST(url, data).content
-
-        #Get download link
-        dialog.update(100)
-
-        sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
-        sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
-        sPattern += '\s+?</script>'
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        if r:
-            sJavascript = r.group(1)
-            sUnpacked = jsunpack.unpack(sJavascript)
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
-            sPattern += '"custommode='
-            r = re.search(sPattern, sUnpacked)
-            if r:
-                return r.group(1)
-            else:
-                print '***** EntroUpload - Cannot find final link'
-                raise Exception('Unable to resolve EntroUpload Link')
-        else:
-            print '***** EntroUpload - Cannot find final link'
-            raise Exception('Unable to resolve EntroUpload Link')
-        
-    except Exception, e:
-        print '**** EntroUpload Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
-
-
-def resolve_donevideo(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving DoneVideo Link...')       
-        dialog.update(0)
-        
-        print 'DoneVideo - Requesting GET URL: %s' % url
-        html = net.http_GET(url).content
-    
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        
-        if r:
-          for name, value in r:
-              data[name] = value
-        else:
-            print '***** DoneVideo - Cannot find data values'
-            raise Exception('Unable to resolve DoneVideo Link')
-        
-        data['method_free'] = 'Continue to Video'
-        print 'DoneVideo - Requesting POST URL: %s' % url
-        
-        html = net.http_POST(url, data).content
-        
-        dialog.update(50)
-                
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-        
-        if r:
-          for name, value in r:
-              data[name] = value
-        else:
-          print 'Could not resolve link'
-        
-        data['method_free'] = 'Continue to Video'
-        
-        print 'DoneVideo - Requesting POST URL: %s' % url
-        
-        html = net.http_POST(url, data).content
-
-        #Get download link
-        dialog.update(100)
-        
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        print r.group(1)
-
-        if r:
-          sJavascript = r.group(1)
-          sUnpacked = jsunpack.unpack(sJavascript)
-          sUnpacked = sUnpacked.replace("\\","")
-                   
-        r = re.search("addVariable.+?'file','(.+?)'", sUnpacked)
-                
-        if r:
-            return r.group(1)
-        else:
-            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
-            sPattern += '"custommode='
-            r = re.search(sPattern, sUnpacked)
-            if r:
-                return r.group(1)
-            else:
-                print '***** DoneVideo - Cannot find final link'
-                raise Exception('Unable to resolve DoneVideo Link')
-
-    except Exception, e:
-        print '**** DoneVideo Error occured: %s' % e
-        raise
-    finally:
-        dialog.close()
 
 def Startup_Routines():
      
@@ -1514,7 +534,7 @@ def Startup_Routines():
      if meta_setting=='true': ContainerStartup()
      
      #Rescan Next Aired on startup - actually only rescans every 24hrs
-     next_aired = str2bool(selfAddon.getSetting('next-aired'))
+     next_aired = str2bool(addon.get_setting('next-aired'))
      if next_aired:
          xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
 
@@ -1776,7 +796,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                Notify('small',name + ' added to favourites','','6000')
 
                #Rescan Next Aired
-               next_aired = str2bool(selfAddon.getSetting('next-aired'))
+               next_aired = str2bool(addon.get_setting('next-aired'))
                if next_aired:
                    xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
           else:
@@ -1893,7 +913,7 @@ def check_video_meta(name, metaget):
 
 # Quick helper method to check and add listing tag folders - popularity, recently added etc.
 def folder_tags(folder_text):
-    hide_tags = str2bool(selfAddon.getSetting('hide-tags'))
+    hide_tags = str2bool(addon.get_setting('hide-tags'))
     if not hide_tags:
         VaddDir(folder_text, '', 0, '', False)
         
@@ -2063,7 +1083,7 @@ def DoSearch(iurl, search, nextPage):
                  
             nextPage = nextPage + 1
 
-            results_per_page = int(selfAddon.getSetting('search-results'))
+            results_per_page = int(addon.get_setting('search-results'))
             if len(results) >= results_per_page:
                 more     = True
                 finished = True
@@ -2342,7 +1362,7 @@ def TVINDEX(url):
 def TVSEASONS(url, imdb_id):
 # displays by seasons. pays attention to settings.
 
-        FlattenSingleSeasons = selfAddon.getSetting('flatten-single-season')
+        FlattenSingleSeasons = addon.get_setting('flatten-single-season')
         source=GetURL(url)
 
         #Save the tv show name for use in special download directories.
@@ -2617,7 +1637,7 @@ def GETMIRRORS(url,link):
     if re.search('<div class=ripdiv><b>R5/R6 DVDRip</b>', link) is not None: r5r6 = 1
     else: r5r6 = 0
     
-    FlattenSrcType = selfAddon.getSetting('flatten-source-type')        
+    FlattenSrcType = addon.get_setting('flatten-source-type')        
      
     # Search if there is a local version of the file
     #get proper name of vid
@@ -2682,7 +1702,9 @@ def determine_source(url):
                 ('lemuploads.com', 'LU',  handle_file('lempic',''), 'resolve_lemupload'),
                 ('hugefiles.net', 'HF',  handle_file('hugepic',''), 'resolve_hugefiles'),
                 ('entroupload.com', 'EU',  handle_file('entropic',''), 'resolve_entroupload'),
-                ('donevideo.com', 'DV', '', 'resolve_donevideo')
+                ('donevideo.com', 'DV', '', 'resolve_donevideo'),
+                ('vidplay.net', 'VP', '', 'resolve_vidplay'),
+                ('megafiles.se', 'MF', '', 'resolve_megafiles')
                 ]
 
     hoster = re.search('https?://[www\.]*([^/]+)/', url)
@@ -2691,9 +1713,11 @@ def determine_source(url):
         source_info = {}
         domain = hoster.group(1)
        
-        host_index = [y[0] for y in host_list].index(domain)
-       
-        return host_list[host_index]
+        try:
+            host_index = [y[0] for y in host_list].index(domain)      
+            return host_list[host_index]
+        except:
+            return None
 
 
 def PART(scrap,sourcenumber,args,cookie,source_tag):
@@ -2722,26 +1746,27 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
 
                         hoster = determine_source(url)
 
-                        partname='Part '+ partnum
-                        fullname=sourcestring + ' | ' + hoster[1] + ' | ' + source_tag + partname
-                        logo = hoster[2]
+                        if hoster:
+                            partname='Part '+ partnum
+                            fullname=sourcestring + ' | ' + hoster[1] + ' | ' + source_tag + partname
+                            logo = hoster[2]
 
-                        try:
-                            sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
-                        except:
-                            sources = {partnum: url}
-                            print 'sources havent been set yet...'  
+                            try:
+                                sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
+                            except:
+                                sources = {partnum: url}
+                                print 'sources havent been set yet...'  
 
-                        sources[partnum] = url
-                        cache.delete("source"+str(sourcenumber)+"parts")
-                        cache.set("source"+str(sourcenumber)+"parts", repr(sources))
-                        stacked = str2bool(selfAddon.getSetting('stack-multi-part'))
+                            sources[partnum] = url
+                            cache.delete("source"+str(sourcenumber)+"parts")
+                            cache.set("source"+str(sourcenumber)+"parts", repr(sources))
+                            stacked = str2bool(addon.get_setting('stack-multi-part'))
 
-                        if stacked and partnum == '1':
-                            fullname = fullname.replace('Part 1', 'Multiple Parts')
-                            addExecute(fullname,url,get_default_action(),logo,stacked)
-                        elif not stacked:
-                            addExecute(fullname,url,get_default_action(),logo)                                                
+                            if stacked and partnum == '1':
+                                fullname = fullname.replace('Part 1', 'Multiple Parts')
+                                addExecute(fullname,url,get_default_action(),logo,stacked)
+                            elif not stacked:
+                                addExecute(fullname,url,get_default_action(),logo)                                                
 
           # if source does not have multiple parts...
           else:
@@ -2754,8 +1779,9 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
                     url = GetSource(id, args, cookie)
                     
                     hoster = determine_source(url)
-                    fullname=sourcestring + ' | ' + hoster[1] + source_tag + ' | Full '
-                    addExecute(fullname,url,get_default_action(),hoster[2])
+                    if hoster:
+                        fullname=sourcestring + ' | ' + hoster[1] + source_tag + ' | Full '
+                        addExecute(fullname,url,get_default_action(),hoster[2])
 
 
 def GetSource(id, args, cookie):
@@ -3019,7 +2045,7 @@ def Get_Path(srcname,vidname):
           #initial_path=os.path.join(downloadPath,'Icefilms Downloaded Videos')
 
           #is use special directory structure set to true?
-          SpecialDirs=selfAddon.getSetting('use-special-structure')
+          SpecialDirs=addon.get_setting('use-special-structure')
 
           if SpecialDirs == 'true':
                mediapath=os.path.normpath(cache.get('mediapath'))
@@ -3158,30 +2184,30 @@ def handle_wait(time_to_wait,title,text):
 
 def Handle_Vidlink(url):
 
-     #Determine who our source is, grab all needed info
-     hoster = determine_source(url)
-         
-     #Using real-debrid to get the generated premium link
-     debrid_account = str2bool(selfAddon.getSetting('realdebrid-account'))
+    #Determine who our source is, grab all needed info
+    hoster = determine_source(url)
+     
+    #Using real-debrid to get the generated premium link
+    debrid_account = str2bool(addon.get_setting('realdebrid-account'))
 
-     if debrid_account:
-          debriduser = selfAddon.getSetting('realdebrid-username')
-          debridpass = selfAddon.getSetting('realdebrid-password')
-          rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
-          
-          if rd.valid_host(hoster[0]):
-              if rd.Login():
-                   download_details = rd.Resolve(url)
-                   link = download_details['download_link']
-                   if not link:
-                       Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_details['message'])
-                       return None
-                   else:
-                       print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
-                       return link
+    if debrid_account:
+      debriduser = addon.get_setting('realdebrid-username')
+      debridpass = addon.get_setting('realdebrid-password')
+      rd = debridroutines.RealDebrid(cookie_jar, debriduser, debridpass)
+      
+      if rd.valid_host(hoster[0]):
+          if rd.Login():
+               download_details = rd.Resolve(url)
+               link = download_details['download_link']
+               if not link:
+                   Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_details['message'])
+                   return None
+               else:
+                   print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
+                   return link
 
-     #Dynamic call to proper resolve function returned from determine_source()
-     return getattr(sys.modules[__name__], "%s" % hoster[3])(url)
+    #Dynamic call to proper resolve function returned from determine_source()
+    return getattr(sys.modules[__name__], "%s" % hoster[3])(url)
 
 
 def PlayFile(name,url):
@@ -3207,7 +2233,7 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
     mypath = Get_Path(name,vidname)
     listitem = Item_Meta(name)
 
-    video_seeking = str2bool(selfAddon.getSetting('video-seeking'))
+    video_seeking = str2bool(addon.get_setting('video-seeking'))
 
     last_part = False
     current_part = 1
@@ -3322,7 +2348,7 @@ def play_with_watched(url, listitem, mypath, last_part=False):
 
 def get_watched_percent():
      watched_values = [.7, .8, .9]
-     return watched_values[int(selfAddon.getSetting('watched-percent'))]
+     return watched_values[int(addon.get_setting('watched-percent'))]
 
 
 def get_stacked_part(name, part):
@@ -3463,7 +2489,7 @@ class DownloadThread (threading.Thread):
         #get settings
         save(os.path.join(downloadPath,'Downloading'),self.dest+'\n'+self.vidname)
           
-        delete_incomplete = selfAddon.getSetting('delete-incomplete-downloads')
+        delete_incomplete = addon.get_setting('delete-incomplete-downloads')
         
         start_time = time.time() 
         try: 
@@ -3571,7 +2597,7 @@ def Download_And_Play(name,url, video_seek=False):
 
       else:
           os.remove(os.path.join(downloadPath, 'Ping'))
-          delete_incomplete = selfAddon.getSetting('delete-incomplete-downloads')
+          delete_incomplete = addon.get_setting('delete-incomplete-downloads')
           
           if delete_incomplete == 'true':
               if os.path.exists(os.path.join(downloadPath, 'Downloading')):
@@ -3609,7 +2635,7 @@ def Download_And_Play(name,url, video_seek=False):
         print "Starting Download Thread"
         dlThread = DownloadThread(url, mypath, vidname, video_seek)
         dlThread.start()
-        buffer_delay = int(selfAddon.getSetting('buffer-delay'))
+        buffer_delay = int(addon.get_setting('buffer-delay'))
         handle_wait(buffer_delay, "Buffering", "Waiting a bit before playing...")
         if not handle_wait:
             return False
@@ -3729,7 +2755,7 @@ def Download_Source(name,url,stacked=False):
             return False
         else:              
                        
-            DownloadInBack=selfAddon.getSetting('download-in-background')
+            DownloadInBack=addon.get_setting('download-in-background')
             print 'attempting to download file, silent = '+ DownloadInBack
             try:
                 if DownloadInBack == 'true':
@@ -3756,7 +2782,7 @@ def Download(url, dest, displayname=False):
          
         if displayname == False:
             displayname=url
-        delete_incomplete = selfAddon.getSetting('delete-incomplete-downloads')
+        delete_incomplete = addon.get_setting('delete-incomplete-downloads')
         dp = xbmcgui.DialogProgress()
         dp.create('Downloading', '', displayname)
         start_time = time.time() 
@@ -3790,7 +2816,7 @@ def QuietDownload(url, dest, videoname):
     notifyValues = [2, 5, 10, 20, 25, 50, 100]
 
     # get notify value from settings
-    NotifyPercent=int(selfAddon.getSetting('notify-percent'))
+    NotifyPercent=int(addon.get_setting('notify-percent'))
     
     try:
         script = os.path.join( icepath, 'resources', 'lib', "DownloadInBackground.py" )
@@ -3909,7 +2935,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
          if mode == 12:
 
              #check tv posters vs banners setting 
-             tv_posters = selfAddon.getSetting('tv-posters')
+             tv_posters = addon.get_setting('tv-posters')
              if tv_posters == 'true':
                  if meta_install['tv_covers'] == 'true':
                      covers_url = meta['cover_url']
@@ -3925,8 +2951,8 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
          liz.setInfo(type="Video", infoLabels=meta)
 
          #Set fanart/backdrop setting variables
-         movie_fanart = selfAddon.getSetting('movie-fanart')
-         tv_fanart = selfAddon.getSetting('tv-fanart')
+         movie_fanart = addon.get_setting('movie-fanart')
+         tv_fanart = addon.get_setting('tv-fanart')
          if meta_install:
              movie_fanart_installed = meta_install['movie_backdrops']
              tv_fanart_installed = meta_install['tv_backdrops']
@@ -3943,7 +2969,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
                  liz.setProperty('fanart_image', meta['backdrop_url'])
              contextMenuItems.append(('Show Information', 'XBMC.Action(Info)'))
              if favourite:
-                 next_aired = str2bool(selfAddon.getSetting('next-aired'))
+                 next_aired = str2bool(addon.get_setting('next-aired'))
                  if next_aired:
                      contextMenuItems.append(('Show Next Aired', 'RunScript(%s)' % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py')))
          elif mode == 13: # TV Season
@@ -4036,8 +3062,8 @@ def setView(content, viewType):
     # set content type so library shows more views and info
     if content:
         xbmcplugin.setContent(int(sys.argv[1]), content)
-    if selfAddon.getSetting('auto-view') == 'true':
-        xbmc.executebuiltin("Container.SetViewMode(%s)" % selfAddon.getSetting(viewType) )
+    if addon.get_setting('auto-view') == 'true':
+        xbmc.executebuiltin("Container.SetViewMode(%s)" % addon.get_setting(viewType) )
     
     # set sort methods - probably we don't need all of them
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
@@ -4405,7 +3431,6 @@ def SimilarMovies(tmdb_id):
     
         dialog = xbmcgui.Dialog()
         index = dialog.select('Select a movie to search in Icefilms', name_list)
-        print index
         if index > -1:
             xbmc.executebuiltin("XBMC.Container.Update(%s?mode=555&url=%s&search=%s&nextPage=0)" % (sys.argv[0], iceurl, name_list[index]))
 
@@ -4435,15 +3460,15 @@ def addDownloadControls(name,localFilePath, listitem=None):
     
     #add Download info
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=statusUrl,listitem=xbmcgui.ListItem("Download Info"),isFolder=False)
-    print 'Ok: %s' % ok
+    addon.log_debug('Ok: %s' % ok)
           
     #add Cancel Download
     ok = ok and xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=cancelUrl,listitem=xbmcgui.ListItem("Cancel Download"),isFolder=False)
-    print 'Ok: %s' % ok
+    addon.log_debug('Ok: %s' % ok)
 
     #add Play File
     ok = ok and addLocal("Play Downloading " + name, localFilePath, listitem)
-    print 'Ok: %s' % ok
+    addon.log_debug('Ok: %s' % ok)
     
     return ok
 
@@ -4466,8 +3491,8 @@ def CancelDownload(name, video_seek=False):
 
 
 def get_default_action():
-   action_setting = selfAddon.getSetting('play-action')
-   print "action_setting =" + action_setting
+   action_setting = addon.get_setting('play-action')
+   addon.log_debug("action_setting =" + action_setting)
    if action_setting == "1":
        return 201
    elif action_setting == "2":
@@ -4548,190 +3573,154 @@ try:
 except:
         pass
 
-print '----------------Icefilms Addon Param Info----------------------'
-print '--- Version: ' + str(addon.get_version())
-print '--- Mode: ' + str(mode)
-print '--- URL: ' + str(url)
-print '--- Video Type: ' + str(video_type)
-print '--- Name: ' + str(name)
-print '--- IMDB: ' + str(imdbnum)
-print '--- TMDB: ' + str(tmdbnum)
-print '--- Season: ' + str(season_num)
-print '--- Episode: ' + str(episode_num)
-print '--- MyHandle: ' + str(sys.argv[1])
-print '--- Params: ' + str(params)
-print '---------------------------------------------------------------'
+addon.log('----------------Icefilms Addon Param Info----------------------')
+addon.log('--- Version: ' + str(addon.get_version()))
+addon.log('--- Mode: ' + str(mode))
+addon.log('--- URL: ' + str(url))
+addon.log('--- Video Type: ' + str(video_type))
+addon.log('--- Name: ' + str(name))
+addon.log('--- IMDB: ' + str(imdbnum))
+addon.log('--- TMDB: ' + str(tmdbnum))
+addon.log('--- Season: ' + str(season_num))
+addon.log('--- Episode: ' + str(episode_num))
+addon.log('--- MyHandle: ' + str(sys.argv[1]))
+addon.log('--- Params: ' + str(params))
+addon.log('---------------------------------------------------------------')
 
 if mode==None: #or url==None or len(url)<1:
-        print ""
         CATEGORIES()
 
 elif mode==991:
-       print "Mode 991 ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
+       addon.log_debug("Mode 991 ******* dirmode is " + str(dirmode) + " *************  url is -> " + url)
        SimilarMovies(tmdbnum)
 
 elif mode==999:
-        print "Mode 999 ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
+        addon.log_debug( "Mode 999 ******* dirmode is " + str(dirmode) + " *************  url is -> " + url)
         REFRESH(video_type, url,imdbnum,name,dirmode)
 
 elif mode==998:
-        print "Mode 998 (season meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
+        addon.log_debug( "Mode 998 (season meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url)
         season_refresh(url,imdbnum,name,dirmode,season_num)
         
 elif mode==997:
-        print "Mode 997 (episode meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url
+        addon.log_debug( "Mode 997 (episode meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url)
         episode_refresh(url,imdbnum,name,dirmode,season_num,episode_num)    
 
 elif mode==996:
-        print "Mode 996 (trailer search) ******* name is " + str(name) + " *************  url is -> "+url
+        addon.log_debug( "Mode 996 (trailer search) ******* name is " + str(name) + " *************  url is -> "+url)
         SearchForTrailer(name, imdbnum, dirmode)
         
 elif mode==990:
-        print "Mode 990 (Change watched value) ******* name is " + str(name) + " *************  season is -> '"+season_num+"'" + " *************  episode is -> '"+episode_num+"'"
+        addon.log_debug( "Mode 990 (Change watched value) ******* name is " + str(name) + " *************  season is -> '"+season_num+"'" + " *************  episode is -> '"+episode_num+"'")
         ChangeWatched(imdbnum, video_type, name, season_num, episode_num, refresh=True)
  
 elif mode==50:
-        print ""+url
         TVCATEGORIES(url)
 
 elif mode==51:
-        print ""+url
         MOVIECATEGORIES(url)
 
 elif mode==52:
-        print ""+url
         MUSICCATEGORIES(url)
 
 elif mode==53:
-        print ""+url
         STANDUPCATEGORIES(url)
 
 elif mode==54:
-        print ""+url
         OTHERCATEGORIES(url)
 
 elif mode==55:
-        print ""+url
         SEARCH(url)
 
-
 elif mode==57:
-        print ""+url
         FAVOURITES(url)
 
 elif mode==58:
-        print "Metahandler Settings"
+        addon.log_debug( "Metahandler Settings")
         import metahandler
         metahandler.display_settings()
         callEndOfDirectory = False
 
 elif mode==570:
-        print ""+url
         TV_FAVOURITES(url)
 
 elif mode==571:
-        print ""+url
         MOVIE_FAVOURITES(url)
 
 elif mode==58:
-        print ""+url
         CLEAR_FAVOURITES(url)
 
 elif mode==60:
-        print ""+url
         RECENT(url)
 
 elif mode==61:
-        print ""+url
         LATEST(url)
 
 elif mode==62:
-        print ""+url
         WATCHINGNOW(url)
 
 elif mode==63:
-        print ""+url
         HD720pCat(url)
         
 elif mode==64:
-        print ""+url
         Genres(url)
 
 elif mode==70:
-        print ""+url
         Action(url)
 
 elif mode==71:
-        print ""+url
         Animation(url)
 
 elif mode==72:
-        print ""+url
         Comedy(url)
 
 elif mode==73:
-        print ""+url
         Documentary(url)
 
 elif mode==74:
-        print ""+url
         Drama(url)
 
 elif mode==75:
-        print ""+url
         Family(url)
 
 elif mode==76:
-        print ""+url
         Horror(url)
 
 elif mode==77:
-        print ""+url
         Romance(url)
 
 elif mode==78:
-        print ""+url
         SciFi(url)
 
 elif mode==79:
-        print ""+url
         Thriller(url)
     
 elif mode==1:
-        print ""+url
         MOVIEA2ZDirectories(url)
 
 elif mode==2:
-        print ""+url
         MOVIEINDEX(url)
         
 elif mode==10:
-        print ""+url
         TVA2ZDirectories(url)
 
 elif mode==11:
-        print ""+url
         TVINDEX(url)
 
 elif mode==12:
-        print ""+url
         TVSEASONS(url,imdbnum)
 
 elif mode==13:
-        print ""+ str(url)
         TVEPISODES(name,url,None,imdbnum)
 
 # Some tv shows will not be correctly identified, so to load their sources need to check on mode==14
 elif mode==14:
-        print ""+url
         LOADMIRRORS(url)
 
 elif mode==99:
-        print ""+url
         CAPTCHAENTER(url)
         
 elif mode==100:
-        print ""+url
         LOADMIRRORS(url)
 
 elif mode==110:
@@ -4739,11 +3728,9 @@ elif mode==110:
         ADD_TO_FAVOURITES(name,url,imdbnum)
 
 elif mode==111:
-        print ""+url
         DELETE_FROM_FAVOURITES(name,url)
 
 elif mode==200:
-        print ""+url      
         Stream_Source(name,url,stacked=stacked_parts)
 
 elif mode==201:
@@ -4767,7 +3754,7 @@ elif mode==208:
         CancelDownload(name)        
 
 elif mode==555:
-        print "Mode 555 (Get More...) ******* search string is " + search + " *************  nextPage is " + nextPage
+        addon.log_debug("Mode 555 (Get More...) ******* search string is " + search + " *************  nextPage is " + nextPage)
         DoSearch(url, search, int(nextPage))
          
 elif mode==666:
