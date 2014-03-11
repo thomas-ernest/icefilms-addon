@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-#Icefilms.info v1.1.0 - anarchintosh / daledude / WestCoast13 / Eldorado
+#Icefilms.info v1.1.0 - Eldorado
 
-#All code Copyleft (GNU GPL v2) Anarchintosh and icefilms-xbmc team
+#All code Copyleft (GNU GPL v2) Eldorado and icefilms-xbmc team
 
 ############### Imports ############################
 #standard module imports
@@ -33,8 +33,38 @@ from addon.common.addon import Addon
 net = Net()
 
 addon_id = 'plugin.video.icefilms'
-addon = Addon(addon_id)
+addon = Addon(addon_id, sys.argv)
 datapath = addon.get_profile()
+
+########################### Queries ############################
+
+url = addon.queries.get('url', '')
+name = addon.queries.get('name', '')
+imdbnum = addon.queries.get('imdbnum', '')
+tmdbnum = addon.queries.get('tmdbnum', '')
+mode = addon.queries.get('mode', '')
+dirmode = addon.queries.get('dirmode', '')
+season_num = addon.queries.get('season', '')
+episode_num = addon.queries.get('episode', '')
+video_type = addon.queries.get('videoType', '')
+stacked_parts = addon.queries.get('stackedParts', '')
+nextPage = addon.queries.get('nextPage', '')
+search = addon.queries.get('search', '')
+
+addon.log('----------------Icefilms Addon Param Info----------------------')
+addon.log('--- Version: ' + str(addon.get_version()))
+addon.log('--- Mode: ' + str(mode))
+addon.log('--- URL: ' + str(url))
+addon.log('--- Video Type: ' + str(video_type))
+addon.log('--- Name: ' + str(name))
+addon.log('--- IMDB: ' + str(imdbnum))
+addon.log('--- TMDB: ' + str(tmdbnum))
+addon.log('--- Season: ' + str(season_num))
+addon.log('--- Episode: ' + str(episode_num))
+addon.log('--- MyHandle: ' + str(sys.argv[1]))
+addon.log('---------------------------------------------------------------')
+
+################################################################
 
 #get path to me
 icepath = addon.get_path()
@@ -49,12 +79,11 @@ import debridroutines
 try:
     from metahandler import metahandlers
 except:
-    print 'Failed to import script.module.metahandler'
+    addon.log('Failed to import script.module.metahandler')
     xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
-import jsunpack
 
 #Common Cache
 import xbmcvfs
@@ -70,7 +99,7 @@ cache = StorageServer.StorageServer(addon_id)
 
 # Resolvers - Custom to Icefilms
 from resolvers import *  
-    
+
 ####################################################
 
 ############## Constants / Variables ###############
@@ -99,18 +128,6 @@ callEndOfDirectory = True
 #Variable for multi-part
 finalPart = True
 
-#Params
-url=None
-name=None
-mode=None
-imdbnum=None
-tmdbnum=None
-dirmode=None
-season_num=None
-episode_num=None
-video_type=None
-stacked_parts=None
-
 #Paths Etc
 metapath = os.path.join(datapath, 'mirror_page_meta_cache')
 cookie_path = os.path.join(datapath, 'cookies')
@@ -118,14 +135,6 @@ downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
 art = icepath + '/resources/art'
 
-#######################################################
-class NoRedirection(urllib2.HTTPErrorProcessor):
-    # Stop Urllib2 from bypassing the 503 page.    
-    def http_response(self, request, response):
-        code, msg, hdrs = response.code, response.msg, response.info()
-
-        return response
-    https_response = http_response
 
 ####################################################
 
@@ -135,17 +144,18 @@ def xbmcpath(path,filename):
   
 def Notify(typeq,title,message,times, line2='', line3=''):
      #simplified way to call notifications. common notifications here.
+     msgList = [message, line2, line3]
      if title == '':
           title='Icefilms Notification'
      if typeq == 'small' or typeq == 'Download Alert':
           if times == '':
                times='5000'
           smallicon=handle_file('smallicon')
-          addon.show_small_popup(title=title, msg=message, delay=times, image=smallicon)
+          addon.show_small_popup(title=title, msg=msgList, delay=int(times), image=smallicon)
      elif typeq == 'big':
-          addon.show_ok_dialog(message, title=title, is_error=False)
+          addon.show_ok_dialog(msgList, title=title, is_error=False)
      else:
-          addon.show_ok_dialog(message, title=title, is_error=False)
+          addon.show_ok_dialog(msgList, title=title, is_error=False)
 
 
 def handle_file(filename,getmode=''):
@@ -205,7 +215,7 @@ def handle_file(filename,getmode=''):
                opened_return_file=openfile(return_file)
                return opened_return_file
           except:
-               print 'opening failed'
+               addon.log('opening failed')
      
 def openfile(filename):
      fh = open(filename, 'r')
@@ -285,9 +295,9 @@ def LoginStartup():
                      Notify('small','Real-Debrid', 'Account login successful.','')
              else:
                  Notify('big','Real-Debrid','Login failed.', '')
-                 print 'Real-Debrid Account: login failed'
+                 addon.log('Real-Debrid Account: login failed')
          except Exception, e:
-              print '**** Real-Debrid Error: %s' % e
+              addon.log('**** Real-Debrid Error: %s' % e)
               Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
               pass
 
@@ -307,9 +317,9 @@ def LoginStartup():
                 net.save_cookies(cookiejar)
              else:
                 Notify('big','ShareBees','Login failed.', '')
-                print 'ShareBees Account: login failed'
+                addon.log('ShareBees Account: login failed')
          except Exception, e:
-             print '**** ShareBees Error: %s' % e
+             addon.log('**** ShareBees Error: %s' % e)
              Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
              pass
 
@@ -329,9 +339,9 @@ def LoginStartup():
                 net.save_cookies(cookiejar)
              else:
                 Notify('big','Movreel','Login failed.', '')
-                print 'Movreel Account: login failed'
+                addon.log('Movreel Account: login failed')
          except Exception, e:
-             print '**** Movreel Error: %s' % e
+             addon.log('**** Movreel Error: %s' % e)
              Notify('big','Movreel Login Failed','Failed to connect with Movreel.', '', '', 'Please check your internet connection.')
              pass
 
@@ -343,10 +353,10 @@ def ContainerStartup():
      if os.path.exists(meta_folder):
          import shutil
          try:
-             print 'Removing previous Icefilms meta folder: %s' % meta_folder
+             addon.log('Removing previous Icefilms meta folder: %s' % meta_folder)
              shutil.rmtree(meta_folder)
          except Exception, e:
-             print 'Failed to delete Icefilms meta folder: %s' % e
+             addon.log_error('Failed to delete Icefilms meta folder: %s' % e)
              pass
 
      #Initialize MetaHandler and MetaContainer classes
@@ -430,10 +440,10 @@ def ContainerStartup():
                              mh.update_meta_installed(addon_id, tv_banners='true')
                          Notify('small','TV Cover Installation Success','','')
                      else:
-                         print '******* ERROR - TV cover install failed'
+                         addon.log_error('******* ERROR - TV cover install failed')
                          Notify('small','TV Cover Installation Failure','','')                     
              else:
-                 print 'TV Covers already installed'
+                 addon.log('TV Covers already installed')
 
          #Movie Covers
          if movie_covers =='true':
@@ -448,10 +458,10 @@ def ContainerStartup():
                          mh.update_meta_installed(addon_id, movie_covers='true')
                          Notify('small','Movie Cover Installation Success','','')
                      else:
-                         print '******* ERROR - Movie cover install failed'
+                         addon.log_error('******* ERROR - Movie cover install failed')
                          Notify('small','Movie Cover Installation Failure','','')                     
              else:
-                 print 'Movie Covers already installed'
+                 addon.log('Movie Covers already installed')
 
          #Movie Fanart
          if movie_fanart =='true':
@@ -466,10 +476,10 @@ def ContainerStartup():
                          mh.update_meta_installed(addon_id, movie_backdrops='true')
                          Notify('small','Movie Fanart Installation Success','','')
                      else:
-                         print '******* ERROR - Movie backrop install failed'
+                         addon.log_error('******* ERROR - Movie backrop install failed')
                          Notify('small','Movie Fanart Installation Failure','','')
              else:
-                 print 'Movie fanart already installed'
+                 addon.log('Movie fanart already installed')
 
          #TV Fanart
          if tv_fanart =='true':
@@ -484,11 +494,11 @@ def ContainerStartup():
                          mh.update_meta_installed(addon_id, tv_backdrops='true')
                          Notify('small','TV Fanart Installation Success','','')
                      else:
-                         print '******* ERROR - TV backrop install failed'
+                         addon.log_error('******* ERROR - TV backrop install failed')
                          Notify('small','TV Fanart Installation Failure','','')                     
     
              else:
-                 print 'TV fanart already installed'
+                 addon.log('TV fanart already installed')
 
 
 def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
@@ -502,13 +512,13 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
      #if zip does not already exist, download from url, with nice display name.
      if filepath_exists==False:
                     
-         print 'Downloading zip: %s' % link
+         addon.log('Downloading zip: %s' % link)
          complete = Download(link, filepath, installtype)
        
      elif filepath_exists==True:
-          print 'zip already downloaded, attempting extraction'                   
+          addon.log('zip already downloaded, attempting extraction')
           
-     print '*** Handling meta install'
+     addon.log('*** Handling meta install')
      return mc.install_metadata_container(filepath, installtype)
 
 
@@ -548,23 +558,23 @@ def create_meta_pack():
     
     A2Z=[chr(i) for i in xrange(ord('A'), ord('Z')+1)]
     
-    print '### GETTING MOVIE METADATA FOR ALL *MUSIC* ENTRIES'
+    addon.log('### GETTING MOVIE METADATA FOR ALL *MUSIC* ENTRIES')
     MOVIEINDEX(iceurl + 'music/a-z/1')
-    print '### GETTING MOVIE METADATA FOR ALL *STANDUP* ENTRIES'
+    addon.log('### GETTING MOVIE METADATA FOR ALL *STANDUP* ENTRIES')
     MOVIEINDEX(iceurl + 'standup/a-z/1')
-    print '### GETTING MOVIE METADATA FOR ALL *OTHER* ENTRIES'
+    addon.log('### GETTING MOVIE METADATA FOR ALL *OTHER* ENTRIES')
     MOVIEINDEX(iceurl + 'other/a-z/1')
-    print '### GETTING MOVIE METADATA FOR ALL ENTRIES ON: '+'1'
+    addon.log('### GETTING MOVIE METADATA FOR ALL ENTRIES ON: '+'1')
     MOVIEINDEX(iceurl + 'movies/a-z/1')
     for theletter in A2Z:
-         print '### GETTING MOVIE METADATA FOR ALL ENTRIES ON: '+theletter
+         addon.log('### GETTING MOVIE METADATA FOR ALL ENTRIES ON: '+theletter)
          MOVIEINDEX(iceurl + 'movies/a-z/' + theletter)
 
          
-    print '### GETTING TV METADATA FOR ALL ENTRIES ON: '+'1'
+    addon.log('### GETTING TV METADATA FOR ALL ENTRIES ON: '+'1')
     TVINDEX(iceurl + 'tv/a-z/1')
     for theletter in A2Z:
-         print '### GETTING TV METADATA FOR ALL ENTRIES ON: '+theletter
+         addon.log('### GETTING TV METADATA FOR ALL ENTRIES ON: '+theletter)
          TVINDEX(iceurl + 'tv/a-z/' + theletter)
     
     #Ensure to reset addon fields to false so database is ready to deploy     
@@ -575,7 +585,6 @@ def CATEGORIES():  #  (homescreen of addon)
 
           #run startup stuff
           Startup_Routines()
-          print 'Homescreen'
 
           #get necessary paths
           homepage=handle_file('homepage','')
@@ -617,7 +626,7 @@ def prepare_list(directory,dircontents):
                stringList.append(filecontents)
                               
           except:
-               print 'problem with opening a favourites item'
+               addon.log('problem with opening a favourites item')
 
      #sort list alphabetically and return it.
      tupleList = [(x.lower(), x) for x in stringList]
@@ -693,10 +702,10 @@ def FAVOURITES(url):
 def URL_TYPE(url):
      #Check whether url is a tv episode list or movie/mirrorpage
      if url.startswith(iceurl+'ip'):
-               print 'url is a mirror page url'
+               addon.log('url is a mirror page url')
                return 'mirrors'
      elif url.startswith(iceurl+'tv/series'):
-               print 'url is a tv ep list url'
+               addon.log('url is a tv ep list url')
                return 'episodes'     
 
 def METAFIXER(url):
@@ -739,7 +748,7 @@ def METAFIXER(url):
      
 def ADD_TO_FAVOURITES(name,url,imdbnum):
      #Creates a new text file in favourites folder. The text file is named after the items name, and contains the name, url and relevant mode.
-     print 'Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url)
+     addon.log('Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url))
 
      if name is not None and url is not None:
 
@@ -777,7 +786,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                themode='12'
                savepath=tvfav
 
-          print 'NAME:',name,'URL:',url,'IMDB NUMBER:',imdbnum
+          addon.log('NAME:',name,'URL:',url,'IMDB NUMBER:',imdbnum)
 
           #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
           adjustedname=Clean_Windows_String(name).strip()
@@ -800,14 +809,14 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                if next_aired:
                    xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
           else:
-               print 'Warning - favourite already exists'
+               addon.log('Warning - favourite already exists')
                Notify('small',name + ' favourite already exists','','6000')
 
      else:
           Notify('small','Unable to add to favourites','','')
-          print 'Warning - favorite name or url is none:'
-          print 'NAME: ',name
-          print 'URL: ',url
+          addon.log('Warning - favorite name or url is none:')
+          addon.log('NAME: ',name)
+          addon.log('URL: ',url)
 
      
 def DELETE_FROM_FAVOURITES(name,url):
@@ -830,8 +839,8 @@ def DELETE_FROM_FAVOURITES(name,url):
          itempath=os.path.join(favpath,'TV',name+'.txt')
          old_itempath=os.path.join(favpath,'TV',old_name+'.txt')
     
-    print 'ITEMPATH: %s' % itempath
-    print 'OLD ITEMPATH: %s' % old_itempath    
+    addon.log('ITEMPATH: %s' % itempath)
+    addon.log('OLD ITEMPATH: %s' % old_itempath    )
     
     if os.path.exists(itempath):
          os.remove(itempath)
@@ -1137,7 +1146,7 @@ def TVCATEGORIES(url):
 
 
 def MOVIECATEGORIES(url):
-        caturl = iceurl+'movies/'        
+        caturl = iceurl+'movies/'
         setmode = '2'
         addDir('A-Z Directories',caturl+'a-z/1',1,os.path.join(art,'az directories.png'))
         ADDITIONALCATS(setmode,caturl)
@@ -1442,7 +1451,7 @@ def TVEPISODES(name,url=None,source=None,imdb_id=None):
     #Use .+?/h4> not .+?</h4> for The Daily Show et al to work.
     match=re.compile('<h3><a name="[0-9]+?"></a>'+name+'.+?/h3>(.+?)<h3>').findall(source)
     for seasonSRC in match:
-        print "Season Source is " + name
+        addon.log('Season Source is: %s' % name)
         TVEPLINKS(seasonSRC, name, imdb_id)
     setView('episodes', 'episodes-view')
 
@@ -1461,7 +1470,7 @@ def TVEPLINKS(source, season, imdb_id):
         meta_installed=False
     for url, name, hd in match:
             name = name + ' ' + hd
-            print " TVepLinks name " + name
+            addon.log("TVepLinks name: %s " % name)
             get_episode(season, name, imdb_id, url, metaget, meta_installed, totalitems=len(match)) 
     
     # Enable library mode & set the right view for the content
@@ -1527,7 +1536,7 @@ def LOADMIRRORS(url):
                showname=cache.get('mediatvshowname')
           else:
                #fall back to scraping show name without date from the page.
-               print 'USING FALLBACK SHOW NAME'
+               addon.log('USING FALLBACK SHOW NAME')
                fallbackshowname=re.compile("alt\='Show series\: (.+?)'").findall(link)
                showname=fallbackshowname[0]
           try:
@@ -1538,7 +1547,7 @@ def LOADMIRRORS(url):
                else:
                     cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
           except:
-               print "FAILED TO SAVE TV SHOW FILE PATH!"
+               addon.log_error("FAILED TO SAVE TV SHOW FILE PATH!")
      else:
           
           try:
@@ -1556,67 +1565,14 @@ def LOADMIRRORS(url):
       
      mirror_page=GetURL(mirrorpageurl, save_cookie = True)
 
-     # check for recaptcha
-     has_recaptcha = check_for_captcha(mirror_page)
-
-     if has_recaptcha is False:
-          GETMIRRORS(mirrorpageurl,mirror_page)
-     elif has_recaptcha is True:
-          RECAPTCHA(mirrorpageurl)
+     GETMIRRORS(mirrorpageurl,mirror_page)
      setView(None, 'default-view')
 
-
-def check_for_captcha(source):
-     #check for recaptcha in the page source, and return true or false.
-     has_recaptcha = re.search('recaptcha_challenge_field', source)
-
-     if has_recaptcha is None:
-          return False
-     else:
-          return True
-
-def RECAPTCHA(url):
-     print 'initiating recaptcha passthrough'
-     source = GetURL(url)
-     match = re.compile('<iframe src="http://www.google.com/recaptcha/api/noscript\?k\=(.+?)" height').findall(source)
-
-     for token in match:
-          surl = 'http://www.google.com/recaptcha/api/challenge?k=' + token
-     tokenlink=GetURL(surl)
-     matchy=re.compile("challenge : '(.+?)'").findall(tokenlink)
-     for challenge in matchy:
-          imageurl='http://www.google.com/recaptcha/api/image?c='+challenge
-
-     #hacky method --- save all captcha details and mirrorpageurl to file, to reopen in next step
-     cache.set('captcha', challenge)
-     cache.set('pageurl', url)
-
-     #addDir uses imageurl as url, to avoid xbmc displaying old cached image as the fresh captcha
-     addDir('Enter Captcha - Type the letters',imageurl,99,imageurl)
-
-def CAPTCHAENTER(surl):
-     url=cache.get('pageurl')
-     kb = xbmc.Keyboard('', 'Type the letters in the captcha image', False)
-     kb.doModal()
-     if (kb.isConfirmed()):
-          userInput = kb.getText()
-          if userInput != '':
-               challengeToken=cache.get('captcha')
-               print 'challenge token: '+challengeToken
-               parameters = urllib.urlencode({'recaptcha_challenge_field': challengeToken, 'recaptcha_response_field': userInput})
-               source = GetURL(url, parameters)
-               has_recaptcha = check_for_captcha(source)
-               if has_recaptcha:
-                    Notify('big', 'Text does not match captcha image!', 'To try again, close this box and then: \n Press backspace twice, and reselect your video.', '')
-               else:
-                    GETMIRRORS(url,source)
-          elif userInput == '':
-               Notify('big', 'No text entered!', 'To try again, close this box and then: \n Press backspace twice, and reselect your video.', '')               
 
 def GETMIRRORS(url,link):
 # It also displays them in an informative fashion to user.
 # Displays in three directory levels: HD / DVDRip etc , Source, PART
-    print "getting mirrors for: %s" % url
+    addon.log("getting mirrors for: %s" % url)
         
     #hacky method -- save page source to cache
     #cache.delete('mirror')
@@ -1732,7 +1688,7 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
           multiple_part = re.search('<p>Source #'+sourcenumber+':', scrap)
           
           if multiple_part:
-               print sourcestring+' has multiple parts'
+               addon.log(sourcestring+' has multiple parts')
                #get all text under source if it has multiple parts
                multi_part_source=re.compile('<p>Source #'+sourcenumber+': (.+?)PART 1(.+?)</i><p>').findall(scrap)
 
@@ -1755,7 +1711,7 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
                                 sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
                             except:
                                 sources = {partnum: url}
-                                print 'sources havent been set yet...'  
+                                addon.log('sources havent been set yet...'  )
 
                             sources[partnum] = url
                             cache.delete("source"+str(sourcenumber)+"parts")
@@ -1770,10 +1726,8 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
 
           # if source does not have multiple parts...
           else:
-               # print sourcestring+' is single part'
                # find corresponding '<a rel=?' entry and add as a one-link source
                source5=re.compile('<a\s+rel='+sourcenumber+'.+?onclick=\'go\((\d+)\)\'>Source\s+#'+sourcenumber+':').findall(scrap)
-               # print source5
 
                for id in source5:
                     url = GetSource(id, args, cookie)
@@ -1793,14 +1747,14 @@ def GetSource(id, args, cookie):
     params['s'] = s
     paramsenc = urllib.urlencode(params)
     body = GetURL(ICEFILMS_AJAX, params = paramsenc, cookie = cookie)
-    print 'response: %s' % body
+    addon.log('response: %s' % body)
     source = re.search('url=(http[^&]+)', body)
     if source:
         url = urllib.unquote(source.group(1))
     else:
-        print 'GetSource - URL String not found'
+        addon.log('GetSource - URL String not found')
         url = ''
-    print 'url: %s' % url
+    addon.log('url: %s' % url)
     return url
 
 
@@ -1835,7 +1789,7 @@ def SOURCE(page, sources, source_tag):
           args['t'] = t
           
           cookie = re.search('<cookie>(.+?)</cookie>', page).group(1)
-          print "saved cookie: %s" % cookie
+          addon.log("saved cookie: %s" % cookie)
 
           #add cached source
           vidname=cache.get('videoname')
@@ -1931,13 +1885,6 @@ class TwoSharedDownloader:
      
           
 def SHARED2_HANDLER(url):
-          #downloader2Shared = TwoSharedDownloader()
-          #vidFile = downloader2Shared.returnLink(url)
-
-          #print '2Shared Direct Link: '+vidFile
-          #finalUrl = [1]
-          #finalUrl[0] = vidFile
-          #return finalUrl
 
           html = net.http_GET(url).content
 
@@ -1957,11 +1904,11 @@ def SHARED2_HANDLER(url):
 
 
 def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save_cookie = False):
-     print 'GetUrl: ' + url
-     print 'params: ' + repr(params)
-     print 'referrer: ' + repr(referrer)
-     print 'cookie: ' + repr(cookie)
-     print 'save_cookie: ' + repr(save_cookie)
+     addon.log('GetUrl: ' + url)
+     addon.log('params: ' + repr(params))
+     addon.log('referrer: ' + repr(referrer))
+     addon.log('cookie: ' + repr(cookie))
+     addon.log('save_cookie: ' + repr(save_cookie))
 
      if params:
         req = urllib2.Request(url, params)
@@ -1988,7 +1935,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
 
          if save_cookie:
              setcookie = response.info().get('Set-Cookie', None)
-             print "Set-Cookie: %s" % repr(setcookie)
+             addon.log("Set-Cookie: %s" % repr(setcookie))
              if setcookie:
                  setcookie = re.search('([^=]+=[^=;]+)', setcookie).group(1)
                  body = body + '<cookie>' + setcookie + '</cookie>'
@@ -1996,7 +1943,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
          response.close()
 
      except Exception, e:
-         print '****** ERROR: %s' % e
+         addon.log_error('****** ERROR: %s' % e)
          Notify('big','Error Requesting Site','An error has occured communicating with Icefilms', '', '', 'Check your connection and the Icefilms site.' )
          body = ''
          pass
@@ -2055,8 +2002,8 @@ def Get_Path(srcname,vidname):
                     try:
                         os.makedirs(mediapath)
                     except Exception, e:
-                        print 'Failed to create media path: %s' % mediapath
-                        print 'With error: %s' % e
+                        addon.log_error('Failed to create media path: %s' % mediapath)
+                        addon.log_error('With error: %s' % e)
                         pass
                finalpath=os.path.join(mediapath,vidname)
                return finalpath
@@ -2077,22 +2024,22 @@ def Item_Meta(name):
           try: open_vidname=cache.get('videoname')
           except:
                vidname = ''
-               print 'OPENING VIDNAME FAILED!'
+               addon.log_error('OPENING VIDNAME FAILED!')
           else:
                try: get_vidname = htmlcleaner.clean(open_vidname)
                except:
-                    print 'CLEANING VIDNAME FAILED! :',open_vidname
+                    addon.log_error('CLEANING VIDNAME FAILED! :',open_vidname)
                     vidname = open_vidname
                else: vidname = get_vidname
 
           try: open_desc=cache.get('description')
           except:
                description = ''
-               print 'OPENING DESCRIPTION FAILED!'
+               addon.log_error('OPENING DESCRIPTION FAILED!')
           else:
                try: get_desc = htmlcleaner.clean(open_desc)
                except:
-                    print 'CLEANING DESCRIPTION FAILED! :',open_desc
+                    addon.log_error('CLEANING DESCRIPTION FAILED! :',open_desc)
                     description = open_desc
                else: description = get_desc
           
@@ -2111,7 +2058,6 @@ def Item_Meta(name):
           listitem = xbmcgui.ListItem(srcname)
           
           video = get_video_name(vidname)
-          params = get_params()
           
           if not video['year']:
               video['year'] = 0
@@ -2123,8 +2069,8 @@ def Item_Meta(name):
                show = cache.get('tvshowname')
                show = get_video_name(show)
                episode_year = intTryParse(show['year'])
-               episode_num = intTryParse(params['episode'])
-               episode_season = intTryParse(params['season'])
+               ep_num = intTryParse(episode_num)
+               episode_season = intTryParse(season_num)
                
                listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': episode_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
           
@@ -2154,7 +2100,7 @@ def do_wait(source, account, wait_time):
 
 def handle_wait(time_to_wait,title,text):
 
-    print 'waiting '+str(time_to_wait)+' secs'    
+    addon.log('waiting '+str(time_to_wait)+' secs')
 
     pDialog = xbmcgui.DialogProgress()
     ret = pDialog.create(' '+title)
@@ -2176,10 +2122,10 @@ def handle_wait(time_to_wait,title,text):
              cancelled = True
              break
     if cancelled == True:     
-         print 'wait cancelled'
+         addon.log('wait cancelled')
          return False
     else:
-         print 'done waiting'
+         addon.log('done waiting')
          return True
 
 def Handle_Vidlink(url):
@@ -2203,7 +2149,7 @@ def Handle_Vidlink(url):
                    Notify('big','Real-Debrid','Error occurred attempting to stream the file.','',line2=download_details['message'])
                    return None
                else:
-                   print 'Real-Debrid Link resolved: %s ' % download_details['download_link']
+                   addon.log('Real-Debrid Link resolved: %s ' % download_details['download_link'])
                    return link
 
     #Dynamic call to proper resolve function returned from determine_source()
@@ -2213,19 +2159,19 @@ def Handle_Vidlink(url):
 def PlayFile(name,url):
     
     listitem=Item_Meta(name)
-    print 'attempting to play local file'
+    addon.log('attempting to play local file')
     try:
         #directly call xbmc player (provides more options)
         play_with_watched(url, listitem, '')
         
         #xbmc.Player( xbmc.PLAYER_CORE_DVDPLAYER ).play( url, listitem )
     except:
-        print 'local file playing failed'
+        addon.log_error('local file playing failed')
 
 
 def Stream_Source(name, url, download_play=False, download=False, stacked=False):
-    
-    print 'Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked)
+  
+    addon.log('Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked))
 
     callEndOfDirectory = False
     
@@ -2242,7 +2188,7 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
         
         #If it's a stacked source, grab url one by one
         if stacked == True:
-            print 'I AM STACKED'
+            addon.log('I AM STACKED')
             url = get_stacked_part(name, str(current_part))
             if url:
                 current_part += 1
@@ -2265,35 +2211,35 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
                callEndOfDirectory = False
                break
         except Exception, e:
-            print '**** Stream error: %s' % e
+            addon.log_error('**** Stream error: %s' % e)
             Notify('big','Invalid Source','Unable to play selected source. \n Please try another.','', line3=str(e))
             break
 
 
         #Download & Watch
         if download_play:
-            print 'Starting Download & Play'
+            addon.log('Starting Download & Play')
             completed = Download_And_Play(name,link, video_seek=False)
-            print 'Download & Play streaming completed: %s' % completed
+            addon.log('Download & Play streaming completed: %s' % completed)
         
         #Download option
         elif download:
-            print 'Starting Download'
+            addon.log('Starting Download')
             completed = Download_Source(name,link)
-            print 'Downloading completed: %s' % completed
+            addon.log('Downloading completed: %s' % completed)
 
         #Download & Watch - but delete file when done, simulates streaming and allows video seeking
         #elif video_seeking:
-        #    print 'Starting Video Seeking'
+        #    addon.log('Starting Video Seeking')
         #    completed = Download_And_Play(name,link, video_seek=video_seeking)
-        #    print 'Video Seeking streaming completed: %s' % completed
+        #    addon.log('Video Seeking streaming completed: %s' % completed)
         #    CancelDownload(name, video_seek=video_seeking)
         
         #Else play the file as normal stream
         else:               
-            print 'Starting Normal Streaming'
+            addon.log('Starting Normal Streaming')
             completed = play_with_watched(link, listitem, mypath, last_part)
-            print 'Normal streaming completed: %s' % completed
+            addon.log('Normal streaming completed: %s' % completed)
 
         #Check if video was played until end - else assume user stopped watching video so break from loop
         if not completed:
@@ -2319,25 +2265,25 @@ def play_with_watched(url, listitem, mypath, last_part=False):
         try:
             video_time = mplayer.getTotalTime()
         except Exception, e:
-            print 'Error grabbing video time: %s' % e
+            addon.log_error('Error grabbing video time: %s' % e)
             return False
 
     #For stacked parts totalTime will need to be added up
     temp_total = totalTime
     totalTime = totalTime + video_time
-    print '******** VIDEO TIME: %s' % video_time
-    print '******** TOTAL TIME: %s' % totalTime
+    addon.log('******** VIDEO TIME: %s' % video_time)
+    addon.log('******** TOTAL TIME: %s' % totalTime)
 
     while(1):
         try:
             temp_current_time = mplayer.getTime()
             currentTime= temp_current_time + temp_total
         except Exception:
-            print 'XBMC is not currently playing a media file'
+            addon.log_error('XBMC is not currently playing a media file')
             break
         xbmc.sleep(1000)
     
-    print '******** CURRENT TIME: %s' % currentTime
+    addon.log('******** CURRENT TIME: %s' % currentTime)
 
     #Check if video was played until the end (-1 second)
     if temp_current_time < (video_time - 1):
@@ -2354,14 +2300,14 @@ def get_watched_percent():
 def get_stacked_part(name, part):
     sourcenumber = name[8:9]
     source = eval(cache.get("source"+str(sourcenumber)+"parts"))
-    print '**** Stacked parts: %s' % source
+    addon.log('**** Stacked parts: %s' % source)
     
     try:
         url=source[part]
-        print '**** Stacked Part returning part #%s: %s' % (part, url)
+        addon.log('**** Stacked Part returning part #%s: %s' % (part, url))
         return url
     except:
-        print 'No more parts found'
+        addon.log_error('No more parts found')
         return None
 
 
@@ -2370,15 +2316,15 @@ def Stream_Source_with_parts(name,url):
     global totalTime
     global watched_percent
     global finalPart
+
     #Find which source
     sourcenumber = name[8:9]
-    #print 'this is the sourcenum %s from name %s' % (sourcenumber, name)
     source = eval(cache.get("source"+str(sourcenumber)+"parts"))
 
     watched_percent = get_watched_percent()
     link=Handle_Vidlink(source['1'])
     listitem=Item_Meta(name)
-    print '--- Attempting to stream file: ' + str(link) + ' from url: ' + str(url)
+    addon.log('--- Attempting to stream file: ' + str(link) + ' from url: ' + str(url))
      
     mplayer = MyPlayer()
     mplayer.play(link, listitem)
@@ -2399,7 +2345,7 @@ def Stream_Source_with_parts(name,url):
                 totalTime = 20
             currentTime= mplayer.getTime()
         except Exception:
-            print 'XBMC is not currently playing a media file'
+            addon.log_error('XBMC is not currently playing a media file')
         #start next part
         #When the current part has less than 3 seconds remaining get ready to start next part.
         if currentTime > totalTime-3:
@@ -2411,7 +2357,7 @@ def Stream_Source_with_parts(name,url):
                 try:
                     nextPart = source[str(index+1)]
                 except:
-                    print 'Attempting to stream the final part: %s' % str(link2)
+                    addon.log('Attempting to stream the final part: %s' % str(link2))
                     finalPart = True
                     pass
                 mplayer = MyPlayer()
@@ -2426,10 +2372,10 @@ class MyPlayer (xbmc.Player):
         self.last_part = last_part
         xbmc.Player.__init__(self)
         
-        print 'Initializing myPlayer...'
+        addon.log('Initializing myPlayer...')
         
      def play(self, url, listitem):
-        print 'Now im playing... %s' % url
+        addon.log('Now im playing... %s' % url)
 
         xbmc.Player(xbmc.PLAYER_CORE_AUTO).play(url, listitem)            
         
@@ -2442,12 +2388,12 @@ class MyPlayer (xbmc.Player):
         global finalPart
         if finalPart:
             percentWatched = currentTime / totalTime
-            print 'current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched)
+            addon.log('current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched))
             if percentWatched >= watched_percent:
                 #set watched
                 vidname=cache.get('videoname')
                 video = get_video_name(vidname)
-                print 'Auto-Watch - Setting %s to watched' % video
+                addon.log('Auto-Watch - Setting %s to watched' % video)
                 ChangeWatched(imdbnum, video_type, video['name'], season_num, episode_num, video['year'], watched=7)
 
      def onPlayBackStopped(self):
@@ -2456,12 +2402,12 @@ class MyPlayer (xbmc.Player):
         global finalPart
         if finalPart:
             percentWatched = currentTime / totalTime
-            print 'current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched)
+            addon.log('current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched))
             if percentWatched >= watched_percent and totalTime > 1:
                 #set watched
                 vidname=cache.get('videoname')
                 video = get_video_name(vidname)
-                print 'Auto-Watch - Setting %s to watched' % video            
+                addon.log('Auto-Watch - Setting %s to watched' % video            )
                 ChangeWatched(imdbnum, video_type, video['name'], season_num, episode_num, video['year'], watched=7)
 
 ############## End MyPlayer Class ################
@@ -2495,12 +2441,12 @@ class DownloadThread (threading.Thread):
         try: 
             urllib.urlretrieve(self.url, self.dest, lambda nb, bs, fs: _dlhook(nb, bs, fs, self, start_time))
             if os.path.getsize(self.dest) < 10000:
-                print 'Got a very small file'
+                addon.log('Got a very small file')
                 raise SmallFile('Small File')
             if self.dialog <> None:
                 self.dialog.close()
                 self.dialog = None
-                print 'Download finished successfully'
+                addon.log('Download finished successfully')
             try:
               os.remove(self.dest + '.dling')
             except:
@@ -2512,7 +2458,7 @@ class DownloadThread (threading.Thread):
                 self.dialog.close()
                 self.dialog = None
                 
-            print 'Download interrupted'
+            addon.log('Download interrupted')
             os.remove(os.path.join(downloadPath,'Downloading'))
             
             #download is killed so remove .dling file
@@ -2565,7 +2511,7 @@ def Download_And_Play(name,url, video_seek=False):
 
     mypath=Get_Path(name,vidname)
      
-    print 'MYPATH: ',mypath
+    addon.log('MYPATH: ',mypath)
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
         return False
@@ -2624,15 +2570,15 @@ def Download_And_Play(name,url, video_seek=False):
                 os.remove(mypath)
                 os.remove(mypath + '.dling')
             except:
-                print 'download failed: existing incomplete files cannot be removed'
+                addon.log_error('download failed: existing incomplete files cannot be removed')
                 return False
         else:
             Notify('Download Alert','The video you are trying to download already exists!','','')
 
-    print 'attempting to download and play file'
+    addon.log('attempting to download and play file')
 
     try:
-        print "Starting Download Thread"
+        addon.log("Starting Download Thread")
         dlThread = DownloadThread(url, mypath, vidname, video_seek)
         dlThread.start()
         buffer_delay = int(addon.get_setting('buffer-delay'))
@@ -2651,7 +2597,7 @@ def Download_And_Play(name,url, video_seek=False):
                         try:
                             os.remove(mypath)
                         except:
-                            print 'Failed to delete file after video seeking'
+                            addon.log_error('Failed to delete file after video seeking')
                 else:
                     addDownloadControls(name,mypath, listitem)
 
@@ -2666,7 +2612,7 @@ def Download_And_Play(name,url, video_seek=False):
         else:
             raise
     except Exception, e:
-        print 'EXCEPTION %s' % e
+        addon.log_error('EXCEPTION %s' % e)
         if sys.exc_info()[0] in (urllib.ContentTooShortError,): 
             Notify('big','Download and Play failed!','Error: Content Too Short','')
         if sys.exc_info()[0] in (OSError,): 
@@ -2725,7 +2671,7 @@ def _dlhook(numblocks, blocksize, filesize, dt, start_time):
                 continue
             break
         
-        print "Stopping download"
+        addon.log("Stopping download")
         raise StopDownloading('Stopped Downloading')
         
     elif os.path.exists(os.path.join(downloadPath, 'Ping')):
@@ -2756,7 +2702,7 @@ def Download_Source(name,url,stacked=False):
         else:              
                        
             DownloadInBack=addon.get_setting('download-in-background')
-            print 'attempting to download file, silent = '+ DownloadInBack
+            addon.log('attempting to download file, silent = '+ DownloadInBack)
             try:
                 if DownloadInBack == 'true':
                     completed = QuietDownload(url, mypath, vidname)
@@ -2765,7 +2711,7 @@ def Download_Source(name,url,stacked=False):
                     completed = Download(url, mypath, vidname)
                     return completed
             except:
-                print 'download failed'
+                addon.log_error('download failed')
                 return False
 
 
@@ -2823,7 +2769,7 @@ def QuietDownload(url, dest, videoname):
         xbmc.executebuiltin( "RunScript(%s, %s, %s, %s, %s)" % ( script, q_url, q_dest, q_vidname, str(notifyValues[NotifyPercent]) ) )
         return True
     except Exception, e:
-        print '*** Error in Quiet Download: %s' % e
+        addon.log_error('*** Error in Quiet Download: %s' % e)
         return False
              
 
@@ -2838,20 +2784,10 @@ def _pbhook(numblocks, blocksize, filesize, dp, start_time):
                 eta = 0 
             kbps_speed = kbps_speed / 1024 
             total = float(filesize) / (1024 * 1024) 
-            # print ( 
-                # percent, 
-                # numblocks, 
-                # blocksize, 
-                # filesize, 
-                # currently_downloaded, 
-                # kbps_speed, 
-                # eta, 
-                # ) 
             mbs = '%.02f MB of %.02f MB' % (currently_downloaded, total) 
             e = 'Speed: %.02f Kb/s ' % kbps_speed 
             e += 'ETA: %02d:%02d' % divmod(eta, 60) 
             dp.update(percent, mbs, e)
-            #print percent, mbs, e 
         except: 
             percent = 100 
             dp.update(percent) 
@@ -3105,7 +3041,7 @@ def MOVIE_FAVOURITES(url):
             
 
         else:
-            print 'moviedircontents is none!'
+            addon.log('moviedircontents is none!')
             
     # Enable library mode & set the right view for the content
     setView('movies', 'movies-view')
@@ -3140,7 +3076,7 @@ def TV_FAVOURITES(url):
                 
            
         else:
-            print 'tvshows dircontents is none!'
+            addon.log('tvshows dircontents is none!')
     
     # Enable library mode & set the right view for the content
     setView('tvshows', 'tvshows-view')
@@ -3195,7 +3131,7 @@ def ADD_ITEM(metaget, meta_installed, imdb_id,url,name,mode,num_of_eps=False, to
 def REFRESH(videoType, url,imdb_id,name,dirmode):
         #refresh info for a Tvshow or movie
                
-        print 'In Refresh ' + str(sys.argv[1])
+        addon.log('In Refresh ' + str(sys.argv[1]))
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
@@ -3217,7 +3153,7 @@ def REFRESH(videoType, url,imdb_id,name,dirmode):
 def episode_refresh(url, imdb_id, name, dirmode, season, episode):
         #refresh info for an episode
                
-        print 'In Episode Refresh ' + str(sys.argv[1])
+        addon.log('In Episode Refresh ' + str(sys.argv[1]))
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
@@ -3233,7 +3169,7 @@ def episode_refresh(url, imdb_id, name, dirmode, season, episode):
 def season_refresh(url, imdb_id, name, dirmode, season):
         #refresh info for an episode
                
-        print 'In Season Refresh ' + str(sys.argv[1])
+        addon.log('In Season Refresh ' + str(sys.argv[1]))
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
@@ -3318,12 +3254,9 @@ def find_meta_for_search_results(results, mode, search=''):
             
     elif mode == 12:
         for myurl,interim,name in results:
-            print myurl, interim, name
             if len(interim) < 180:
                 name=CLEANSEARCH(name)                              
                 hasnameintitle=re.search(search,name,re.IGNORECASE)
-                print 'NAME: %s' % name
-                print 'SEARCH: %s' % search
                 if hasnameintitle:
                     myurl='http://www.icefilms.info/tv/series'+myurl
                     myurl=re.sub('&amp;','',myurl)
@@ -3344,7 +3277,7 @@ def SearchGoogle(search):
     try:
         results = gs.get_results()
     except Exception, e:
-        print '***** Error: %s' % e
+        addon.log_error('***** Error: %s' % e)
         Notify('big','Google Search','Error encountered searching.','')
         return None
     return results
@@ -3394,7 +3327,6 @@ def SearchForTrailer(search, imdb_id, type, manual=False):
     # Found trailers
     elif ret > 1:
         trailer_url = res_url[ret - 2]
-        print trailer_url
         xbmc.executebuiltin(
             "PlayMedia(plugin://plugin.video.youtube/?action=play_video&videoid=%s&quality=720p)" 
             % str(trailer_url)[str(trailer_url).rfind("v=")+2:] )
@@ -3502,262 +3434,174 @@ def get_default_action():
    return 200
 
 
-def get_params():
-        param=[]
-        paramstring=sys.argv[2]
-        if len(paramstring)>=2:
-                params=sys.argv[2]
-                cleanedparams=params.replace('?','')
-                if (params[len(params)-1]=='/'):
-                        params=params[0:len(params)-2]
-                pairsofparams=cleanedparams.split('&')
-                param={}
-                for i in range(len(pairsofparams)):
-                        splitparams={}
-                        splitparams=pairsofparams[i].split('=')
-                        if (len(splitparams))==2:
-                                param[splitparams[0]]=splitparams[1]
-                                
-        return param
-
-params=get_params()
-
-try:
-        url=urllib.unquote_plus(params["url"])
-except:
-        pass
-try:
-        name=urllib.unquote_plus(params["name"])
-except:
-        pass
-try:
-        imdbnum=urllib.unquote_plus(params["imdbnum"])
-except:
-        pass
-try:
-        tmdbnum=urllib.unquote_plus(params["tmdbnum"])
-except:
-        pass
-try:
-        mode=int(params["mode"])
-except:
-        pass
-try:
-        dirmode=int(params["dirmode"])
-except:
-        pass
-try:
-        season_num=urllib.unquote_plus(params["season"])
-        #season=params["season"]
-except:
-        pass
-try:
-        episode_num=urllib.unquote_plus(params["episode"])
-        #season=params["episode"]
-except:
-        pass        
-try:
-        video_type=urllib.unquote_plus(params["videoType"])
-except:
-        pass
-try:
-        stacked_parts=urllib.unquote_plus(params["stackedParts"])
-except:
-        pass
-try:
-        nextPage=urllib.unquote_plus(params["nextPage"])
-except:
-        pass
-try:
-        search=urllib.unquote_plus(params["search"])
-except:
-        pass
-
-addon.log('----------------Icefilms Addon Param Info----------------------')
-addon.log('--- Version: ' + str(addon.get_version()))
-addon.log('--- Mode: ' + str(mode))
-addon.log('--- URL: ' + str(url))
-addon.log('--- Video Type: ' + str(video_type))
-addon.log('--- Name: ' + str(name))
-addon.log('--- IMDB: ' + str(imdbnum))
-addon.log('--- TMDB: ' + str(tmdbnum))
-addon.log('--- Season: ' + str(season_num))
-addon.log('--- Episode: ' + str(episode_num))
-addon.log('--- MyHandle: ' + str(sys.argv[1]))
-addon.log('--- Params: ' + str(params))
-addon.log('---------------------------------------------------------------')
-
-if mode==None: #or url==None or len(url)<1:
+if mode=='main': #or url==None or len(url)<1:
         CATEGORIES()
 
-elif mode==991:
+elif mode=='991':
        addon.log_debug("Mode 991 ******* dirmode is " + str(dirmode) + " *************  url is -> " + url)
        SimilarMovies(tmdbnum)
 
-elif mode==999:
+elif mode=='999':
         addon.log_debug( "Mode 999 ******* dirmode is " + str(dirmode) + " *************  url is -> " + url)
         REFRESH(video_type, url,imdbnum,name,dirmode)
 
-elif mode==998:
+elif mode=='998':
         addon.log_debug( "Mode 998 (season meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url)
         season_refresh(url,imdbnum,name,dirmode,season_num)
         
-elif mode==997:
+elif mode=='997':
         addon.log_debug( "Mode 997 (episode meta refresh) ******* dirmode is " + str(dirmode) + " *************  url is -> "+url)
         episode_refresh(url,imdbnum,name,dirmode,season_num,episode_num)    
 
-elif mode==996:
+elif mode=='996':
         addon.log_debug( "Mode 996 (trailer search) ******* name is " + str(name) + " *************  url is -> "+url)
         SearchForTrailer(name, imdbnum, dirmode)
         
-elif mode==990:
+elif mode=='990':
         addon.log_debug( "Mode 990 (Change watched value) ******* name is " + str(name) + " *************  season is -> '"+season_num+"'" + " *************  episode is -> '"+episode_num+"'")
         ChangeWatched(imdbnum, video_type, name, season_num, episode_num, refresh=True)
  
-elif mode==50:
+elif mode=='50':
         TVCATEGORIES(url)
 
-elif mode==51:
+elif mode=='51':
         MOVIECATEGORIES(url)
 
-elif mode==52:
+elif mode=='52':
         MUSICCATEGORIES(url)
 
-elif mode==53:
+elif mode=='53':
         STANDUPCATEGORIES(url)
 
-elif mode==54:
+elif mode=='54':
         OTHERCATEGORIES(url)
 
-elif mode==55:
+elif mode=='55':
         SEARCH(url)
 
-elif mode==57:
+elif mode=='57':
         FAVOURITES(url)
 
-elif mode==58:
+elif mode=='58':
         addon.log_debug( "Metahandler Settings")
         import metahandler
         metahandler.display_settings()
         callEndOfDirectory = False
 
-elif mode==570:
+elif mode=='570':
         TV_FAVOURITES(url)
 
-elif mode==571:
+elif mode=='571':
         MOVIE_FAVOURITES(url)
 
-elif mode==58:
+elif mode=='58':
         CLEAR_FAVOURITES(url)
 
-elif mode==60:
+elif mode=='60':
         RECENT(url)
 
-elif mode==61:
+elif mode=='61':
         LATEST(url)
 
-elif mode==62:
+elif mode=='62':
         WATCHINGNOW(url)
 
-elif mode==63:
+elif mode=='63':
         HD720pCat(url)
         
-elif mode==64:
+elif mode=='64':
         Genres(url)
 
-elif mode==70:
+elif mode=='70':
         Action(url)
 
-elif mode==71:
+elif mode=='71':
         Animation(url)
 
-elif mode==72:
+elif mode=='72':
         Comedy(url)
 
-elif mode==73:
+elif mode=='73':
         Documentary(url)
 
-elif mode==74:
+elif mode=='74':
         Drama(url)
 
-elif mode==75:
+elif mode=='75':
         Family(url)
 
-elif mode==76:
+elif mode=='76':
         Horror(url)
 
-elif mode==77:
+elif mode=='77':
         Romance(url)
 
-elif mode==78:
+elif mode=='78':
         SciFi(url)
 
-elif mode==79:
+elif mode=='79':
         Thriller(url)
     
-elif mode==1:
+elif mode=='1':
         MOVIEA2ZDirectories(url)
 
-elif mode==2:
+elif mode=='2':
         MOVIEINDEX(url)
         
-elif mode==10:
+elif mode=='10':
         TVA2ZDirectories(url)
 
-elif mode==11:
+elif mode=='11':
         TVINDEX(url)
 
-elif mode==12:
+elif mode=='12':
         TVSEASONS(url,imdbnum)
 
-elif mode==13:
+elif mode=='13':
         TVEPISODES(name,url,None,imdbnum)
 
 # Some tv shows will not be correctly identified, so to load their sources need to check on mode==14
-elif mode==14:
+elif mode=='14':
         LOADMIRRORS(url)
 
-elif mode==99:
-        CAPTCHAENTER(url)
-        
-elif mode==100:
+elif mode=='100':
         LOADMIRRORS(url)
 
-elif mode==110:
+elif mode=='110':
         # if you dont use the "url", "name" params() then you need to define the value# along with the other params.
         ADD_TO_FAVOURITES(name,url,imdbnum)
 
-elif mode==111:
+elif mode=='111':
         DELETE_FROM_FAVOURITES(name,url)
 
-elif mode==200:
+elif mode=='200':
         Stream_Source(name,url,stacked=stacked_parts)
 
-elif mode==201:
+elif mode=='201':
         Stream_Source(name, url, download=True, stacked=stacked_parts)
         #Download_Source(name,url)
 
-elif mode==203:
+elif mode=='203':
         Kill_Streaming(name,url)
 
-elif mode==205:
+elif mode=='205':
         PlayFile(name,url)
         
-elif mode==206:
+elif mode=='206':
         Stream_Source(name, url, download_play=True, stacked=stacked_parts)
         #Download_And_Play(name,url)
 
-elif mode==207:
+elif mode=='207':
         ShowDownloadInfo(name)
 
-elif mode==208:
+elif mode=='208':
         CancelDownload(name)        
 
-elif mode==555:
+elif mode=='555':
         addon.log_debug("Mode 555 (Get More...) ******* search string is " + search + " *************  nextPage is " + nextPage)
         DoSearch(url, search, int(nextPage))
          
-elif mode==666:
+elif mode=='666':
         create_meta_pack()
 
 if callEndOfDirectory and int(sys.argv[1]) <> -1:
