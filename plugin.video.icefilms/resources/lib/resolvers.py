@@ -3,6 +3,7 @@ import os
 import urllib, urllib2
 import cookielib
 import re
+import jsunpack
 
 ''' Use addon.common library for http calls '''
 from addon.common.net import Net
@@ -40,9 +41,10 @@ def resolve_180upload(url):
                 data[name] = value
         else:
             raise Exception('Unable to resolve 180Upload Link')
-        
+
         #Check for SolveMedia Captcha image
         solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
+        recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
 
         if solvemedia:
            dialog.close()
@@ -72,7 +74,7 @@ def resolve_180upload(url):
                if userInput != '':
                    solution = kb.getText()
                elif userInput == '':
-                   addon.show_ok_dialog('You must enter text in the image to access video', title='No text entered', is_error=False)
+                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
                    return False
            else:
                return False
@@ -83,7 +85,37 @@ def resolve_180upload(url):
            if solution:
                data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
 
-        addon.log_debug( '180Upload - Requesting POST URL: %s' % url)
+        elif recaptcha:
+            dialog.close()
+            html = net.http_GET(recaptcha.group(1)).content
+            part = re.search("challenge \: \\'(.+?)\\'", html)
+            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+            wdlg = xbmcgui.WindowDialog()
+            wdlg.addControl(img)
+            wdlg.show()
+    
+            xbmc.sleep(3)
+    
+            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+            kb.doModal()
+            capcode = kb.getText()
+    
+            if (kb.isConfirmed()):
+                userInput = kb.getText()
+                if userInput != '':
+                    solution = kb.getText()
+                elif userInput == '':
+                    raise Exception ('You must enter text in the image to access video')
+            else:
+                raise Exception ('Captcha Error')
+            wdlg.close()
+            dialog.close() 
+            dialog.create('Resolving', 'Resolving HugeFiles Link...') 
+            dialog.update(50)
+            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})               
+
+        addon.log_debug( '180Upload - Requesting POST URL: %s Data: %s' % (url, data))
         html = net.http_POST(url, data).content
         dialog.update(100)
         
@@ -156,7 +188,7 @@ def resolve_megafiles(url):
                if userInput != '':
                    solution = kb.getText()
                elif userInput == '':
-                   addon.show_ok_dialog('You must enter text in the image to access video', title='No text entered', is_error=False)
+                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
                    return False
            else:
                return False
@@ -343,7 +375,7 @@ def resolve_movreel(url):
     try:
 
         if addon.get_setting('movreel-account') == 'true':
-            print 'MovReel - Setting Cookie file'
+            addon.log('MovReel - Setting Cookie file')
             cookiejar = os.path.join(cookie_path,'movreel.lwp')
             net.set_cookies(cookiejar)
 
@@ -352,14 +384,14 @@ def resolve_movreel(url):
         dialog.create('Resolving', 'Resolving Movreel Link...')       
         dialog.update(0)
         
-        print 'Movreel - Requesting GET URL: %s' % url
+        addon.log('Movreel - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
         dialog.update(33)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
-            print '***** Movreel - Site reported maintenance mode'
+            addon.log_error('***** Movreel - Site reported maintenance mode')
             raise Exception('File is currently unavailable on the host')
 
         #Set POST data values
@@ -376,14 +408,14 @@ def resolve_movreel(url):
             rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
             data = {'op': op, 'id': postid, 'referer': url, 'rand': rand, 'method_premium': method_premium}
         
-        print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
+        addon.log('Movreel - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data).content
 
         #Only do next post if Free account, skip to last page for download link if Premium
         if method_free:
             #Check for download limit error msg
             if re.search('<p class="err">.+?</p>', html):
-                print '***** Download limit reached'
+                addon.log_error('***** Download limit reached')
                 errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
                 raise Exception(errortxt)
     
@@ -397,10 +429,10 @@ def resolve_movreel(url):
                 for name, value in r:
                     data[name] = value
             else:
-                print '***** Movreel - Cannot find data values'
+                addon.log_error('***** Movreel - Cannot find data values')
                 raise Exception('Unable to resolve Movreel Link')
 
-            print 'Movreel - Requesting POST URL: %s DATA: %s' % (url, data)
+            addon.log('Movreel - Requesting POST URL: %s DATA: %s' % (url, data))
             html = net.http_POST(url, data).content
 
         #Get download link
@@ -412,7 +444,7 @@ def resolve_movreel(url):
         	  raise Exception("Unable to find final link")
 
     except Exception, e:
-        print '**** Movreel Error occured: %s' % e
+        addon.log_error('**** Movreel Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -427,7 +459,7 @@ def resolve_billionuploads(url):
         dialog.create('Resolving', 'Resolving BillionUploads Link...')       
         dialog.update(0)
         
-        print 'BillionUploads - Requesting GET URL: %s' % url
+        addon.log('BillionUploads - Requesting GET URL: %s' % url)
         cookie_file = os.path.join(cookie_path,'billionuploads.lwp')
         
         cj = cookielib.LWPCookieJar()
@@ -546,12 +578,12 @@ def resolve_billionuploads(url):
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
-            print '***** BillionUploads - Site reported maintenance mode'
+            addon.log_error('***** BillionUploads - Site reported maintenance mode')
             raise Exception('File is currently unavailable on the host')
 
         # Check for file not found
         if re.search('File Not Found', html):
-            print '***** BillionUploads - File Not Found'
+            addon.log_error('***** BillionUploads - File Not Found')
             raise Exception('File Not Found - Likely Deleted')  
 
         data = {}
@@ -647,7 +679,7 @@ def resolve_billionuploads(url):
             if alt:
                 dl = alt[0]
             else:
-                print '***** BillionUploads - No Video File Found'
+                addon.log_error('***** BillionUploads - No Video File Found')
                 raise Exception('Unable to resolve - No Video File Found')  
         
         if dialog.iscanceled(): return None
@@ -656,7 +688,7 @@ def resolve_billionuploads(url):
         return dl
         
     except Exception, e:
-        print '**** BillionUploads Error occured: %s' % e
+        addon.log_error('**** BillionUploads Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -673,17 +705,17 @@ def resolve_epicshare(url):
         dialog.create('Resolving', 'Resolving EpicShare Link...')
         dialog.update(0)
         
-        print 'EpicShare - Requesting GET URL: %s' % url
+        addon.log('EpicShare - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(50)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
-            print '***** EpicShare - Site reported maintenance mode'
+            addon.log_error('***** EpicShare - Site reported maintenance mode')
             raise Exception('File is currently unavailable on the host')
         if re.search('<b>File Not Found</b>', html):
-            print '***** EpicShare - File not found'
+            addon.log_error('***** EpicShare - File not found')
             raise Exception('File has been deleted')
 
 
@@ -694,7 +726,7 @@ def resolve_epicshare(url):
             for name, value in r:
                 data[name] = value
         else:
-            print '***** EpicShare - Cannot find data values'
+            addon.log_error('***** EpicShare - Cannot find data values')
             raise Exception('Unable to resolve EpicShare Link')
         
         #Check for SolveMedia Captcha image
@@ -721,7 +753,7 @@ def resolve_epicshare(url):
                if userInput != '':
                    solution = kb.getText()
                elif userInput == '':
-                   addon.show_ok_dialog('You must enter text in the image to access video', title='No text entered', is_error=False)
+                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
                    return False
            else:
                return False
@@ -732,20 +764,20 @@ def resolve_epicshare(url):
            if solution:
                data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
 
-        print 'EpicShare - Requesting POST URL: %s' % url
+        addon.log('EpicShare - Requesting POST URL: %s' % url)
         html = net.http_POST(url, data).content
         dialog.update(100)
         
         link = re.search('product_download_url=(.+?)"', html)
         if link:
-            print 'EpicShare Link Found: %s' % link.group(1)
+            addon.log('EpicShare Link Found: %s' % link.group(1))
             return link.group(1)
         else:
-            print '***** EpicShare - Cannot find final link'
+            addon.log_error('***** EpicShare - Cannot find final link')
             raise Exception('Unable to resolve EpicShare Link')
         
     except Exception, e:
-        print '**** EpicShare Error occured: %s' % e
+        addon.log_error('**** EpicShare Error occured: %s' % e)
         raise
 
     finally:
@@ -761,17 +793,17 @@ def resolve_megarelease(url):
         dialog.create('Resolving', 'Resolving MegaRelease Link...')
         dialog.update(0)
         
-        print 'MegaRelease - Requesting GET URL: %s' % url
+        addon.log('MegaRelease - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(50)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
-            print '***** MegaRelease - Site reported maintenance mode'
+            addon.log_error('***** MegaRelease - Site reported maintenance mode')
             raise Exception('File is currently unavailable on the host')
         if re.search('<b>File Not Found</b>', html):
-            print '***** MegaRelease - File not found'
+            addon.log_error('***** MegaRelease - File not found')
             raise Exception('File has been deleted')
 
         filename = re.search('You have requested <font color="red">(.+?)</font>', html).group(1)
@@ -794,7 +826,7 @@ def resolve_megarelease(url):
         return download_link
         
     except Exception, e:
-        print '**** MegaRelease Error occured: %s' % e
+        addon.log_error('**** MegaRelease Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -809,17 +841,17 @@ def resolve_lemupload(url):
         dialog.create('Resolving', 'Resolving LemUploads Link...')
         dialog.update(0)
         
-        print 'LemUploads - Requesting GET URL: %s' % url
+        addon.log('LemUploads - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(50)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
-            print '***** LemUploads - Site reported maintenance mode'
+            addon.log_error('***** LemUploads - Site reported maintenance mode')
             raise Exception('File is currently unavailable on the host')
         if re.search('<b>File Not Found</b>', html):
-            print '***** LemUpload - File not found'
+            addon.log_error('***** LemUpload - File not found')
             raise Exception('File has been deleted')
 
         filename = re.search('<h2>(.+?)</h2>', html).group(1)
@@ -841,7 +873,7 @@ def resolve_lemupload(url):
         return download_link
         
     except Exception, e:
-        print '**** LemUploads Error occured: %s' % e
+        addon.log_error('**** LemUploads Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -858,14 +890,14 @@ def resolve_hugefiles(url):
         dialog.create('Resolving', 'Resolving HugeFiles Link...')       
         dialog.update(0)
         
-        print 'HugeFiles - Requesting GET URL: %s' % url
+        addon.log('HugeFiles - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
         dialog.update(50)
         
         #Check page for any error msgs
-        if re.search('<b>File Not Found</b>', html):
-            print '***** HugeFiles - File Not Found'
+        if re.search('>No such file', html):
+            addon.log_error('***** HugeFiles - File Not Found')
             raise Exception('File Not Found')
 
         #Set POST data values
@@ -876,7 +908,7 @@ def resolve_hugefiles(url):
             for name, value in r:
                 data[name] = value
         else:
-            print '***** HugeFiles - Cannot find data values'
+            addon.log_error('***** HugeFiles - Cannot find data values')
             raise Exception('Unable to resolve HugeFiles Link')
         
         data['method_free'] = 'Free Download'
@@ -907,7 +939,7 @@ def resolve_hugefiles(url):
                if userInput != '':
                    solution = kb.getText()
                elif userInput == '':
-                   addon.show_ok_dialog('You must enter text in the image to access video', title='No text entered', is_error=False)
+                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
                    return False
            else:
                return False
@@ -954,7 +986,7 @@ def resolve_hugefiles(url):
             solution = ''.join(str(int(num[1])-48) for num in result)
             data.update({'code':solution})                
 
-        print 'HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data)
+        addon.log('HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data).content
         
         #Get download link
@@ -970,11 +1002,11 @@ def resolve_hugefiles(url):
                r = re.findall('name="src"[0-9]*="(.+?)"/><embed',sUnpacked)
             return r[0]
         else:
-            print '***** HugeFiles - Cannot find final link'
+            addon.log_error('***** HugeFiles - Cannot find final link')
             raise Exception('Unable to resolve HugeFiles Link')
         
     except Exception, e:
-        print '**** HugeFiles Error occured: %s' % e
+        addon.log_error('**** HugeFiles Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -989,14 +1021,14 @@ def resolve_entroupload(url):
         dialog.create('Resolving', 'Resolving EntroUpload Link...')       
         dialog.update(0)
         
-        print 'EntroUpload - Requesting GET URL: %s' % url
+        addon.log('EntroUpload - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
         dialog.update(50)
         
         #Check page for any error msgs
         if re.search('<b>File Not Found</b>', html):
-            print '***** EntroUpload - File Not Found'
+            addon.log_error('***** EntroUpload - File Not Found')
             raise Exception('File Not Found')
 
         #Set POST data values
@@ -1007,13 +1039,13 @@ def resolve_entroupload(url):
             for name, value in r:
                 data[name] = value
         else:
-            print '***** EntroUpload - Cannot find data values'
+            addon.log_error('***** EntroUpload - Cannot find data values')
             raise Exception('Unable to resolve EntroUpload Link')
         
         data['method_free'] = 'Free Download'
         file_name = data['fname']
 
-        print 'EntroUpload - Requesting POST URL: %s DATA: %s' % (url, data)
+        addon.log('EntroUpload - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data).content
 
         #Get download link
@@ -1032,14 +1064,14 @@ def resolve_entroupload(url):
             if r:
                 return r.group(1)
             else:
-                print '***** EntroUpload - Cannot find final link'
+                addon.log_error('***** EntroUpload - Cannot find final link')
                 raise Exception('Unable to resolve EntroUpload Link')
         else:
-            print '***** EntroUpload - Cannot find final link'
+            addon.log_error('***** EntroUpload - Cannot find final link')
             raise Exception('Unable to resolve EntroUpload Link')
         
     except Exception, e:
-        print '**** EntroUpload Error occured: %s' % e
+        addon.log_error('**** EntroUpload Error occured: %s' % e)
         raise
     finally:
         dialog.close()
@@ -1054,7 +1086,7 @@ def resolve_donevideo(url):
         dialog.create('Resolving', 'Resolving DoneVideo Link...')       
         dialog.update(0)
         
-        print 'DoneVideo - Requesting GET URL: %s' % url
+        addon.log('DoneVideo - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
     
         data = {}
@@ -1064,11 +1096,11 @@ def resolve_donevideo(url):
           for name, value in r:
               data[name] = value
         else:
-            print '***** DoneVideo - Cannot find data values'
+            addon.log_error('***** DoneVideo - Cannot find data values')
             raise Exception('Unable to resolve DoneVideo Link')
         
         data['method_free'] = 'Continue to Video'
-        print 'DoneVideo - Requesting POST URL: %s' % url
+        addon.log('DoneVideo - Requesting POST URL: %s' % url)
         
         html = net.http_POST(url, data).content
         
@@ -1080,11 +1112,11 @@ def resolve_donevideo(url):
           for name, value in r:
               data[name] = value
         else:
-          print 'Could not resolve link'
+          addon.log_error('Could not resolve link')
         
         data['method_free'] = 'Continue to Video'
         
-        print 'DoneVideo - Requesting POST URL: %s' % url
+        addon.log('DoneVideo - Requesting POST URL: %s' % url)
         
         html = net.http_POST(url, data).content
 
@@ -1093,7 +1125,6 @@ def resolve_donevideo(url):
         
         sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
         r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        print r.group(1)
 
         if r:
           sJavascript = r.group(1)
@@ -1111,11 +1142,11 @@ def resolve_donevideo(url):
             if r:
                 return r.group(1)
             else:
-                print '***** DoneVideo - Cannot find final link'
+                addon.log_error('***** DoneVideo - Cannot find final link')
                 raise Exception('Unable to resolve DoneVideo Link')
 
     except Exception, e:
-        print '**** DoneVideo Error occured: %s' % e
+        addon.log_error('**** DoneVideo Error occured: %s' % e)
         raise
     finally:
         dialog.close()
