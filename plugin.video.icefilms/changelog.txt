@@ -1,3 +1,8 @@
+[B]v1.4.1(Tuesday, 11 March 2014):[/B]
+  - Updated 180Upload resolver, added check for Google recaptcha
+  - Fixed various bugs from last code update, msg boxes, hugefiles resolver
+  - More code cleanup and optimizations
+  
 [B]v1.4.0(Saturday, 8 March 2014):[/B]
   - Added VidPlay resolver
   - Added MegaFiles resolver
