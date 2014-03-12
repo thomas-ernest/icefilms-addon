@@ -28,13 +28,23 @@ prepare_zip = False
 import xbmc,xbmcplugin,xbmcgui,datetime
 
 ''' Use addon common library for http calls '''
-from addon.common.net import Net
-from addon.common.addon import Addon
+try:
+    from addon.common.net import Net
+    from addon.common.addon import Addon
+except:
+    xbmc.log('Failed to import script.module.addon.common')
+    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import addon.common", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 net = Net()
 
 addon_id = 'plugin.video.icefilms'
 addon = Addon(addon_id, sys.argv)
 datapath = addon.get_profile()
+
+try:
+    from metahandler import metahandlers
+except:
+    addon.log('Failed to import script.module.metahandler')
+    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 
 ########################### Queries ############################
 
@@ -76,11 +86,6 @@ sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 import container_urls,clean_dirs,htmlcleaner
 import debridroutines
 
-try:
-    from metahandler import metahandlers
-except:
-    addon.log('Failed to import script.module.metahandler')
-    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
@@ -133,7 +138,7 @@ metapath = os.path.join(datapath, 'mirror_page_meta_cache')
 cookie_path = os.path.join(datapath, 'cookies')
 downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
-art = icepath + '/resources/art'
+art_path = os.path.join(icepath, 'resources', 'art')
 
 
 ####################################################
@@ -151,7 +156,7 @@ def Notify(typeq,title,message,times, line2='', line3=''):
           if times == '':
                times='5000'
           smallicon=handle_file('smallicon')
-          addon.show_small_popup(title=title, msg=msgList, delay=int(times), image=smallicon)
+          addon.show_small_popup(title=title, msg=message, delay=int(times), image=smallicon)
      elif typeq == 'big':
           addon.show_ok_dialog(msgList, title=title, is_error=False)
      else:
@@ -161,52 +166,52 @@ def Notify(typeq,title,message,times, line2='', line3=''):
 def handle_file(filename,getmode=''):
      #bad python code to add a get file routine.
      if filename == 'smallicon':
-          return_file = xbmcpath(art,'smalltransparent2.png')
+          return_file = xbmcpath(art_path,'smalltransparent2.png')
      elif filename == 'mirror':
           return_file = xbmcpath(datapath,'MirrorPageSource.txt')
      elif filename == 'homepage':
-          return_file = xbmcpath(art,'homepage.png')
+          return_file = xbmcpath(art_path,'homepage.png')
      elif filename == 'movies':
-          return_file = xbmcpath(art,'movies.png')
+          return_file = xbmcpath(art_path,'movies.png')
      elif filename == 'music':
-          return_file = xbmcpath(art,'music.png')
+          return_file = xbmcpath(art_path,'music.png')
      elif filename == 'tvshows':
-          return_file = xbmcpath(art,'tvshows.png')
+          return_file = xbmcpath(art_path,'tvshows.png')
      elif filename == 'movies_fav':
-        return_file = xbmcpath(art,'movies_fav.png')
+        return_file = xbmcpath(art_path,'movies_fav.png')
      elif filename == 'tvshows_fav':
-        return_file = xbmcpath(art,'tvshows_fav.png')
+        return_file = xbmcpath(art_path,'tvshows_fav.png')
 
      elif filename == 'other':
-          return_file = xbmcpath(art,'other.png')
+          return_file = xbmcpath(art_path,'other.png')
      elif filename == 'search':
-          return_file = xbmcpath(art,'search.png')
+          return_file = xbmcpath(art_path,'search.png')
      elif filename == 'standup':
-          return_file = xbmcpath(art,'standup.png')
+          return_file = xbmcpath(art_path,'standup.png')
      elif filename == 'shared2pic':
-          return_file = xbmcpath(art,'2shared.png')
+          return_file = xbmcpath(art_path,'2shared.png')
      elif filename == '180pic':
-          return_file = xbmcpath(art,'180upload.png')
+          return_file = xbmcpath(art_path,'180upload.png')
      elif filename == 'vihogpic':
-          return_file = xbmcpath(art,'vidhog.png')
+          return_file = xbmcpath(art_path,'vidhog.png')
      elif filename == 'sharebeespic':
-          return_file = xbmcpath(art,'sharebees.png')
+          return_file = xbmcpath(art_path,'sharebees.png')
      elif filename == 'movreelpic':
-          return_file = xbmcpath(art,'movreel.png')
+          return_file = xbmcpath(art_path,'movreel.png')
      elif filename == 'billionpic':
-          return_file = xbmcpath(art,'billion.png')
+          return_file = xbmcpath(art_path,'billion.png')
      elif filename == 'entropic':
-          return_file = xbmcpath(art,'entroupload.png')
+          return_file = xbmcpath(art_path,'entroupload.png')
      elif filename == 'epicpic':
-          return_file = xbmcpath(art,'epicshare.png')
+          return_file = xbmcpath(art_path,'epicshare.png')
      elif filename == 'hugepic':
-          return_file = xbmcpath(art,'hugefiles.png')
+          return_file = xbmcpath(art_path,'hugefiles.png')
      elif filename == 'lempic':
-          return_file = xbmcpath(art,'lemuploads.png')
+          return_file = xbmcpath(art_path,'lemuploads.png')
      elif filename == 'megarpic':
-          return_file = xbmcpath(art,'megarelease.png')
+          return_file = xbmcpath(art_path,'megarelease.png')
      elif filename == 'localpic':
-          return_file = xbmcpath(art,'local_file.jpg')
+          return_file = xbmcpath(art_path,'local_file.jpg')
 
      if getmode == '':
           return return_file
@@ -522,7 +527,6 @@ def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
      return mc.install_metadata_container(filepath, installtype)
 
 
-
 def Startup_Routines():
      
      # avoid error on first run if no paths exists, by creating paths
@@ -597,15 +601,15 @@ def CATEGORIES():  #  (homescreen of addon)
 
           #add directories
 
-          addDir('Favourites',iceurl,57,os.path.join(art,'favourites.png'))          
+          addDir('Favourites',iceurl,57,os.path.join(art_path,'favourites.png'))          
           addDir('TV Shows',iceurl+'tv/a-z/1',50,tvshows)
           addDir('Movies',iceurl+'movies/a-z/1',51,movies)
           addDir('Music',iceurl+'music/a-z/1',52,music)
           addDir('Stand Up Comedy',iceurl+'standup/a-z/1',53,standup)
           addDir('Other',iceurl+'other/a-z/1',54,other)
-          addDir('Recently Added',iceurl+'index',60,os.path.join(art,'recently added.png'))
-          addDir('Latest Releases',iceurl+'index',61,os.path.join(art,'latest releases.png'))
-          addDir('Being Watched Now',iceurl+'index',62,os.path.join(art,'being watched now.png'))          
+          addDir('Recently Added',iceurl+'index',60,os.path.join(art_path,'recently added.png'))
+          addDir('Latest Releases',iceurl+'index',61,os.path.join(art_path,'latest releases.png'))
+          addDir('Being Watched Now',iceurl+'index',62,os.path.join(art_path,'being watched now.png'))          
           addDir('Search',iceurl,55,search)
           
           #Only show if prepare_zip = True - meaning you are creating a meta pack
@@ -759,23 +763,21 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
           
           try:
                os.makedirs(tvfav)
-          except:
+          except Exception, e:
+               addon.log_error('Error creating tv favorites folder: %s' % e)
                pass
           try:
                os.makedirs(moviefav)
-          except:
+          except Exception, e:
+               addon.log_error('Error creating movie favorites folder: %s' % e)
                pass
-
-          #Check what kind of url it is and set themode and savepath (helpful for metadata) accordingly
-          
 
           #fix name and imdb number for Episode List entries in Search.
           if imdbnum == 'nothing':
                metafix=METAFIXER(url)
                name=metafix[0]
                imdbnum=metafix[1]
-
-          
+         
           url_type=URL_TYPE(url)
 
           if url_type=='mirrors':
@@ -786,7 +788,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                themode='12'
                savepath=tvfav
 
-          addon.log('NAME:',name,'URL:',url,'IMDB NUMBER:',imdbnum)
+          addon.log('NAME: %s URL: %s IMDB NUMBER: %s' % (name,url,imdbnum))
 
           #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
           adjustedname=Clean_Windows_String(name).strip()
@@ -802,7 +804,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                favcontents=name+'|'+url+'|'+themode+'|'+imdbnum
                save(NewFavFile,favcontents)
                
-               Notify('small',name + ' added to favourites','','6000')
+               Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
 
                #Rescan Next Aired
                next_aired = str2bool(addon.get_setting('next-aired'))
@@ -810,10 +812,10 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                    xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
           else:
                addon.log('Warning - favourite already exists')
-               Notify('small',name + ' favourite already exists','','6000')
+               Notify('small','Icefilms Favourites', name + ' favourite already exists','','6000')
 
      else:
-          Notify('small','Unable to add to favourites','','')
+          Notify('small','Icefilms Favourites', 'Unable to add to favourites','','')
           addon.log('Warning - favorite name or url is none:')
           addon.log('NAME: ',name)
           addon.log('URL: ',url)
@@ -1140,7 +1142,7 @@ def DoEpListSearch(search):
 def TVCATEGORIES(url):
         caturl = iceurl+'tv/'        
         setmode = '11'
-        addDir('A-Z Directories',caturl+'a-z/1',10,os.path.join(art,'az directories.png'))            
+        addDir('A-Z Directories',caturl+'a-z/1',10,os.path.join(art_path,'az directories.png'))            
         ADDITIONALCATS(setmode,caturl)
         setView(None, 'default-view')
 
@@ -1148,7 +1150,7 @@ def TVCATEGORIES(url):
 def MOVIECATEGORIES(url):
         caturl = iceurl+'movies/'
         setmode = '2'
-        addDir('A-Z Directories',caturl+'a-z/1',1,os.path.join(art,'az directories.png'))
+        addDir('A-Z Directories',caturl+'a-z/1',1,os.path.join(art_path,'az directories.png'))
         ADDITIONALCATS(setmode,caturl)
         setView(None, 'default-view')
 
@@ -1156,7 +1158,7 @@ def MOVIECATEGORIES(url):
 def MUSICCATEGORIES(url):
         caturl = iceurl+'music/'        
         setmode = '2'
-        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art,'az lists.png'))
+        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art_path,'az lists.png'))
         ADDITIONALCATS(setmode,caturl)
         setView(None, 'default-view')
 
@@ -1164,7 +1166,7 @@ def MUSICCATEGORIES(url):
 def STANDUPCATEGORIES(url):
         caturl = iceurl+'standup/'        
         setmode = '2'
-        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art,'az lists.png'))
+        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art_path,'az lists.png'))
         ADDITIONALCATS(setmode,caturl)
         setView(None, 'default-view')
 
@@ -1172,26 +1174,26 @@ def STANDUPCATEGORIES(url):
 def OTHERCATEGORIES(url):
         caturl = iceurl+'other/'        
         setmode = '2'
-        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art,'az lists.png'))
+        addDir('A-Z List',caturl+'a-z/1',setmode,os.path.join(art_path,'az lists.png'))
         ADDITIONALCATS(setmode,caturl)
         setView(None, 'default-view')
 
 
 def ADDITIONALCATS(setmode,caturl):
         if caturl == iceurl+'movies/':
-             addDir('HD 720p',caturl,63,os.path.join(art,'HD 720p.png'))
+             addDir('HD 720p',caturl,63,os.path.join(art_path,'HD 720p.png'))
         PopRatLat(setmode,caturl,'1')
-        addDir('Genres',caturl,64,os.path.join(art,'genres.png'))
+        addDir('Genres',caturl,64,os.path.join(art_path,'genres.png'))
 
 def PopRatLat(modeset,caturl,genre):
         if caturl == iceurl+'tv/':
              setmode = '11'
         else:
              setmode = '2'
-        addDir('Popular',caturl+'popular/'+genre,setmode,os.path.join(art,'popular.png'))
-        addDir('Highly Rated',caturl+'rating/'+genre,setmode,os.path.join(art,'highly rated.png'))
-        addDir('Latest Releases',caturl+'release/'+genre,setmode,os.path.join(art,'latest releases.png'))
-        addDir('Recently Added',caturl+'added/'+genre,setmode,os.path.join(art,'recently added.png'))
+        addDir('Popular',caturl+'popular/'+genre,setmode,os.path.join(art_path,'popular.png'))
+        addDir('Highly Rated',caturl+'rating/'+genre,setmode,os.path.join(art_path,'highly rated.png'))
+        addDir('Latest Releases',caturl+'release/'+genre,setmode,os.path.join(art_path,'latest releases.png'))
+        addDir('Recently Added',caturl+'added/'+genre,setmode,os.path.join(art_path,'recently added.png'))
         setView(None, 'default-view')
 
 
@@ -1262,9 +1264,9 @@ def MOVIEA2ZDirectories(url):
         A2Z=[chr(i) for i in xrange(ord('A'), ord('Z')+1)]
 
         #Add number directory
-        addDir ('#1234',caturl+'1',setmode,os.path.join(art,'letters','1.png'))
+        addDir ('#1234',caturl+'1',setmode,os.path.join(art_path,'letters','1.png'))
         for theletter in A2Z:
-             addDir (theletter,caturl+theletter,setmode,os.path.join(art,'letters',theletter+'.png'))
+             addDir (theletter,caturl+theletter,setmode,os.path.join(art_path,'letters',theletter+'.png'))
         setView(None, 'default-view')
 
 
@@ -1276,9 +1278,9 @@ def TVA2ZDirectories(url):
         A2Z=[chr(i) for i in xrange(ord('A'), ord('Z')+1)]
 
         #Add number directory
-        addDir ('#1234',caturl+'1',setmode,os.path.join(art,'letters','1.png'))
+        addDir ('#1234',caturl+'1',setmode,os.path.join(art_path,'letters','1.png'))
         for theletter in A2Z:
-            addDir (theletter,caturl+theletter,setmode,os.path.join(art,'letters',theletter+'.png'))
+            addDir (theletter,caturl+theletter,setmode,os.path.join(art_path,'letters',theletter+'.png'))
         setView(None, 'default-view')
 
 
@@ -1634,16 +1636,16 @@ def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
        
         if hd720p == 1:
                 HD720p(url)
-                #addDir('HD 720p',url,102,os.path.join(art,'source_types','hd720p.png'), imdb=imdbnum)
+                #addDir('HD 720p',url,102,os.path.join(art_path,'source_types','hd720p.png'), imdb=imdbnum)
         if dvdrip == 1:
                 DVDRip(url)
-                #addDir('DVDRip',url,101,os.path.join(art,'source_types','dvd.png'), imdb=imdbnum)
+                #addDir('DVDRip',url,101,os.path.join(art_path,'source_types','dvd.png'), imdb=imdbnum)
         if dvdscreener == 1:
                 DVDScreener(url)
-                #addDir('DVD Screener',url,103,os.path.join(art,'source_types','dvdscreener.png'), imdb=imdbnum)
+                #addDir('DVD Screener',url,103,os.path.join(art_path,'source_types','dvdscreener.png'), imdb=imdbnum)
         if r5r6 == 1:
                 R5R6(url)
-                #addDir('R5/R6 DVDRip',url,104,os.path.join(art,'source_types','r5r6.png'), imdb=imdbnum)
+                #addDir('R5/R6 DVDRip',url,104,os.path.join(art_path,'source_types','r5r6.png'), imdb=imdbnum)
 
 def determine_source(url):
 
@@ -1882,8 +1884,6 @@ class TwoSharedDownloader:
           return fileUrl 
      
 
-     
-          
 def SHARED2_HANDLER(url):
 
           html = net.http_GET(url).content
@@ -3027,7 +3027,7 @@ def MOVIE_FAVOURITES(url):
     
     else:
         #add clear favourites entry - Not sure if we must put it here, cause it will mess up the sorting
-        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art,'deletefavs.png'))
+        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art_path,'deletefavs.png'))
         
         #handler for all movie favourites
         if moviedircontents is not None:
@@ -3062,7 +3062,7 @@ def TV_FAVOURITES(url):
 
     else:
         #add clear favourites entry - Not sure if we must put it here, cause it will mess up the sorting
-        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art,'deletefavs.png'))
+        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art_path,'deletefavs.png'))
                
         #handler for all tv favourites
         if tvdircontents is not None:
