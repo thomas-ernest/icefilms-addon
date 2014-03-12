@@ -18,6 +18,87 @@ cookie_path = os.path.join(datapath, 'cookies')
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
+def handle_captchas(html, data, dialog):
+
+    puzzle_img = os.path.join(datapath, "solve_puzzle.png")
+    
+    #Check for type of captcha used
+    solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
+    recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+    numeric_captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)    
+
+    #SolveMedia captcha
+    if solvemedia:
+       dialog.close()
+       html = net.http_GET(solvemedia.group(1)).content
+       hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
+       
+       #Check for alternate puzzle type - stored in a div
+       alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
+       if alt_puzzle:
+           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
+       else:
+           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
+       
+       img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
+       wdlg = xbmcgui.WindowDialog()
+       wdlg.addControl(img)
+       wdlg.show()
+    
+       xbmc.sleep(3000)
+
+       kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+       kb.doModal()
+       capcode = kb.getText()
+
+       if (kb.isConfirmed()):
+           userInput = kb.getText()
+           if userInput != '':
+               solution = kb.getText()
+           elif userInput == '':
+               raise Exception ('You must enter text in the image to access video')
+       else:
+           raise Exception ('Captcha Error')
+       wdlg.close()
+       data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+
+    #Google Recaptcha
+    elif recaptcha:
+        dialog.close()
+        html = net.http_GET(recaptcha.group(1)).content
+        part = re.search("challenge \: \\'(.+?)\\'", html)
+        captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+        img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
+        wdlg = xbmcgui.WindowDialog()
+        wdlg.addControl(img)
+        wdlg.show()
+
+        xbmc.sleep(3000)
+
+        kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+        kb.doModal()
+        capcode = kb.getText()
+
+        if (kb.isConfirmed()):
+            userInput = kb.getText()
+            if userInput != '':
+                solution = kb.getText()
+            elif userInput == '':
+                raise Exception ('You must enter text in the image to access video')
+        else:
+            raise Exception ('Captcha Error')
+        wdlg.close()
+        data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})               
+
+    #Numeric captcha - we can programmatically figure this out
+    elif numeric_captcha:
+        captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+        result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+        solution = ''.join(str(int(num[1])-48) for num in result)
+        data.update({'code':solution})  
+        
+    return data
+
 
 def resolve_180upload(url):
 
@@ -25,98 +106,38 @@ def resolve_180upload(url):
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving 180Upload Link...')
         dialog.update(0)
-        
-        puzzle_img = os.path.join(datapath, "180_puzzle.png")
-        
+       
         addon.log_debug( '180Upload - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(50)
-                
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            raise Exception('Unable to resolve 180Upload Link')
-
-        #Check for SolveMedia Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-        recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           
-           #Check for alternate puzzle type - stored in a div
-           alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
-           if alt_puzzle:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
-           else:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
-           
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
+        wrong_captcha = True
         
-           xbmc.sleep(3000)
+        while wrong_captcha:
+        
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving 180Upload Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
-
-        elif recaptcha:
-            dialog.close()
-            html = net.http_GET(recaptcha.group(1)).content
-            part = re.search("challenge \: \\'(.+?)\\'", html)
-            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-    
-            xbmc.sleep(3)
-    
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-    
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '':
-                    solution = kb.getText()
-                elif userInput == '':
-                    raise Exception ('You must enter text in the image to access video')
+            if r:
+                for name, value in r:
+                    data[name] = value
             else:
-                raise Exception ('Captcha Error')
-            wdlg.close()
-            dialog.close() 
-            dialog.create('Resolving', 'Resolving HugeFiles Link...') 
-            dialog.update(50)
-            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})               
+                raise Exception('Unable to resolve 180Upload Link')
 
-        addon.log_debug( '180Upload - Requesting POST URL: %s Data: %s' % (url, data))
-        html = net.http_POST(url, data).content
+            #Handle captcha
+            data = handle_captchas(html, data, dialog)
+
+            dialog.create('Resolving', 'Resolving 180Uploads Link...') 
+            dialog.update(50)  
+            
+            addon.log_debug( '180Upload - Requesting POST URL: %s Data: %s' % (url, data))
+            html = net.http_POST(url, data).content
+
+            wrong_captcha = re.search('<div class="err">Wrong captcha</div>', html)
+            if wrong_captcha:
+                addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)
+
         dialog.update(100)
         
         link = re.search('id="lnk_download" href="([^"]+)', html)
@@ -140,67 +161,37 @@ def resolve_megafiles(url):
         dialog.create('Resolving', 'Resolving MegaFiles Link...')
         dialog.update(0)
         
-        puzzle_img = os.path.join(datapath, "megafiles_puzzle.png")
-        
         addon.log_debug('MegaFiles - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(50)
-                
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            raise Exception('Unable to resolve MegaFiles Link')
+        wrong_captcha = True
         
-        #Check for SolveMedia Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-
-        if solvemedia:
-           addon.log_debug('SolveMedia found')
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           
-           #Check for alternate puzzle type - stored in a div
-           alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
-           if alt_puzzle:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
-           else:
-               open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
-           
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
+        while wrong_captcha:
         
-           xbmc.sleep(3000)
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving MegaFiles Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+            if r:
+                for name, value in r:
+                    data[name] = value
+            else:
+                raise Exception('Unable to resolve MegaFiles Link')
 
-        addon.log_debug('MegaFiles - Requesting POST URL: %s' % url)
-        html = net.http_POST(url, data).content
+            #Handle captcha
+            data = handle_captchas(html, data, dialog)
+
+            dialog.create('Resolving', 'Resolving MegaFiles Link...') 
+            dialog.update(50)                  
+
+            addon.log_debug('MegaFiles - Requesting POST URL: %s' % url)
+            html = net.http_POST(url, data).content
+
+            wrong_captcha = re.search('<div class="err">Wrong captcha</div>', html)
+            if wrong_captcha:
+                addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)
+            
         dialog.update(100)
         
         link = re.search("var download_url = '(.+?)';", html)
@@ -718,54 +709,33 @@ def resolve_epicshare(url):
             addon.log_error('***** EpicShare - File not found')
             raise Exception('File has been deleted')
 
-
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            addon.log_error('***** EpicShare - Cannot find data values')
-            raise Exception('Unable to resolve EpicShare Link')
+        wrong_captcha = True
         
-        #Check for SolveMedia Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
+        while wrong_captcha:
         
-           xbmc.sleep(3000)
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving EpicShare Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+            if r:
+                for name, value in r:
+                    data[name] = value
+            else:
+                addon.log_error('***** EpicShare - Cannot find data values')
+                raise Exception('Unable to resolve EpicShare Link')
 
-        addon.log('EpicShare - Requesting POST URL: %s' % url)
-        html = net.http_POST(url, data).content
+            #Handle captcha
+            data = handle_captchas(html, data, dialog)
+            
+            dialog.create('Resolving', 'Resolving EpicShare Link...') 
+            dialog.update(50) 
+                
+            addon.log('EpicShare - Requesting POST URL: %s' % url)
+            html = net.http_POST(url, data).content
+
+            wrong_captcha = re.search('<div class="err">Wrong captcha</div>', html)
+            if wrong_captcha:
+                addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)            
+        
         dialog.update(100)
         
         link = re.search('product_download_url=(.+?)"', html)
@@ -900,95 +870,42 @@ def resolve_hugefiles(url):
             addon.log_error('***** HugeFiles - File Not Found')
             raise Exception('File Not Found')
 
-        #Set POST data values
-        data = {}
-        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        wrong_captcha = True
         
-        if r:
-            for name, value in r:
-                data[name] = value
-        else:
-            addon.log_error('***** HugeFiles - Cannot find data values')
-            raise Exception('Unable to resolve HugeFiles Link')
+        while wrong_captcha:
         
-        data['method_free'] = 'Free Download'
-        file_name = data['fname']
-
-        #Check for SolveMedia, Google Captcha image
-        solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
-        recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
-
-        if solvemedia:
-           dialog.close()
-           html = net.http_GET(solvemedia.group(1)).content
-           hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(.+?)"', html).group(1)).content)
-           img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-           wdlg = xbmcgui.WindowDialog()
-           wdlg.addControl(img)
-           wdlg.show()
-        
-           xbmc.sleep(3000)
-
-           kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-           kb.doModal()
-           capcode = kb.getText()
-   
-           if (kb.isConfirmed()):
-               userInput = kb.getText()
-               if userInput != '':
-                   solution = kb.getText()
-               elif userInput == '':
-                   addon.show_ok_dialog(['You must enter text in the image to access video'], title='No text entered', is_error=False)
-                   return False
-           else:
-               return False
-               
-           wdlg.close()
-           dialog.create('Resolving', 'Resolving HugeFiles Link...') 
-           dialog.update(50)
-           if solution:
-               data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
-
-        elif recaptcha:
-            dialog.close()
-            html = net.http_GET(recaptcha.group(1)).content
-            part = re.search("challenge \: \\'(.+?)\\'", html)
-            captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
-            img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
-            wdlg = xbmcgui.WindowDialog()
-            wdlg.addControl(img)
-            wdlg.show()
-    
-            xbmc.sleep(3)
-    
-            kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-            kb.doModal()
-            capcode = kb.getText()
-    
-            if (kb.isConfirmed()):
-                userInput = kb.getText()
-                if userInput != '':
-                    solution = kb.getText()
-                elif userInput == '':
-                    raise Exception ('You must enter text in the image to access video')
+            #Set POST data values
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+            
+            if r:
+                for name, value in r:
+                    data[name] = value
             else:
-                raise Exception ('Captcha Error')
-            wdlg.close()
-            dialog.close() 
+                addon.log_error('***** HugeFiles - Cannot find data values')
+                raise Exception('Unable to resolve HugeFiles Link')
+            
+            data['method_free'] = 'Free Download'
+            file_name = data['fname']
+
+            #Handle captcha
+            data = handle_captchas(html, data, dialog)
+            
             dialog.create('Resolving', 'Resolving HugeFiles Link...') 
-            dialog.update(50)
-            data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})
+            dialog.update(50)             
+            
+            addon.log('HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data))
+            html = net.http_POST(url, data).content
 
-        else:
-            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-            result = sorted(captcha, key=lambda ltr: int(ltr[0]))
-            solution = ''.join(str(int(num[1])-48) for num in result)
-            data.update({'code':solution})                
+            solvemedia = re.search('<iframe src="(http://api.solvemedia.com.+?)"', html)
+            recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com.+?)">', html)
+            numeric_captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)   
 
-        addon.log('HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data))
-        html = net.http_POST(url, data).content
-        
+            if solvemedia or recaptcha or numeric_captcha:
+                addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)
+            else:
+                wrong_captcha = False
+            
         #Get download link
         dialog.update(100)
 
