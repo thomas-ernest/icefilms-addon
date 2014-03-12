@@ -1,3 +1,7 @@
+[B]v1.4.2(Wednesday, 11 March 2014):[/B]
+  - Fixed bug on small notification box, adding favourites
+  - Added check on resolvers with captchas for entering wrong captcha, will notify you and let you retry
+
 [B]v1.4.1(Tuesday, 11 March 2014):[/B]
   - Updated 180Upload resolver, added check for Google recaptcha
   - Fixed various bugs from last code update, msg boxes, hugefiles resolver
