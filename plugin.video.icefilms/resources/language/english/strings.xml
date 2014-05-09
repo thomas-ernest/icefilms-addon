@@ -25,6 +25,7 @@
     <string id="30302">Delete incomplete downloads</string>
     <string id="30303">Download in background</string>
     <string id="30304">Notify about progress every</string>
+    <string id="30305">Use Axel Proxy (Beta!!!)</string>
     
     <!-- Auto View -->
     <string id="30400">Enable Automatic View</string>
