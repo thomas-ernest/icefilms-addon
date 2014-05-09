@@ -18,7 +18,9 @@ cookie_path = os.path.join(datapath, 'cookies')
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
-def handle_captchas(html, data, dialog):
+def handle_captchas(url, html, data, dialog):
+
+    headers = {'Referer': url}
 
     puzzle_img = os.path.join(datapath, "solve_puzzle.png")
     
@@ -30,7 +32,7 @@ def handle_captchas(html, data, dialog):
     #SolveMedia captcha
     if solvemedia:
        dialog.close()
-       html = net.http_GET(solvemedia.group(1)).content
+       html = net.http_GET(solvemedia.group(1), headers=headers).content
        hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
        
        #Check for alternate puzzle type - stored in a div
@@ -58,6 +60,7 @@ def handle_captchas(html, data, dialog):
            elif userInput == '':
                raise Exception ('You must enter text in the image to access video')
        else:
+           wdlg.close()
            raise Exception ('Captcha Error')
        wdlg.close()
        data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
@@ -65,7 +68,7 @@ def handle_captchas(html, data, dialog):
     #Google Recaptcha
     elif recaptcha:
         dialog.close()
-        html = net.http_GET(recaptcha.group(1)).content
+        html = net.http_GET(recaptcha.group(1), headers=headers).content
         part = re.search("challenge \: \\'(.+?)\\'", html)
         captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
         img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
@@ -86,14 +89,14 @@ def handle_captchas(html, data, dialog):
             elif userInput == '':
                 raise Exception ('You must enter text in the image to access video')
         else:
+            wdlg.close()
             raise Exception ('Captcha Error')
         wdlg.close()
         data.update({'recaptcha_challenge_field':part.group(1),'recaptcha_response_field':solution})               
 
     #Numeric captcha - we can programmatically figure this out
     elif numeric_captcha:
-        captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
-        result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+        result = sorted(numeric_captcha, key=lambda ltr: int(ltr[0]))
         solution = ''.join(str(int(num[1])-48) for num in result)
         data.update({'code':solution})  
         
@@ -126,7 +129,7 @@ def resolve_180upload(url):
                 raise Exception('Unable to resolve 180Upload Link')
 
             #Handle captcha
-            data = handle_captchas(html, data, dialog)
+            data = handle_captchas(url, html, data, dialog)
 
             dialog.create('Resolving', 'Resolving 180Uploads Link...') 
             dialog.update(50)  
@@ -180,7 +183,7 @@ def resolve_megafiles(url):
                 raise Exception('Unable to resolve MegaFiles Link')
 
             #Handle captcha
-            data = handle_captchas(html, data, dialog)
+            data = handle_captchas(url, html, data, dialog)
 
             dialog.create('Resolving', 'Resolving MegaFiles Link...') 
             dialog.update(50)                  
@@ -207,7 +210,7 @@ def resolve_megafiles(url):
     finally:
         dialog.close()
         
-        
+
 def resolve_vidhog(url):
 
     try:
@@ -724,7 +727,7 @@ def resolve_epicshare(url):
                 raise Exception('Unable to resolve EpicShare Link')
 
             #Handle captcha
-            data = handle_captchas(html, data, dialog)
+            data = handle_captchas(url, html, data, dialog)
             
             dialog.create('Resolving', 'Resolving EpicShare Link...') 
             dialog.update(50) 
@@ -889,7 +892,7 @@ def resolve_hugefiles(url):
             file_name = data['fname']
 
             #Handle captcha
-            data = handle_captchas(html, data, dialog)
+            data = handle_captchas(url, html, data, dialog)
             
             dialog.create('Resolving', 'Resolving HugeFiles Link...') 
             dialog.update(50)             
@@ -917,6 +920,8 @@ def resolve_hugefiles(url):
             r = re.findall('file,(.+?)\)\;s1',sUnpacked)
             if not r:
                r = re.findall('name="src"[0-9]*="(.+?)"/><embed',sUnpacked)
+            if not r:
+                r = re.findall('src["0-9]*="(.+?)"/>',sUnpacked)
             return r[0]
         else:
             addon.log_error('***** HugeFiles - Cannot find final link')
@@ -1067,3 +1072,51 @@ def resolve_donevideo(url):
         raise
     finally:
         dialog.close()
+
+
+def resolve_pandaplanet(url):
+
+    try:
+        
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving PandaPlanet Link...')
+        dialog.update(0)
+        
+        addon.log('PandaPlanet - Requesting GET URL: %s' % url)
+        html = net.http_GET(url).content
+
+        dialog.update(50)
+        
+        #Check page for any error msgs
+        if re.search('This server is in maintenance mode', html):
+            addon.log_error('***** PandaPlanet - Site reported maintenance mode')
+            raise Exception('File is currently unavailable on the host')
+        if re.search('<b>File Not Found</b>', html):
+            addon.log_error('***** LemUpload - File not found')
+            raise Exception('File has been deleted')
+
+        filename = re.search('<td class="dofir" title="(.+?)" style="color:.+">(.+?)</td>', html).group(1)
+        extension = re.search('(\.[^\.]*$)', filename).group(1)
+        guid = re.search('http://pandapla.net/(.+)$', url).group(1)
+        
+        vid_embed_url = 'http://pandapla.net/vidembed-%s%s' % (guid, extension)
+        
+        request = urllib2.Request(vid_embed_url)
+        request.add_header('User-Agent', USER_AGENT)
+        request.add_header('Accept', ACCEPT)
+        request.add_header('Referer', url)
+        response = urllib2.urlopen(request)
+        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
+        download_link = redirect_url + filename
+        
+        dialog.update(100)
+
+        return download_link
+        
+    except Exception, e:
+        addon.log_error('**** PandaPlanet Error occured: %s' % e)
+        raise
+    finally:
+        dialog.close()
+
