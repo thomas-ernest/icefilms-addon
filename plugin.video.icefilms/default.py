@@ -102,9 +102,6 @@ except:
   import storageserverdummy as StorageServer
 cache = StorageServer.StorageServer(addon_id)
 
-# Resolvers - Custom to Icefilms
-from resolvers import *  
-
 ####################################################
 
 ############## Constants / Variables ###############
@@ -1649,6 +1646,11 @@ def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
 
 def determine_source(url):
 
+    hoster = re.search('https?://[www\.]*([^/]+)/', url)
+    
+    if not hoster:
+        return None
+
     host_list = [('2shared.com', '2S', handle_file('shared2pic',''), 'SHARED2_HANDLER'),
                 ('180upload.com', '180', handle_file('180pic',''), 'resolve_180upload'),
                 ('vidhog.com', 'VH', handle_file('vihogpic',''), 'resolve_vidhog'),
@@ -1662,20 +1664,17 @@ def determine_source(url):
                 ('entroupload.com', 'EU',  handle_file('entropic',''), 'resolve_entroupload'),
                 ('donevideo.com', 'DV', '', 'resolve_donevideo'),
                 ('vidplay.net', 'VP', '', 'resolve_vidplay'),
-                ('megafiles.se', 'MF', '', 'resolve_megafiles')
+                ('megafiles.se', 'MF', '', 'resolve_megafiles'),
+                ('pandapla.net', 'PP', '', 'resolve_pandaplanet')                
                 ]
 
-    hoster = re.search('https?://[www\.]*([^/]+)/', url)
-
-    if hoster:
-        source_info = {}
-        domain = hoster.group(1)
-       
-        try:
-            host_index = [y[0] for y in host_list].index(domain)      
-            return host_list[host_index]
-        except:
-            return None
+    domain = hoster.group(1)
+     
+    try:
+        host_index = [y[0] for y in host_list].index(domain)      
+        return host_list[host_index]
+    except:
+        return None
 
 
 def PART(scrap,sourcenumber,args,cookie,source_tag):
@@ -2152,8 +2151,11 @@ def Handle_Vidlink(url):
                    addon.log('Real-Debrid Link resolved: %s ' % download_details['download_link'])
                    return link
 
+    # Resolvers - Custom to Icefilms
+    import resolvers
+    
     #Dynamic call to proper resolve function returned from determine_source()
-    return getattr(sys.modules[__name__], "%s" % hoster[3])(url)
+    return getattr(resolvers, "%s" % hoster[3])(url)
 
 
 def PlayFile(name,url):
@@ -2238,6 +2240,7 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
         #Else play the file as normal stream
         else:               
             addon.log('Starting Normal Streaming')
+                       
             completed = play_with_watched(link, listitem, mypath, last_part)
             addon.log('Normal streaming completed: %s' % completed)
 
@@ -2255,7 +2258,16 @@ def play_with_watched(url, listitem, mypath, last_part=False):
     finalPart = last_part
     watched_percent = get_watched_percent()    
 
-    mplayer = MyPlayer(last_part=last_part)
+    useAxel = addon.get_setting('axel-proxy')
+    
+    axelhelper = None
+    download_id = None
+    if useAxel == 'true':
+        import proxy
+        axelhelper =  proxy.ProxyHelper()
+        url, download_id = axelhelper.create_proxy_url(url)
+    
+    mplayer = MyPlayer(axelhelper=axelhelper, download_id=download_id)
     mplayer.play(url, listitem)
 
     try:
@@ -2367,9 +2379,10 @@ def Stream_Source_with_parts(name,url):
 
 
 class MyPlayer (xbmc.Player):
-     def __init__ (self, last_part=False):
+     def __init__ (self, axelhelper=None, download_id=None):
         self.dialog = None
-        self.last_part = last_part
+        self.axelhelper = axelhelper
+        self.download_id = download_id
         xbmc.Player.__init__(self)
         
         addon.log('Initializing myPlayer...')
@@ -2386,6 +2399,11 @@ class MyPlayer (xbmc.Player):
         global currentTime
         global totalTime
         global finalPart
+
+        #Stop Axel Downloader from running
+        if download_id:
+            self.axelhelper.stop_download(self.download_id)        
+        
         if finalPart:
             percentWatched = currentTime / totalTime
             addon.log('current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched))
@@ -2400,6 +2418,11 @@ class MyPlayer (xbmc.Player):
         global currentTime
         global totalTime
         global finalPart
+        
+        #Stop Axel Downloader from running
+        if download_id:
+            self.axelhelper.stop_download(self.download_id)
+        
         if finalPart:
             percentWatched = currentTime / totalTime
             addon.log('current time: ' + str(currentTime) + ' total time: ' + str(totalTime) + ' percent watched: ' + str(percentWatched))
@@ -2511,7 +2534,7 @@ def Download_And_Play(name,url, video_seek=False):
 
     mypath=Get_Path(name,vidname)
      
-    addon.log('MYPATH: ',mypath)
+    addon.log('MYPATH: %s' % mypath)
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
         return False
