@@ -2171,7 +2171,7 @@ def PlayFile(name,url):
         addon.log_error('local file playing failed')
 
 
-def Stream_Source(name, url, download_play=False, download=False, stacked=False):
+def Stream_Source(name, url, download_play=False, download=False, download_jdownloader=False, stacked=False):
   
     addon.log('Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked))
 
@@ -2229,6 +2229,13 @@ def Stream_Source(name, url, download_play=False, download=False, stacked=False)
             addon.log('Starting Download')
             completed = Download_Source(name,link)
             addon.log('Downloading completed: %s' % completed)
+
+        elif download_jdownloader:
+            addon.log('Sent %s to JDownloader' % link)
+            xbmc.executebuiltin('XBMC.RunPlugin("plugin://plugin.program.jdownloader/?action=addlink&url=%s")' % (link))
+            Notify('Download Alert','Sent '+vidname+' to JDownloader','','')
+            completed = True
+
 
         #Download & Watch - but delete file when done, simulates streaming and allows video seeking
         #elif video_seeking:
@@ -2839,7 +2846,7 @@ def addExecute(name,url,mode,iconimage,stacked=False):
     contextMenuItems.append(('Play Stream', 'XBMC.RunPlugin(%s?mode=200&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
     contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
     contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
-    contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(plugin://plugin.program.jdownloader/?action=addlink&url=%s)' % (sysurl)))
+    contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(%s?mode=202&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
 
     liz.addContextMenuItems(contextMenuItems, replaceItems=True)
 
@@ -3603,6 +3610,9 @@ elif mode=='200':
 elif mode=='201':
         Stream_Source(name, url, download=True, stacked=stacked_parts)
         #Download_Source(name,url)
+
+elif mode=='202':
+        Stream_Source(name, url, stacked=stacked_parts, download_jdownloader=True)
 
 elif mode=='203':
         Kill_Streaming(name,url)
