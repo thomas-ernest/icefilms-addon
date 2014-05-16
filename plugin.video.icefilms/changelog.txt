@@ -1,3 +1,10 @@
+[B]v1.5.0(Friday, 16 May 2014):[/B]
+  - Fixed bug on Watch & Download function
+  - Added Panda Planet source
+  - Fixed download via jDownloader
+  - Fixed Recently Added and Latest Releases main menu sections
+  - Added !!BETA!! Axel Downloader support - enable via Addon Settings -> Downloads menu
+
 [B]v1.4.2(Wednesday, 11 March 2014):[/B]
   - Fixed bug on small notification box, adding favourites
   - Added check on resolvers with captchas for entering wrong captcha, will notify you and let you retry
