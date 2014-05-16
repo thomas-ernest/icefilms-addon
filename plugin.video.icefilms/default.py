@@ -941,7 +941,7 @@ def RECENT(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
                 for scraped in recadd:
-                    text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
                     
                     #Add the first line
                     folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
@@ -985,7 +985,7 @@ def LATEST(url):
                 scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
                 latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
                 for scraped in latrel:
-                    text = re.compile("<span style='font-size:14px;'>(.+?)<br>").findall(scraped)
+                    text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
                     
                     #Add the first line
                     folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
