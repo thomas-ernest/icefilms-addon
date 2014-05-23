@@ -375,8 +375,9 @@ def ContainerStartup():
 
      work_path = mc.work_path
      
-     meta_location_option = str2bool(addon.get_setting('meta_pack_location_option'))
-     if meta_location_option:
+     local_install = False
+     if addon.get_setting('meta_pack_location_option') == 'Custom':
+         local_install = True
          meta_pack_locaton = addon.get_setting('meta_folder_location')
          if not meta_pack_locaton.endswith("/"):
              meta_pack_locaton = meta_pack_locaton + "/"
@@ -392,7 +393,7 @@ def ContainerStartup():
          if ret==True:
                  
               #download dem files
-              get_db_zip=Zip_DL_and_Install(meta_pack_locaton, containers['db_filename'], 'database', work_path, mc)
+              get_db_zip=Zip_DL_and_Install(meta_pack_locaton, containers['db_filename'], 'database', work_path, mc, local_install)
 
               #do nice notification
               if get_db_zip==True:
@@ -433,7 +434,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc, local_install)
                      
                      if get_cover_zip:
                          if tv_posters =='true':
@@ -454,7 +455,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc)
+                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc, local_install)
                      
                      if get_cover_zip:
                          mh.update_meta_installed(addon_id, movie_covers='true')
@@ -472,7 +473,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc, local_install)
                      
                      if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, movie_backdrops='true')
@@ -490,7 +491,7 @@ def ContainerStartup():
                  ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
                  if ret==True:
                      #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc)
+                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc, local_install)
                      
                      if get_backdrop_zip:
                          mh.update_meta_installed(addon_id, tv_backdrops='true')
@@ -503,25 +504,32 @@ def ContainerStartup():
                  addon.log('TV fanart already installed')
 
 
-def Zip_DL_and_Install(url, filename, installtype,work_folder,mc):
+def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_install=False):
 
-     link = url + filename
-     
-     #define the path to save it to
-     filepath=os.path.normpath(os.path.join(work_folder,filename))
+    if local_install:
+        #Define local path where zip already exists
+        filepath=os.path.normpath(os.path.join(url, filename))
 
-     filepath_exists=os.path.exists(filepath)
-     #if zip does not already exist, download from url, with nice display name.
-     if filepath_exists==False:
-                    
-         addon.log('Downloading zip: %s' % link)
-         complete = Download(link, filepath, installtype)
-       
-     elif filepath_exists==True:
-          addon.log('zip already downloaded, attempting extraction')
-          
-     addon.log('*** Handling meta install')
-     return mc.install_metadata_container(filepath, installtype)
+    else:
+        #define the path to save it to
+        filepath=os.path.normpath(os.path.join(work_folder,filename))
+
+        link = url + filename
+
+        filepath_exists=os.path.exists(filepath)
+         
+        #if zip does not already exist, download from url, with nice display name.
+        if filepath_exists==False:
+                        
+            addon.log('Downloading zip: %s' % link)
+            complete = Download(link, filepath, installtype)
+           
+        elif filepath_exists==True:
+            addon.log('zip already downloaded, attempting extraction')
+
+    #Run zip install
+    addon.log('*** Handling meta install')
+    return mc.install_metadata_container(filepath, installtype)
 
 
 def Startup_Routines():
