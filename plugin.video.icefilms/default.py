@@ -3509,7 +3509,7 @@ def show_addon_help():
     textBox.setText('[B]Installed Dependencies:[/B]\n    [B]Metahandlers:[/B] %s \n    [B]Common addon methods:[/B] %s' % (metahandler_version, common_addon_version))
 
     # Folder locations      
-    label = Label('[B]Installed lcoation:[/B] \n[B]Data Location:[/B]')
+    label = Label('[B]Installed location:[/B] \n[B]Data Location:[/B]')
     window.placeControl(label, 5, 0, columnspan=2)
 
     fadeLabel = FadeLabel(textColor='0xFFFFFFFF')
