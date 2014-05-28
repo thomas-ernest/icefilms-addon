@@ -4,6 +4,7 @@
   - Fixed download via jDownloader
   - Fixed Recently Added and Latest Releases main menu sections
   - Fixed local meta pack install
+  - Added new Help menu option and info screen
   - Added !!BETA!! Axel Downloader support - enable via Addon Settings -> Downloads menu
 
 [B]v1.4.2(Wednesday, 11 March 2014):[/B]
