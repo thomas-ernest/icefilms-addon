@@ -31,8 +31,8 @@ import xbmc,xbmcplugin,xbmcgui,datetime
 try:
     from addon.common.net import Net
     from addon.common.addon import Addon
-except:
-    xbmc.log('Failed to import script.module.addon.common')
+except Exception, e:
+    xbmc.log('Failed to import script.module.addon.common: %s' % e)
     xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import addon.common", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 net = Net()
 
@@ -42,8 +42,9 @@ datapath = addon.get_profile()
 
 try:
     from metahandler import metahandlers
-except:
-    addon.log('Failed to import script.module.metahandler')
+    metahandler_version = metahandlers.common.addon.get_version()
+except Exception, e:
+    addon.log('Failed to import script.module.metahandler: %s' % e)
     xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
 
 ########################### Queries ############################
@@ -164,6 +165,8 @@ def handle_file(filename,getmode=''):
      #bad python code to add a get file routine.
      if filename == 'smallicon':
           return_file = xbmcpath(art_path,'smalltransparent2.png')
+     elif filename == 'icon':
+          return_file = xbmcpath(icepath, 'icon.png')          
      elif filename == 'mirror':
           return_file = xbmcpath(datapath,'MirrorPageSource.txt')
      elif filename == 'homepage':
@@ -616,6 +619,7 @@ def CATEGORIES():  #  (homescreen of addon)
           addDir('Latest Releases',iceurl+'index',61,os.path.join(art_path,'latest releases.png'))
           addDir('Being Watched Now',iceurl+'index',62,os.path.join(art_path,'being watched now.png'))          
           addDir('Search',iceurl,55,search)
+          VaddDir('Help', '', 'addon_help', '')
           
           #Only show if prepare_zip = True - meaning you are creating a meta pack
           if prepare_zip:
@@ -3472,6 +3476,65 @@ def get_default_action():
    return 200
 
 
+def show_addon_help():
+
+    # Import PyXBMCt module.
+    from pyxbmct.addonwindow import *
+
+    try:
+        common_addon_version = 'Unknown'
+        from addon import common
+        common_addon_version = common.common.addon_version
+    except Exception, e:
+        addon.log('Failed to import addon.common: %s' % e)
+        pass
+
+    # Create a window instance.
+    window = AddonDialogWindow('Icefilms XBMC Addon Help')
+    # Set the window width, height and the grid resolution: 2 rows, 3 columns.
+    window.setGeometry(750, 550, 10, 7)
+
+    # Icefilms logo
+    image = Image(addon.get_icon())
+    window.placeControl(image, 0, 0, rowspan=3, columnspan=2)      
+
+    # Addon current information
+    textBox = TextBox(textColor='0xFFFFFFFF')
+    window.placeControl(textBox, 0, 2, columnspan=5, rowspan=2)
+    textBox.setText('[B]Author:[/B] %s\n[B]Current version:[/B] %s\n[B]Support:[/B] www.xbmchub.com' % (addon.get_author(), addon.get_version()))
+    
+    #Installed dependencies
+    textBox = TextBox(textColor='0xFFFFFFFF')
+    window.placeControl(textBox, 3, 0, columnspan=7, rowspan=2)
+    textBox.setText('[B]Installed Dependencies:[/B]\n    [B]Metahandlers:[/B] %s \n    [B]Common addon methods:[/B] %s' % (metahandler_version, common_addon_version))
+
+    # Folder locations      
+    label = Label('[B]Installed lcoation:[/B] \n[B]Data Location:[/B]')
+    window.placeControl(label, 5, 0, columnspan=2)
+
+    fadeLabel = FadeLabel(textColor='0xFFFFFFFF')
+    window.placeControl(fadeLabel, 5, 2, columnspan=4)
+    fadeLabel.addLabel('%s\n%s' % (addon.get_path(), addon.get_profile()))
+    
+    #Addon description
+    textBox = TextBox(textColor='0xFFFFFFFF')
+    window.placeControl(textBox, 6, 0, columnspan=7, rowspan=4)
+    textBox.setText(addon.get_description())
+  
+    # Create a button.
+    button = Button('Close')
+    # Place the button on the window grid.
+    window.placeControl(button, 9, 3, columnspan=2)
+    # Set initial focus on the button.
+    window.setFocus(button)
+    # Connect the button to a function.
+    window.connect(button, window.close)
+    # Connect a key action to a function.
+    window.connect(ACTION_NAV_BACK, window.close)
+    # Show the created window.
+    window.doModal()     
+    
+
 if mode=='main': #or url==None or len(url)<1:
         CATEGORIES()
 
@@ -3498,6 +3561,9 @@ elif mode=='996':
 elif mode=='990':
         addon.log_debug( "Mode 990 (Change watched value) ******* name is " + str(name) + " *************  season is -> '"+season_num+"'" + " *************  episode is -> '"+episode_num+"'")
         ChangeWatched(imdbnum, video_type, name, season_num, episode_num, refresh=True)
+ 
+elif mode=='addon_help':
+    show_addon_help()
  
 elif mode=='50':
         TVCATEGORIES(url)
