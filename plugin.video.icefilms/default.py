@@ -1079,8 +1079,12 @@ def SEARCHBYPAGE(url, page):
             DoSearch(url, search, page)
             
     setView('movies', 'movies-view')
+	
+	
+def KnownSearch(search, url):
+    DoEpListSearch(search)
+    DoSearch(url, search, 0)
     
-                               
 def DoSearch(iurl, search, nextPage):        
         finished = False
         more     = False
@@ -3707,6 +3711,10 @@ elif mode=='208':
 elif mode=='555':
         addon.log_debug("Mode 555 (Get More...) ******* search string is " + search + " *************  nextPage is " + nextPage)
         DoSearch(url, search, int(nextPage))
+		
+elif mode=='5555':
+    addon.log_debug("Mode 5555 (Predefined Search...) ******* search string is " + search)
+    KnownSearch(search, url)
          
 elif mode=='666':
         create_meta_pack()
