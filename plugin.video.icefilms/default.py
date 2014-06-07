@@ -2282,7 +2282,7 @@ def play_with_watched(url, listitem, mypath, last_part=False):
     axelhelper = None
     download_id = None
     if useAxel == 'true':
-        import proxy
+        import axelproxy as proxy
         axelhelper =  proxy.ProxyHelper()
         url, download_id = axelhelper.create_proxy_url(url)
     
@@ -2439,7 +2439,7 @@ class MyPlayer (xbmc.Player):
         global finalPart
         
         #Stop Axel Downloader from running
-        if download_id:
+        if self.download_id:
             self.axelhelper.stop_download(self.download_id)
         
         if finalPart:
