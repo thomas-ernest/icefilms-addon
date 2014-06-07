@@ -1,4 +1,4 @@
-[B]v1.5.0(Friday, 23 May 2014):[/B]
+[B]v1.5.0(Saturday, 06 June 2014):[/B]
   - Fixed bug on Watch & Download function
   - Added Panda Planet source
   - Fixed download via jDownloader
