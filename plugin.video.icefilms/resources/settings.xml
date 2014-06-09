@@ -25,7 +25,7 @@
 
    </category>
    <category label="Meta Data">
-    <setting id="meta-path" type="action" label="30601" option="close" action="RunScript(special://home/addons/plugin.video.icefilms/default.py,url=nothing,mode=58,name=Metahanlder+Settings)"/>
+    <setting id="meta-path" type="action" label="30601" option="close" action="RunPlugin(plugin://plugin.video.icefilms/default.py?mode=58)"/>    
   	<setting id="use-meta" type="bool" label="30600" default="true"/>
   	<setting id="meta_pack_location_option" type="labelenum" label="30607" values="Default|Custom" enable="!eq(-1,false)"/>
   	<setting id="meta_folder_location" type="folder" label="30608" enable="eq(-1,1) + !eq(-2,false)"/>
