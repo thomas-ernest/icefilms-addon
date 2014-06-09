@@ -2420,7 +2420,7 @@ class MyPlayer (xbmc.Player):
         global finalPart
 
         #Stop Axel Downloader from running
-        if download_id:
+        if self.download_id:
             self.axelhelper.stop_download(self.download_id)        
         
         if finalPart:
