@@ -385,7 +385,7 @@ def ContainerStartup():
          if not meta_pack_locaton.endswith("/"):
              meta_pack_locaton = meta_pack_locaton + "/"
      else:
-         meta_pack_locaton = containers['url']
+         meta_pack_locaton = containers['url_tuxen']
                             
      if not meta_installed:
 
@@ -509,9 +509,11 @@ def ContainerStartup():
 
 def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_install=False):
 
+    complete = False
     if local_install:
         #Define local path where zip already exists
         filepath=os.path.normpath(os.path.join(url, filename))
+        complete = True
 
     else:
         #define the path to save it to
@@ -525,14 +527,21 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
         if filepath_exists==False:
                         
             addon.log('Downloading zip: %s' % link)
-            complete = Download(link, filepath, installtype)
+            try:
+                complete = Download(link, filepath, installtype)
+            except Exception, e:
+                addon.log_error('******* ERROR - Download Pack Failed: %s' % e)
+                pass
            
         elif filepath_exists==True:
             addon.log('zip already downloaded, attempting extraction')
 
     #Run zip install
-    addon.log('*** Handling meta install')
-    return mc.install_metadata_container(filepath, installtype)
+    if complete:
+        addon.log('*** Handling meta install')
+        return mc.install_metadata_container(filepath, installtype)
+    else:
+        return False
 
 
 def Startup_Routines():
@@ -3493,10 +3502,18 @@ def show_addon_help():
         addon.log('Failed to import addon.common: %s' % e)
         pass
 
+    try:
+        axel_addon_version = 'Unknown'
+        from axel import axelcommon
+        axel_addon_version = axelcommon.addon_version
+    except Exception, e:
+        addon.log('Failed to import axelcommon: %s' % e)
+        pass        
+        
     # Create a window instance.
     window = AddonDialogWindow('Icefilms XBMC Addon Help')
-    # Set the window width, height and the grid resolution: 2 rows, 3 columns.
-    window.setGeometry(750, 550, 10, 7)
+    # Set the window width, height, rows, columns.
+    window.setGeometry(850, 600, 12, 8)
 
     # Icefilms logo
     image = Image(addon.get_icon())
@@ -3509,26 +3526,26 @@ def show_addon_help():
     
     #Installed dependencies
     textBox = TextBox(textColor='0xFFFFFFFF')
-    window.placeControl(textBox, 3, 0, columnspan=7, rowspan=2)
-    textBox.setText('[B]Installed Dependencies:[/B]\n    [B]Metahandlers:[/B] %s \n    [B]Common addon methods:[/B] %s' % (metahandler_version, common_addon_version))
+    window.placeControl(textBox, 3, 0, columnspan=7, rowspan=3)
+    textBox.setText('[B]Installed Dependencies:[/B]\n    [B]Metahandlers:[/B] %s \n    [B]Common addon methods:[/B] %s \n    [B]Axel Downloader:[/B] %s' % (metahandler_version, common_addon_version, axel_addon_version))
 
     # Folder locations      
     label = Label('[B]Installed location:[/B] \n[B]Data Location:[/B]')
-    window.placeControl(label, 5, 0, columnspan=2)
+    window.placeControl(label, 6, 0, columnspan=2)
 
     fadeLabel = FadeLabel(textColor='0xFFFFFFFF')
-    window.placeControl(fadeLabel, 5, 2, columnspan=4)
+    window.placeControl(fadeLabel, 6, 2, columnspan=4)
     fadeLabel.addLabel('%s\n%s' % (addon.get_path(), addon.get_profile()))
     
     #Addon description
     textBox = TextBox(textColor='0xFFFFFFFF')
-    window.placeControl(textBox, 6, 0, columnspan=7, rowspan=4)
+    window.placeControl(textBox, 7, 0, columnspan=7, rowspan=4)
     textBox.setText(addon.get_description())
   
     # Create a button.
     button = Button('Close')
     # Place the button on the window grid.
-    window.placeControl(button, 9, 3, columnspan=2)
+    window.placeControl(button, 11, 3, columnspan=2)
     # Set initial focus on the button.
     window.setFocus(button)
     # Connect the button to a function.
@@ -3536,7 +3553,7 @@ def show_addon_help():
     # Connect a key action to a function.
     window.connect(ACTION_NAV_BACK, window.close)
     # Show the created window.
-    window.doModal()     
+    window.doModal()
     
 
 if mode=='main': #or url==None or len(url)<1:
