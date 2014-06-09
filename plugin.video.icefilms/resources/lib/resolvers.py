@@ -869,7 +869,7 @@ def resolve_hugefiles(url):
         dialog.update(50)
         
         #Check page for any error msgs
-        if re.search('>No such file', html):
+        if re.search('<h3>File Not found</h3>', html):
             addon.log_error('***** HugeFiles - File Not Found')
             raise Exception('File Not Found')
 
@@ -889,7 +889,6 @@ def resolve_hugefiles(url):
                 raise Exception('Unable to resolve HugeFiles Link')
             
             data['method_free'] = 'Free Download'
-            file_name = data['fname']
 
             #Handle captcha
             data = handle_captchas(url, html, data, dialog)
