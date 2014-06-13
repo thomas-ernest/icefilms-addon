@@ -3534,7 +3534,7 @@ def show_addon_help():
     window.placeControl(label, 6, 0, columnspan=2)
 
     fadeLabel = FadeLabel(textColor='0xFFFFFFFF')
-    window.placeControl(fadeLabel, 6, 2, columnspan=4)
+    window.placeControl(fadeLabel, 6, 2, columnspan=6)
     fadeLabel.addLabel('%s\n%s' % (addon.get_path(), addon.get_profile()))
     
     #Addon description
