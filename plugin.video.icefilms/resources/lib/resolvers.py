@@ -908,23 +908,32 @@ def resolve_hugefiles(url):
             else:
                 wrong_captcha = False
             
+        # issue one more time for download link
+        #Set POST data values
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+            for name, value in r:
+                data[name] = value
+        else:
+            common.addon.log('***** HugeFiles - Cannot find data values')
+            raise Exception('Unable to resolve HugeFiles Link')
+        data['method_free'] = 'Free Download'
+
+        # can't use t0mm0 net because the post doesn't return until the file is downloaded
+        request = urllib2.Request(url, urllib.urlencode(data))
+        response = urllib2.urlopen(request)
+
         #Get download link
         dialog.update(100)
-
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.findall(sPattern, html, re.DOTALL|re.I)
-        if r:
-            sUnpacked = jsunpack.unpack(r[0])
-            sUnpacked = sUnpacked.replace("\\'","")
-            r = re.findall('file,(.+?)\)\;s1',sUnpacked)
-            if not r:
-               r = re.findall('name="src"[0-9]*="(.+?)"/><embed',sUnpacked)
-            if not r:
-                r = re.findall('src["0-9]*="(.+?)"/>',sUnpacked)
-            return r[0]
-        else:
-            addon.log_error('***** HugeFiles - Cannot find final link')
-            raise Exception('Unable to resolve HugeFiles Link')
+        
+        stream_url = response.geturl()
+        
+        # assume that if the final url matches the original url that the process failed
+        if stream_url == url:
+            raise Exception('Unable to find stream url')
+        return stream_url        
         
     except Exception, e:
         addon.log_error('**** HugeFiles Error occured: %s' % e)
@@ -1119,3 +1128,86 @@ def resolve_pandaplanet(url):
     finally:
         dialog.close()
 
+
+def resolve_360gig(url):
+
+    try:
+
+        #Show dialog box so user knows something is happening
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving 360Gig Link...')       
+        dialog.update(0)
+        
+        addon.log('360Gig - Requesting GET URL: %s' % url)
+        html = net.http_GET(url).content
+
+        #Check page for any error msgs
+        if re.search('<b>File Not Found</b><br><br>', html):
+            print '***** 360Gig - File Not Found'
+            raise Exception('File Not Found')
+    
+        data = {}
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+          for name, value in r:
+              data[name] = value
+        else:
+            addon.log_error('***** 360Gig - Cannot find data values')
+            raise Exception('Unable to resolve 360Gig Link')
+        
+        data['method_free'] = 'STANDARD DOWNLOAD'
+        data['referer'] = url
+        
+        addon.log('360Gig - Requesting POST URL: %s' % url)
+        
+        html = net.http_POST(url, data).content
+        
+        dialog.update(50)
+        
+        data = {}        
+        r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+        
+        if r:
+          for name, value in r:
+              data[name] = value
+        else:
+          addon.log_error('Could not resolve link')
+        
+        data['method_free'] = 'STANDARD DOWNLOAD'
+        data['referer'] = url
+        
+        addon.log('360Gig - Requesting POST URL: %s' % url)
+        
+        html = net.http_POST(url, data).content
+
+        #Get download link
+        dialog.update(100)
+        
+        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
+        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+
+        if r:
+          sJavascript = r.group(1)
+          sUnpacked = jsunpack.unpack(sJavascript)
+          sUnpacked = sUnpacked.replace("\\","")
+                   
+        r = re.search("addVariable.+?'file','(.+?)'", sUnpacked)
+                
+        if r:
+            return r.group(1)
+        else:
+            sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+            sPattern += '"custommode='
+            r = re.search(sPattern, sUnpacked)
+            if r:
+                return r.group(1)
+            else:
+                addon.log_error('***** 360Gig - Cannot find final link')
+                raise Exception('Unable to resolve 360Gig Link')
+
+    except Exception, e:
+        addon.log_error('**** 360Gig Error occured: %s' % e)
+        raise
+    finally:
+        dialog.close()
