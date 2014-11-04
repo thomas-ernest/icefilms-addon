@@ -1690,7 +1690,8 @@ def determine_source(url):
                 ('donevideo.com', 'DV', '', 'resolve_donevideo'),
                 ('vidplay.net', 'VP', '', 'resolve_vidplay'),
                 ('megafiles.se', 'MF', '', 'resolve_megafiles'),
-                ('pandapla.net', 'PP', '', 'resolve_pandaplanet')                
+                ('pandapla.net', 'PP', '', 'resolve_pandaplanet'),
+                ('360gig.com', '360', '', 'resolve_360gig')
                 ]
 
     domain = hoster.group(1)
