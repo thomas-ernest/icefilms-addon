@@ -109,9 +109,12 @@ def resolve_180upload(url):
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving 180Upload Link...')
         dialog.update(0)
+        
+        media_id = re.search('//.+?/([\w]+)', url).group(1)
+        web_url = 'http://180upload.com/embed-%s.html' % media_id
        
-        addon.log_debug( '180Upload - Requesting GET URL: %s' % url)
-        html = net.http_GET(url).content
+        addon.log_debug( '180Upload - Requesting GET URL: %s' % web_url)
+        html = net.http_GET(web_url).content
 
         dialog.update(50)
 
@@ -120,7 +123,7 @@ def resolve_180upload(url):
         while wrong_captcha:
         
             data = {}
-            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)"', html)
 
             if r:
                 for name, value in r:
@@ -128,7 +131,32 @@ def resolve_180upload(url):
             else:
                 raise Exception('Unable to resolve 180Upload Link')
 
-            #Handle captcha
+            # 1st attempt, probably no captcha
+            addon.log('180Upload - Requesting POST URL: %s Data values: %s' % (web_url, data))
+            html = net.http_POST(web_url, data).content
+ 
+            packed = re.search('id="player_code".*?(eval.*?\)\)\))', html,re.DOTALL)
+            if packed:
+                js = jsunpack.unpack(packed.group(1))
+                link = re.search('name="src"0="([^"]+)"/>', js.replace('\\',''))
+                if link:
+                    addon.log('180Upload Link Found: %s' % link.group(1))
+                    dialog.update(100)
+                    return link.group(1)
+                    
+            #Cannot get video without captcha, so try regular url
+            html = net.http_GET(url).content
+
+            data = {}
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+
+            if r:
+                for name, value in r:
+                    data[name] = value
+            else:
+                raise Exception('Unable to resolve 180Upload Link')            
+            
+            #Check for captcha
             data = handle_captchas(url, html, data, dialog)
 
             dialog.create('Resolving', 'Resolving 180Uploads Link...') 
