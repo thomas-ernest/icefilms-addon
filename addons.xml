@@ -2,16 +2,17 @@
 <addons>
 <addon id="plugin.video.icefilms"
        name="Icefilms"
-       version="1.1.27.01"
+       version="1.5.2"
        provider-name="Eldorado (originator: anarchintosh)">
     <requires>
-        <import addon="xbmc.python" version="2.0"/>
-        <import addon="script.module.simplejson"/>
-        <import addon="script.module.elementtree"/>
-        <import addon="script.module.beautifulsoup"/>
-        <import addon="script.module.metahandler" version="1.0.0"/>
-        <import addon="script.module.t0mm0.common" version="1.1.0"/>
-        <import addon="script.common.plugin.cache" version="0.9.0"/>
+        <import addon="xbmc.python" version="2.1.0"/>
+        <import addon="script.module.simplejson" />
+        <import addon="script.module.elementtree" />
+        <import addon="script.module.beautifulsoup" />
+        <import addon="script.module.metahandler" version="2.5.1" />
+        <import addon="script.module.addon.common" version="2.0.0" />
+        <import addon="script.module.axel.downloader" version="0.1.0" />
+        <import addon="script.common.plugin.cache" />
     </requires>
     <extension point="xbmc.python.pluginsource"
                library="default.py">
