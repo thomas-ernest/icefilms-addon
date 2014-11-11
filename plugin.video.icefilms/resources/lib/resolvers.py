@@ -143,6 +143,11 @@ def resolve_180upload(url):
                     addon.log('180Upload Link Found: %s' % link.group(1))
                     dialog.update(100)
                     return link.group(1)
+                else:
+                    link = re.search("'file','(.+?)'", js.replace('\\',''))
+                    if link:
+                        addon.log('180Upload Link Found: %s' % link.group(1))
+                        return link.group(1)                    
                     
             #Cannot get video without captcha, so try regular url
             html = net.http_GET(url).content
