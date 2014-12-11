@@ -334,69 +334,6 @@ def resolve_vidplay(url):
         dialog.close()
         
 
-def resolve_sharebees(url):
-
-    try:
-        
-        if addon.get_setting('sharebees-account') == 'true':
-            addon.log_debug('ShareBees - Setting Cookie file')
-            cookiejar = os.path.join(cookie_path,'sharebees.lwp')
-            net.set_cookies(cookiejar)
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving ShareBees Link...')       
-        dialog.update(0)
-        
-        addon.log_debug('ShareBees - Requesting GET URL: %s' % url)
-        html = net.http_GET(url).content
-        
-        dialog.update(50)
-        
-        #Set POST data values
-        #op = re.search('''<input type="hidden" name="op" value="(.+?)">''', html, re.DOTALL).group(1)
-        op = 'download1'
-        usr_login = re.search('<input type="hidden" name="usr_login" value="(.*?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-        method_free = "method_free"
-        
-        data = {'op': op, 'usr_login': usr_login, 'id': postid, 'fname': fname, 'referer': url, 'method_free': method_free}
-        
-        addon.log_debug('ShareBees - Requesting POST URL: %s DATA: %s' % (url, data))
-        html = net.http_POST(url, data).content
-        
-        dialog.update(100)
-
-        link = None
-        sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-        r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-        
-        if r:
-            sJavascript = r.group(1)
-            sUnpacked = jsunpack.unpack(sJavascript)
-            
-            #Grab first portion of video link, excluding ending 'video.xxx' in order to swap with real file name
-            #Note - you don't actually need the filename, but for purpose of downloading via Icefilms it's needed so download video has a name
-            sPattern  = '''("video/divx"src="|addVariable\('file',')(.+?)video[.]'''
-            r = re.search(sPattern, sUnpacked)              
-            
-            #Video link found
-            if r:
-                link = r.group(2) + fname
-                return link
-
-        if not link:
-            addon.log_debug('***** ShareBees - Link Not Found')
-            raise Exception("Unable to resolve ShareBees")
-
-    except Exception, e:
-        addon.log_error('**** ShareBees Error occured: %s' % e)
-        raise
-    finally:
-        dialog.close()
-
-
 def resolve_movreel(url):
 
     try:
