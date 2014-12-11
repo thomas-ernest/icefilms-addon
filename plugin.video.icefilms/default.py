@@ -188,28 +188,6 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art_path,'search.png')
      elif filename == 'standup':
           return_file = xbmcpath(art_path,'standup.png')
-     elif filename == 'shared2pic':
-          return_file = xbmcpath(art_path,'2shared.png')
-     elif filename == '180pic':
-          return_file = xbmcpath(art_path,'180upload.png')
-     elif filename == 'vihogpic':
-          return_file = xbmcpath(art_path,'vidhog.png')
-     elif filename == 'sharebeespic':
-          return_file = xbmcpath(art_path,'sharebees.png')
-     elif filename == 'movreelpic':
-          return_file = xbmcpath(art_path,'movreel.png')
-     elif filename == 'billionpic':
-          return_file = xbmcpath(art_path,'billion.png')
-     elif filename == 'entropic':
-          return_file = xbmcpath(art_path,'entroupload.png')
-     elif filename == 'epicpic':
-          return_file = xbmcpath(art_path,'epicshare.png')
-     elif filename == 'hugepic':
-          return_file = xbmcpath(art_path,'hugefiles.png')
-     elif filename == 'lempic':
-          return_file = xbmcpath(art_path,'lemuploads.png')
-     elif filename == 'megarpic':
-          return_file = xbmcpath(art_path,'megarelease.png')
      elif filename == 'localpic':
           return_file = xbmcpath(art_path,'local_file.jpg')
 
@@ -284,7 +262,6 @@ def LoginStartup():
      #Get whether user has set an account to use.
      
      debrid_account = str2bool(addon.get_setting('realdebrid-account'))
-     sharebees_account = str2bool(addon.get_setting('sharebees-account'))
      movreel_account = str2bool(addon.get_setting('movreel-account'))
      HideSuccessfulLogin = str2bool(addon.get_setting('hide-successful-login-messages'))
 
@@ -305,28 +282,6 @@ def LoginStartup():
               addon.log('**** Real-Debrid Error: %s' % e)
               Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
               pass
-
-
-     #Verify ShareBees Account
-     if sharebees_account:
-         loginurl='http://www.sharebees.com/login.html'
-         op = 'login'
-         login = addon.get_setting('sharebees-username')
-         password = addon.get_setting('sharebees-password')
-         data = {'op': op, 'login': login, 'password': password}
-         cookiejar = os.path.join(cookie_path,'sharebees.lwp')
-        
-         try:
-             html = net.http_POST(loginurl, data).content
-             if re.search('op=logout', html):
-                net.save_cookies(cookiejar)
-             else:
-                Notify('big','ShareBees','Login failed.', '')
-                addon.log('ShareBees Account: login failed')
-         except Exception, e:
-             addon.log('**** ShareBees Error: %s' % e)
-             Notify('big','ShareBees Login Failed','Failed to connect with ShareBees.', '', '', 'Please check your internet connection.')
-             pass
 
 
      #Verify MovReel Account
@@ -412,99 +367,99 @@ def ContainerStartup():
                    Notify('small','Metacontainer DB Installation Failure','','')
 
      #Only check/prompt for image pack downloads if the DB has been downloaded/installed
-     if meta_installed:
+     # if meta_installed:
 
-         #Get metadata settings
-         movie_fanart = addon.get_setting('movie-fanart')
-         movie_covers = addon.get_setting('movie-covers')
-         tv_covers = addon.get_setting('tv-covers')
-         tv_posters = addon.get_setting('tv-posters')
-         tv_fanart = addon.get_setting('tv-fanart')
+         # #Get metadata settings
+         # movie_fanart = addon.get_setting('movie-fanart')
+         # movie_covers = addon.get_setting('movie-covers')
+         # tv_covers = addon.get_setting('tv-covers')
+         # tv_posters = addon.get_setting('tv-posters')
+         # tv_fanart = addon.get_setting('tv-fanart')
      
-         #TV Covers/Banners
-         if tv_covers =='true':
-             if tv_posters == 'true':
-                 tv_installed = meta_installed['tv_covers']
-                 tv_filename = containers['tv_covers_filename']
-                 tv_size = containers['tv_cover_size']
-             else:
-                 tv_installed = meta_installed['tv_banners']
-                 tv_filename = containers['tv_banners_filename']
-                 tv_size = containers['tv_banners_size']
+         # #TV Covers/Banners
+         # if tv_covers =='true':
+             # if tv_posters == 'true':
+                 # tv_installed = meta_installed['tv_covers']
+                 # tv_filename = containers['tv_covers_filename']
+                 # tv_size = containers['tv_cover_size']
+             # else:
+                 # tv_installed = meta_installed['tv_banners']
+                 # tv_filename = containers['tv_banners_filename']
+                 # tv_size = containers['tv_banners_size']
 
-             if tv_installed == 'false':
-                 dialog = xbmcgui.Dialog()
-                 ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
-                 if ret==True:
-                     #download dem files
-                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc, local_install)
+             # if tv_installed == 'false':
+                 # dialog = xbmcgui.Dialog()
+                 # ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
+                 # if ret==True:
+                     # #download dem files
+                     # get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc, local_install)
                      
-                     if get_cover_zip:
-                         if tv_posters =='true':
-                             mh.update_meta_installed(addon_id, tv_covers='true')
-                         else:
-                             mh.update_meta_installed(addon_id, tv_banners='true')
-                         Notify('small','TV Cover Installation Success','','')
-                     else:
-                         addon.log_error('******* ERROR - TV cover install failed')
-                         Notify('small','TV Cover Installation Failure','','')                     
-             else:
-                 addon.log('TV Covers already installed')
+                     # if get_cover_zip:
+                         # if tv_posters =='true':
+                             # mh.update_meta_installed(addon_id, tv_covers='true')
+                         # else:
+                             # mh.update_meta_installed(addon_id, tv_banners='true')
+                         # Notify('small','TV Cover Installation Success','','')
+                     # else:
+                         # addon.log_error('******* ERROR - TV cover install failed')
+                         # Notify('small','TV Cover Installation Failure','','')                     
+             # else:
+                 # addon.log('TV Covers already installed')
 
-         #Movie Covers
-         if movie_covers =='true':
-             if meta_installed['movie_covers'] == 'false':
-                 dialog = xbmcgui.Dialog()
-                 ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
-                 if ret==True:
-                     #download dem files
-                     get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc, local_install)
+         # #Movie Covers
+         # if movie_covers =='true':
+             # if meta_installed['movie_covers'] == 'false':
+                 # dialog = xbmcgui.Dialog()
+                 # ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
+                 # if ret==True:
+                     # #download dem files
+                     # get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc, local_install)
                      
-                     if get_cover_zip:
-                         mh.update_meta_installed(addon_id, movie_covers='true')
-                         Notify('small','Movie Cover Installation Success','','')
-                     else:
-                         addon.log_error('******* ERROR - Movie cover install failed')
-                         Notify('small','Movie Cover Installation Failure','','')                     
-             else:
-                 addon.log('Movie Covers already installed')
+                     # if get_cover_zip:
+                         # mh.update_meta_installed(addon_id, movie_covers='true')
+                         # Notify('small','Movie Cover Installation Success','','')
+                     # else:
+                         # addon.log_error('******* ERROR - Movie cover install failed')
+                         # Notify('small','Movie Cover Installation Failure','','')                     
+             # else:
+                 # addon.log('Movie Covers already installed')
 
-         #Movie Fanart
-         if movie_fanart =='true':
-             if meta_installed['movie_backdrops'] == 'false':
-                 dialog = xbmcgui.Dialog()
-                 ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
-                 if ret==True:
-                     #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc, local_install)
+         # #Movie Fanart
+         # if movie_fanart =='true':
+             # if meta_installed['movie_backdrops'] == 'false':
+                 # dialog = xbmcgui.Dialog()
+                 # ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
+                 # if ret==True:
+                     # #download dem files
+                     # get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc, local_install)
                      
-                     if get_backdrop_zip:
-                         mh.update_meta_installed(addon_id, movie_backdrops='true')
-                         Notify('small','Movie Fanart Installation Success','','')
-                     else:
-                         addon.log_error('******* ERROR - Movie backrop install failed')
-                         Notify('small','Movie Fanart Installation Failure','','')
-             else:
-                 addon.log('Movie fanart already installed')
+                     # if get_backdrop_zip:
+                         # mh.update_meta_installed(addon_id, movie_backdrops='true')
+                         # Notify('small','Movie Fanart Installation Success','','')
+                     # else:
+                         # addon.log_error('******* ERROR - Movie backrop install failed')
+                         # Notify('small','Movie Fanart Installation Failure','','')
+             # else:
+                 # addon.log('Movie fanart already installed')
 
-         #TV Fanart
-         if tv_fanart =='true':
-             if meta_installed['tv_backdrops'] == 'false':
-                 dialog = xbmcgui.Dialog()
-                 ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
-                 if ret==True:
-                     #download dem files
-                     get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc, local_install)
+         # #TV Fanart
+         # if tv_fanart =='true':
+             # if meta_installed['tv_backdrops'] == 'false':
+                 # dialog = xbmcgui.Dialog()
+                 # ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
+                 # if ret==True:
+                     # #download dem files
+                     # get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc, local_install)
                      
-                     if get_backdrop_zip:
-                         mh.update_meta_installed(addon_id, tv_backdrops='true')
-                         Notify('small','TV Fanart Installation Success','','')
-                     else:
-                         addon.log_error('******* ERROR - TV backrop install failed')
-                         Notify('small','TV Fanart Installation Failure','','')                     
+                     # if get_backdrop_zip:
+                         # mh.update_meta_installed(addon_id, tv_backdrops='true')
+                         # Notify('small','TV Fanart Installation Success','','')
+                     # else:
+                         # addon.log_error('******* ERROR - TV backrop install failed')
+                         # Notify('small','TV Fanart Installation Failure','','')                     
     
-             else:
-                 addon.log('TV fanart already installed')
+             # else:
+                 # addon.log('TV fanart already installed')
 
 
 def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_install=False):
@@ -1502,98 +1457,104 @@ def TVEPLINKS(source, season, imdb_id):
 
 
 def LOADMIRRORS(url):
-     # This proceeds from the file page to the separate frame where the mirrors can be found,
-     # then executes code to scrape the mirrors
-     link=GetURL(url)  
-     
-     #---------------Begin phantom metadata getting--------
+    # This proceeds from the file page to the separate frame where the mirrors can be found,
+    # then executes code to scrape the mirrors
+    html=GetURL(url)  
+    
+    #---------------Begin phantom metadata getting--------
 
-     #Save metadata on page to files, for use when playing.
-     # Also used for creating the download directory structures.
+    #Save metadata on page to files, for use when playing.
+    # Also used for creating the download directory structures.
 
-     # get and save videoname     
-     namematch=re.compile('''<span style="font-size:large;color:white;">(.+?)</span>''').findall(link)
-     if not namematch:
-         Notify('big','Error Loading Sources','An error occured loading sources.\nCheck your connection and/or the Icefilms site.','')
-         callEndOfDirectory = False
-         return 
-     try:
-         cache.set('videoname',namematch[0])
-     except:
-         pass
-     # get and save description
-     match2=re.compile('<th>Description:</th><td>(.+?)<').findall(link)
-     try:
-          cache.set('description',match2[0])
-     except:
-          pass
-     # get and save poster link
-     try:
-          imgcheck1 = re.search('<img width=250 src=', link)
-          imgcheck2 = re.search('<iframe src=/noref.php\?url=', link)
-          if imgcheck1 is not None:
-               match4=re.compile('<img width=250 src=(.+?) style').findall(link)
-               cache.set('poster',match4[0])
-          if imgcheck2 is not None:
-               match5=re.compile('<iframe src=/noref.php\?url=(.+?) width=').findall(link)
-               cache.set('poster',match5[0])
-     except:
-          pass
+    ice_meta = {}
+    
+    #Grab video name
+    namematch = re.search('''<span style="font-size:large;color:white;">(.+?)</span>''', html)
+    if not namematch:
+        Notify('big','Error Loading Sources','An error occured loading sources.\nCheck your connection and/or the Icefilms site.','')
+        callEndOfDirectory = False
+        return
+    else:
+        ice_meta['title'] = namematch.group(1)
+        try:
+            cache.set('videoname', namematch.group(1))
+        except:
+            addon.log_error("Failed to save video name")
+            pass
 
-     #get and save mpaa     
-     mpaacheck = re.search('MPAA Rating:', link)         
-     if mpaacheck is not None:     
-          match4=re.compile('<th>MPAA Rating:</th><td>(.+?)</td>').findall(link)
-          mpaa=re.sub('Rated ','',match4[0])
-          try:
-               cache.set('mpaa',mpaa)
-          except:
-               pass
+    #If meta is enabled, we should have all needed info from previous screen so grab from list item that was clicked
+    if meta_setting=='true':
+        ice_meta['poster'] = xbmc.getInfoImage('ListItem.Thumb')
+        ice_meta['year'] = xbmc.getInfoLabel('ListItem.Year')
+        ice_meta['plot'] = xbmc.getInfoLabel('ListItem.Plot')
+        ice_meta['plot_outline'] = xbmc.getInfoLabel('ListItem.PlotOutline')
+        ice_meta['mpaa'] = xbmc.getInfoLabel('ListItem.Mpaa')
+
+    #Else we just use what we can grab from Icefilms site 'phantom' meta data
+    else:
+        #Set Plot
+        plot = re.search('<th>Description:</th><td>(.+?)<', html)
+        if plot:
+            ice_meta['plot'] = plot.group(1)
+            ice_meta['plot_outline'] = plot.group(1)
+
+        #Set Poster
+        imgcheck1 = re.search('<img width=250 src=(.+?) style', html)
+        if imgcheck1:
+            ice_meta['poster'] = imgcheck1.group(1)
+        imgcheck2 = re.search('<iframe src=/noref.php\?url=(.+?) width=', html)
+        if imgcheck2:
+            ice_meta['poster'] = imgcheck2.group(1)
+
+        #Set MPAA rating
+        mpaacheck=re.search('<th>MPAA Rating:</th><td>(.+?)</td>', html)
+        if mpaacheck:
+            mpaa=re.sub('Rated ','', mpaacheck)
 
 
-     ########### get and save potential file path. This is for use in download function later on.
-     epcheck1 = re.search('Episodes</a>', link)
-     epcheck2 = re.search('Episode</a>', link)
-     if epcheck1 is not None or epcheck2 is not None:
-          if cache.get('mediatvshowname'):
-               #open media file if it exists, as that has show name with date.
-               showname=cache.get('mediatvshowname')
-          else:
-               #fall back to scraping show name without date from the page.
-               addon.log('USING FALLBACK SHOW NAME')
-               fallbackshowname=re.compile("alt\='Show series\: (.+?)'").findall(link)
-               showname=fallbackshowname[0]
-          try:
-               #if season name file exists
-               if cache.get('mediatvshowname'):
-                    seasonname=cache.get('mediatvshowname')
-                    cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
-               else:
-                    cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
-          except:
-               addon.log_error("FAILED TO SAVE TV SHOW FILE PATH!")
-     else:
+    ########### get and save potential file path. This is for use in download function later on.
+    epcheck1 = re.search('Episodes</a>', html)
+    epcheck2 = re.search('Episode</a>', html)
+    if epcheck1 is not None or epcheck2 is not None:
+        if cache.get('mediatvshowname'):
+            #open media file if it exists, as that has show name with date.
+            showname=cache.get('mediatvshowname')
+        else:
+            #fall back to scraping show name without date from the page.
+            addon.log('USING FALLBACK SHOW NAME')
+            fallbackshowname=re.compile("alt\='Show series\: (.+?)'").findall(html)
+            showname=fallbackshowname[0]
+        try:
+            #if season name file exists
+            if cache.get('mediatvshowname'):
+                seasonname=cache.get('mediatvshowname')
+                cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
+            else:
+                cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
+        except:
+            addon.log_error("FAILED TO SAVE TV SHOW FILE PATH!")
+    else:
           
-          try:
-              cache.set('mediapath','Movies/' + Clean_Windows_String(namematch[0]))
-          except:
-              pass
+        try:
+            cache.set('mediapath','Movies/' + Clean_Windows_String(namematch[0]))
+        except:
+            pass
 
-     #---------------End phantom metadata getting stuff --------------
+    #---------------End phantom metadata getting stuff --------------
 
-     match=re.compile('/membersonly/components/com_iceplayer/(.+?img=).*?" width=').findall(link)
-     match[0]=re.sub('%29',')',match[0])
-     match[0]=re.sub('%28','(',match[0])
-     for url in match:
-          mirrorpageurl = iceurl+'membersonly/components/com_iceplayer/'+url
+    match=re.compile('/membersonly/components/com_iceplayer/(.+?img=).*?" width=').findall(html)
+    match[0]=re.sub('%29',')',match[0])
+    match[0]=re.sub('%28','(',match[0])
+    for url in match:
+        mirrorpageurl = iceurl+'membersonly/components/com_iceplayer/'+url
       
-     mirror_page=GetURL(mirrorpageurl, save_cookie = True)
+    mirror_page = GetURL(mirrorpageurl, save_cookie = True)
 
-     GETMIRRORS(mirrorpageurl,mirror_page)
-     setView(None, 'default-view')
+    GETMIRRORS(mirrorpageurl, mirror_page, ice_meta)
+    setView(None, 'default-view')
 
 
-def GETMIRRORS(url,link):
+def GETMIRRORS(url, link, ice_meta):
 # It also displays them in an informative fashion to user.
 # Displays in three directory levels: HD / DVDRip etc , Source, PART
     addon.log("getting mirrors for: %s" % url)
@@ -1637,36 +1598,36 @@ def GETMIRRORS(url,link):
          #if there is only one category, skip to adding sources.
          if total == 1:
               if dvdrip == 1:
-                   DVDRip(url)
+                   DVDRip(url, ice_meta)
               elif hd720p == 1:
-                   HD720p(url)
+                   HD720p(url, ice_meta)
               elif dvdscreener == 1:
-                   DVDScreener(url)
+                   DVDScreener(url, ice_meta)
               elif r5r6 == 1:
-                   R5R6(url)
+                   R5R6(url, ice_meta)
     
          #if there are multiple categories, add sub directories.
          elif total > 1:
-              addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6)
+              addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta)
     
     #if flattensources is set to false, don't flatten                
     elif FlattenSrcType == 'false':
-         addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6)
+         addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta)
 
                 
-def addCatDir(url,dvdrip,hd720p,dvdscreener,r5r6):
+def addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta):
        
         if hd720p == 1:
-                HD720p(url)
+                HD720p(url, ice_meta)
                 #addDir('HD 720p',url,102,os.path.join(art_path,'source_types','hd720p.png'), imdb=imdbnum)
         if dvdrip == 1:
-                DVDRip(url)
+                DVDRip(url, ice_meta)
                 #addDir('DVDRip',url,101,os.path.join(art_path,'source_types','dvd.png'), imdb=imdbnum)
         if dvdscreener == 1:
-                DVDScreener(url)
+                DVDScreener(url, ice_meta)
                 #addDir('DVD Screener',url,103,os.path.join(art_path,'source_types','dvdscreener.png'), imdb=imdbnum)
         if r5r6 == 1:
-                R5R6(url)
+                R5R6(url, ice_meta)
                 #addDir('R5/R6 DVDRip',url,104,os.path.join(art_path,'source_types','r5r6.png'), imdb=imdbnum)
 
 def determine_source(url):
@@ -1676,22 +1637,21 @@ def determine_source(url):
     if not hoster:
         return None
 
-    host_list = [('2shared.com', '2S', handle_file('shared2pic',''), 'SHARED2_HANDLER'),
-                ('180upload.com', '180', handle_file('180pic',''), 'resolve_180upload'),
-                ('vidhog.com', 'VH', handle_file('vihogpic',''), 'resolve_vidhog'),
-                ('sharebees.com', 'SB', handle_file('sharebeespic',''), 'resolve_sharebees'),
-                ('movreel.com', 'MR', handle_file('movreelpic',''), 'resolve_movreel'),
-                ('billionuploads.com', 'BU',  handle_file('billionpic',''), 'resolve_billionuploads'),
-                ('epicshare.net', 'ES',  handle_file('epicpic',''), 'resolve_epicshare'),
-                ('megarelease.org', 'MG',  handle_file('megarpic',''), 'resolve_megarelease'),
-                ('lemuploads.com', 'LU',  handle_file('lempic',''), 'resolve_lemupload'),
-                ('hugefiles.net', 'HF',  handle_file('hugepic',''), 'resolve_hugefiles'),
-                ('entroupload.com', 'EU',  handle_file('entropic',''), 'resolve_entroupload'),
-                ('donevideo.com', 'DV', '', 'resolve_donevideo'),
-                ('vidplay.net', 'VP', '', 'resolve_vidplay'),
-                ('megafiles.se', 'MF', '', 'resolve_megafiles'),
-                ('pandapla.net', 'PP', '', 'resolve_pandaplanet'),
-                ('360gig.com', '360', '', 'resolve_360gig')
+    host_list = [('2shared.com', '2Shared', 'SHARED2_HANDLER'),
+                ('180upload.com', '180Upload', 'resolve_180upload'),
+                ('vidhog.com', 'VidHog', 'resolve_vidhog'),
+                ('movreel.com', 'MovReel', 'resolve_movreel'),
+                ('billionuploads.com', 'BillionUploads',  'resolve_billionuploads'),
+                ('epicshare.net', 'EpicShare',  'resolve_epicshare'),
+                ('megarelease.org', 'MegaRelease', 'resolve_megarelease'),
+                ('lemuploads.com', 'LemUploads',  'resolve_lemupload'),
+                ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
+                ('entroupload.com', 'EntroUpload', 'resolve_entroupload'),
+                ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
+                ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
+                ('megafiles.se', 'MegaFiles', 'resolve_megafiles'),
+                ('pandapla.net', 'PandaPlanet', 'resolve_pandaplanet'),
+                ('360gig.com', '360gig', 'resolve_360gig')
                 ]
 
     domain = hoster.group(1)
@@ -1703,7 +1663,7 @@ def determine_source(url):
         return None
 
 
-def PART(scrap,sourcenumber,args,cookie,source_tag):
+def PART(scrap, sourcenumber, args, cookie, source_tag, ice_meta=None):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
@@ -1732,7 +1692,6 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
                         if hoster:
                             partname='Part '+ partnum
                             fullname=sourcestring + ' | ' + hoster[1] + ' | ' + source_tag + partname
-                            logo = hoster[2]
 
                             try:
                                 sources = eval(cache.get("source"+str(sourcenumber)+"parts"))
@@ -1747,9 +1706,9 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
 
                             if stacked and partnum == '1':
                                 fullname = fullname.replace('Part 1', 'Multiple Parts')
-                                addExecute(fullname,url,get_default_action(),logo,stacked)
+                                addExecute(fullname, url, get_default_action(), ice_meta, stacked)
                             elif not stacked:
-                                addExecute(fullname,url,get_default_action(),logo)                                                
+                                addExecute(fullname, url, get_default_action(), ice_meta)                                                
 
           # if source does not have multiple parts...
           else:
@@ -1762,7 +1721,7 @@ def PART(scrap,sourcenumber,args,cookie,source_tag):
                     hoster = determine_source(url)
                     if hoster:
                         fullname=sourcestring + ' | ' + hoster[1] + source_tag + ' | Full '
-                        addExecute(fullname,url,get_default_action(),hoster[2])
+                        addExecute(fullname, url, get_default_action(), ice_meta)
 
 
 def GetSource(id, args, cookie):
@@ -1785,108 +1744,108 @@ def GetSource(id, args, cookie):
     return url
 
 
-def SOURCE(page, sources, source_tag):
-          # get settings
-          # extract the ingredients used to generate the XHR request
-          #
-          # set here:
-          #
-          #     iqs: not used?
-          #     url: not used?
-          #     cap: form field for recaptcha? - always set to empty in the JS
-          #     sec: secret identifier: hardwired in the JS
-          #     t:   token: hardwired in the JS
-          #
-          # set in GetSource:
-          #
-          #     m:   starts at 0, decremented each time a mousemove event is fired e.g. -123
-          #     s:   seconds since page loaded (> 5, < 250)
-          #     id:  source ID in the link's onclick attribute (extracted in PART)
+def SOURCE(page, sources, source_tag, ice_meta=None):
+    # get settings
+    # extract the ingredients used to generate the XHR request
+    #
+    # set here:
+    #
+    #     iqs: not used?
+    #     url: not used?
+    #     cap: form field for recaptcha? - always set to empty in the JS
+    #     sec: secret identifier: hardwired in the JS
+    #     t:   token: hardwired in the JS
+    #
+    # set in GetSource:
+    #
+    #     m:   starts at 0, decremented each time a mousemove event is fired e.g. -123
+    #     s:   seconds since page loaded (> 5, < 250)
+    #     id:  source ID in the link's onclick attribute (extracted in PART)
 
-          args = {
-              'iqs': '',
-              'url': '',
-              'cap': ''
-          }
+    args = {
+        'iqs': '',
+        'url': '',
+        'cap': ''
+    }
 
-          sec = re.search("f\.lastChild\.value=\"(.+?)\",a", page).group(1)
-          t = re.search('"&t=([^"]+)",', page).group(1)
+    sec = re.search("f\.lastChild\.value=\"(.+?)\",a", page).group(1)
+    t = re.search('"&t=([^"]+)",', page).group(1)
 
-          args['sec'] = sec
-          args['t'] = t
-          
-          cookie = re.search('<cookie>(.+?)</cookie>', page).group(1)
-          addon.log("saved cookie: %s" % cookie)
+    args['sec'] = sec
+    args['t'] = t
 
-          #add cached source
-          vidname=cache.get('videoname')
-          dlDir = Get_Path("noext","")
-    
-          listitem=Item_Meta(vidname)
+    cookie = re.search('<cookie>(.+?)</cookie>', page).group(1)
+    addon.log("saved cookie: %s" % cookie)
 
-          try:
-              for fname in os.listdir(dlDir):
-                  match = re.match(re.escape(vidname)+' *(.*)\.avi$', fname)
-                  if match is not None:
-                      if os.path.exists(os.path.join(dlDir,fname)+'.dling'):
-                          listitem.setLabel("Play Downloading "+match.group(0))
-                          addDownloadControls(match.group(0),os.path.join(dlDir,fname), listitem)
-                      else:
-                          listitem.setLabel("Play Local File" + match.group(0))
-                          addLocal("Play Local File " + match.group(0), os.path.join(dlDir,fname), listitem)
-          except:
-              pass
+    #add cached source
+    vidname=cache.get('videoname')
+    dlDir = Get_Path("noext","")
 
-          # create a list of numbers: 1-21
-          num = 1
-          numlist = list('1')
-          while num < 21:
-              num = num+1
-              numlist.append(str(num))
+    listitem=Item_Meta(vidname)
 
-          #for every number, run PART.
-          #The first thing PART does is check whether that number source exists...
-          #...so it's not as CPU intensive as you might think.
+    try:
+        for fname in os.listdir(dlDir):
+            match = re.match(re.escape(vidname)+' *(.*)\.avi$', fname)
+            if match is not None:
+                if os.path.exists(os.path.join(dlDir,fname)+'.dling'):
+                    listitem.setLabel("Play Downloading "+match.group(0))
+                    addDownloadControls(match.group(0),os.path.join(dlDir,fname), listitem)
+                else:
+                    listitem.setLabel("Play Local File" + match.group(0))
+                    addLocal("Play Local File " + match.group(0), os.path.join(dlDir,fname), listitem)
+    except:
+        pass
 
-          for thenumber in numlist:
-               PART(sources,thenumber,args,cookie, source_tag)
-          setView(None, 'default-view')
+    # create a list of numbers: 1-21
+    num = 1
+    numlist = list('1')
+    while num < 21:
+        num = num+1
+        numlist.append(str(num))
 
-def DVDRip(url):
-        #link=cache.get('mirror')
-        link=handle_file('mirror','open')
-        #string for all text under standard def border
-        defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
-        for scrape in defcat:
-                SOURCE(link, scrape, ' | [COLOR blue]DVD[/COLOR]')
-        setView(None, 'default-view')
+    #for every number, run PART.
+    #The first thing PART does is check whether that number source exists...
+    #...so it's not as CPU intensive as you might think.
 
-def HD720p(url):
-        #link=cache.get('mirror')
-        link=handle_file('mirror','open')
-        #string for all text under hd720p border
-        defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
-        for scrape in defcat:
-                SOURCE(link, scrape, ' | [COLOR red]HD[/COLOR]')
-        setView(None, 'default-view')
+    for thenumber in numlist:
+        PART(sources,thenumber,args,cookie, source_tag, ice_meta)
+    setView(None, 'default-view')
 
-def DVDScreener(url):
-        #link=cache.get('mirror')
-        link=handle_file('mirror','open')
-        #string for all text under dvd screener border
-        defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
-        for scrape in defcat:
-                SOURCE(link, scrape, ' | [COLOR yellow]DVDSCR[/COLOR]')
-        setView(None, 'default-view')
+def DVDRip(url, ice_meta):
+    #link=cache.get('mirror')
+    link=handle_file('mirror','open')
+    #string for all text under standard def border
+    defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
+    for scrape in defcat:
+            SOURCE(link, scrape, ' | [COLOR blue]DVD[/COLOR]', ice_meta)
+    setView(None, 'default-view')
+
+def HD720p(url, ice_meta):
+    #link=cache.get('mirror')
+    link=handle_file('mirror','open')
+    #string for all text under hd720p border
+    defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
+    for scrape in defcat:
+            SOURCE(link, scrape, ' | [COLOR red]HD[/COLOR]', ice_meta)
+    setView(None, 'default-view')
+
+def DVDScreener(url, ice_meta):
+    #link=cache.get('mirror')
+    link=handle_file('mirror','open')
+    #string for all text under dvd screener border
+    defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
+    for scrape in defcat:
+            SOURCE(link, scrape, ' | [COLOR yellow]DVDSCR[/COLOR]', ice_meta)
+    setView(None, 'default-view')
         
-def R5R6(url):
-        #link=cache.get('mirror')
-        link=handle_file('mirror','open')
-        #string for all text under r5/r6 border
-        defcat=re.compile('<div class=ripdiv><b>R5/R6 DVDRip</b>(.+?)</div>').findall(link)
-        for scrape in defcat:
-                SOURCE(link, scrape, ' | [COLOR green]R5/R6[/COLOR]')
-        setView(None, 'default-view')
+def R5R6(url, ice_meta):
+    #link=cache.get('mirror')
+    link=handle_file('mirror','open')
+    #string for all text under r5/r6 border
+    defcat=re.compile('<div class=ripdiv><b>R5/R6 DVDRip</b>(.+?)</div>').findall(link)
+    for scrape in defcat:
+            SOURCE(link, scrape, ' | [COLOR green]R5/R6[/COLOR]', ice_meta)
+    setView(None, 'default-view')
         
 class TwoSharedDownloader:
      
@@ -2041,67 +2000,48 @@ def Get_Path(srcname,vidname):
 
 
 def Item_Meta(name):
-          #set metadata, for selected source. this is done from 'phantom meta'.
-          # ie, meta saved earlier when we loaded the mirror page.
-          # very important that things are contained within try blocks, because streaming will fail if something in this function fails.
+    #Set metadata for playing video - allows trakt and scrobbling
+    #Also shows metadata when hitting Info button while playing
 
-          #set name and description, unicode cleaned.
-          try: open_vidname=cache.get('videoname')
-          except:
-               vidname = ''
-               addon.log_error('OPENING VIDNAME FAILED!')
-          else:
-               try: get_vidname = htmlcleaner.clean(open_vidname)
-               except:
-                    addon.log_error('CLEANING VIDNAME FAILED! :',open_vidname)
-                    vidname = open_vidname
-               else: vidname = get_vidname
+    thumb_img = xbmc.getInfoImage('ListItem.Thumb')
+    vid_year = xbmc.getInfoLabel('ListItem.Year')
+    vid_plot = xbmc.getInfoLabel('ListItem.Plot')
+    plot_outline = xbmc.getInfoLabel('ListItem.PlotOutline')
+    mpaa = xbmc.getInfoLabel('ListItem.Mpaa')
 
-          try: open_desc=cache.get('description')
-          except:
-               description = ''
-               addon.log_error('OPENING DESCRIPTION FAILED!')
-          else:
-               try: get_desc = htmlcleaner.clean(open_desc)
-               except:
-                    addon.log_error('CLEANING DESCRIPTION FAILED! :',open_desc)
-                    description = open_desc
-               else: description = get_desc
-          
-          #set other metadata strings from strings saved earlier
-          try: get_poster=cache.get('poster')
-          except: poster = ''
-          else: poster = get_poster
+    #set name and description, unicode cleaned.
+    try: open_vidname=cache.get('videoname')
+    except:
+        vidname = ''
+        addon.log_error('OPENING VIDNAME FAILED!')
+    else:
+        try: get_vidname = htmlcleaner.clean(open_vidname)
+        except:
+            addon.log_error('CLEANING VIDNAME FAILED! :',open_vidname)
+            vidname = open_vidname
+        else: vidname = get_vidname
 
-          try: get_mpaa=cache.get('mpaa')
-          except: mpaa = ''
-          else: mpaa = get_mpaa
-          
-          #srcname=handle_file('sourcename','open')
-          srcname=name
+    #srcname=handle_file('sourcename','open')
+    srcname=name
 
-          listitem = xbmcgui.ListItem(srcname)
-          
-          video = get_video_name(vidname)
-          
-          if not video['year']:
-              video['year'] = 0
+    listitem = xbmcgui.ListItem(srcname)
 
-          if video_type == 'movie':
-               listitem.setInfo('video', {'title': video['name'], 'year': int(video['year']), 'type': 'movie', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
+    video = get_video_name(vidname)
 
-          if video_type == 'episode':               
-               show = cache.get('tvshowname')
-               show = get_video_name(show)
-               episode_year = intTryParse(show['year'])
-               ep_num = intTryParse(episode_num)
-               episode_season = intTryParse(season_num)
-               
-               listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': episode_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': description, 'plot': description, 'mpaa': mpaa})
-          
-          listitem.setThumbnailImage(poster)
+    if video_type == 'movie':
+        listitem.setInfo('video', {'title': video['name'], 'year': vid_year, 'type': 'movie', 'plotoutline': plot_outline, 'plot': vid_plot, 'mpaa': mpaa})
 
-          return listitem
+    if video_type == 'episode':               
+        show = cache.get('tvshowname')
+        show = get_video_name(show)
+        ep_num = intTryParse(episode_num)
+        episode_season = intTryParse(season_num)
+           
+        listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': vid_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': plot_outline, 'plot': vid_plot, 'mpaa': mpaa})
+
+    listitem.setThumbnailImage(thumb_img)
+
+    return listitem
 
 
 def do_wait(source, account, wait_time):
@@ -2181,7 +2121,7 @@ def Handle_Vidlink(url):
     import resolvers
     
     #Dynamic call to proper resolve function returned from determine_source()
-    return getattr(resolvers, "%s" % hoster[3])(url)
+    return getattr(resolvers, "%s" % hoster[2])(url)
 
 
 def PlayFile(name,url):
@@ -2852,7 +2792,7 @@ def _pbhook(numblocks, blocksize, filesize, dp, start_time):
             raise StopDownloading('Stopped Downloading')
 
    
-def addExecute(name,url,mode,iconimage,stacked=False):
+def addExecute(name, url, mode, ice_meta, stacked=False):
 
     # A list item that executes the next mode, but doesn't clear the screen of current list items.
 
@@ -2863,8 +2803,8 @@ def addExecute(name,url,mode,iconimage,stacked=False):
     u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + str(video_type) + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked)
     ok=True
 
-    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
-    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ice_meta['poster'])
+    liz.setInfo( type="Video", infoLabels={ "Title": name, 'year': ice_meta['year'], 'type': 'movie', 'plotoutline': ice_meta['plot_outline'], 'plot': ice_meta['plot'], 'mpaa': ice_meta['mpaa']})
 
     #handle adding context menus
     contextMenuItems = []
@@ -2929,14 +2869,14 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
              #check tv posters vs banners setting 
              tv_posters = addon.get_setting('tv-posters')
              if tv_posters == 'true':
-                 if meta_install['tv_covers'] == 'true':
-                     covers_url = meta['cover_url']
-             else:
-                 if meta_install['tv_banners'] == 'true':
-                     covers_url = meta['banner_url']
-         else:
-             if meta_install['movie_covers'] == 'true':
+                 #if meta_install['tv_covers'] == 'true':
                  covers_url = meta['cover_url']
+             else:
+                 #if meta_install['tv_banners'] == 'true':
+                 covers_url = meta['banner_url']
+         else:
+             #if meta_install['movie_covers'] == 'true':
+             covers_url = meta['cover_url']
 
          #Set XBMC list item
          liz = xbmcgui.ListItem(name, iconImage=covers_url, thumbnailImage=covers_url)
@@ -2945,9 +2885,9 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
          #Set fanart/backdrop setting variables
          movie_fanart = addon.get_setting('movie-fanart')
          tv_fanart = addon.get_setting('tv-fanart')
-         if meta_install:
-             movie_fanart_installed = meta_install['movie_backdrops']
-             tv_fanart_installed = meta_install['tv_backdrops']
+         #if meta_install:
+         #    movie_fanart_installed = meta_install['movie_backdrops']
+         #    tv_fanart_installed = meta_install['tv_backdrops']
 
          # mark as watched or unwatched 
          addWatched = False
@@ -2957,7 +2897,8 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
                  liz.setProperty('UnWatchedEpisodes', episodes_unwatched)
                  liz.setProperty('WatchedEpisodes', str(meta['playcount']))
              addWatched = True
-             if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             #if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             if tv_fanart == 'true':
                  liz.setProperty('fanart_image', meta['backdrop_url'])
              contextMenuItems.append(('Show Information', 'XBMC.Action(Info)'))
              if favourite:
@@ -2966,13 +2907,15 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
                      contextMenuItems.append(('Show Next Aired', 'RunScript(%s)' % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py')))
          elif mode == 13: # TV Season
              addWatched = True
-             if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             #if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             if tv_fanart == 'true':
                  liz.setProperty('fanart_image', meta['backdrop_url'])                
              season = meta['season']
              contextMenuItems.append(('Refresh Info', 'XBMC.RunPlugin(%s?mode=998&name=%s&url=%s&imdbnum=%s&dirmode=%s&videoType=%s&season=%s)' % (sys.argv[0], sysname, sysurl, urllib.quote_plus(str(imdb)), dirmode, videoType, season)))             
          elif mode == 14: # TV Episode
              addWatched = True
-             if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             #if tv_fanart == 'true' and tv_fanart_installed == 'true':
+             if tv_fanart == 'true':
                  liz.setProperty('fanart_image', meta['backdrop_url'])
              season = meta['season']
              episode = meta['episode']
@@ -2980,7 +2923,8 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
              contextMenuItems.append(('Refresh Info', 'XBMC.RunPlugin(%s?mode=997&name=%s&url=%s&imdbnum=%s&dirmode=%s&videoType=%s&season=%s&episode=%s)' % (sys.argv[0], sysname, sysurl, urllib.quote_plus(str(imdb)), dirmode, videoType, season, episode)))
          elif mode == 100: # movies
              addWatched = True
-             if movie_fanart == 'true' and movie_fanart_installed == 'true':
+             #if movie_fanart == 'true' and movie_fanart_installed == 'true':
+             if movie_fanart == 'true':
                  liz.setProperty('fanart_image', meta['backdrop_url'])
              #if searchMode == False:
              contextMenuItems.append(('Movie Information', 'XBMC.Action(Info)'))
@@ -3037,7 +2981,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
 
      ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True, totalItems=totalItems)
      return ok
-     
+
 
 #VANILLA ADDDIR (kept for reference)
 def VaddDir(name, url, mode, iconimage, is_folder=False):
@@ -3155,7 +3099,7 @@ def ADD_ITEM(metaget, meta_installed, imdb_id,url,name,mode,num_of_eps=False, to
             #append number of episodes to the display name, AFTER THE NAME HAS BEEN USED FOR META LOOKUP
             if num_of_eps is not False:
                 name = name + ' ' + str(num_of_eps)
-                
+
             if meta_installed and meta_setting=='true':
                 #return the metadata dictionary
                 #we want a clean name with the year separated for proper meta search and storing
