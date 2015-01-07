@@ -1,7 +1,6 @@
 <settings>
    <category label="Menus">
   	<setting id="flatten-single-season" type="bool" label="30103" default="true"/>
-  	<setting id="flatten-source-type" type="bool" label="30104" default="true"/>
   	<setting id="stack-multi-part" type="bool" label="30106" default="false" />      
 	  <setting id="display-show-eps" type="bool" label="30107" default="true" visible="false"/>
 	  <setting id="search-results" type="number" label="30108" default="25"/>

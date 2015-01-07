@@ -1,7 +1,6 @@
 <strings>
     <!-- MENUS -->
     <string id="30103">Flatten TV Shows with single seasons</string>
-    <string id="30104">Flatten source type for single type videos</string>
     <string id="30106">Stack Multi-Part Sources</string>
     <string id="30107">In TV A-Z display number of episodes per show</string>
     <string id="30108">Number of search results per page</string>
