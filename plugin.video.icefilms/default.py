@@ -25,7 +25,7 @@ prepare_zip = False
 
 ##############################################################################################################
 
-import xbmc,xbmcplugin,xbmcgui,datetime
+import xbmc, xbmcplugin, xbmcgui, xbmcvfs, datetime
 
 ''' Use addon common library for http calls '''
 try:
@@ -33,7 +33,7 @@ try:
     from addon.common.addon import Addon
 except Exception, e:
     xbmc.log('Failed to import script.module.addon.common: %s' % e)
-    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import addon.common", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
+    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import addon.common", "A component needed by Icefilms is missing on your system", "Please visit www.tvaddons.ag for support")
 net = Net()
 
 addon_id = 'plugin.video.icefilms'
@@ -45,7 +45,7 @@ try:
     metahandler_version = metahandlers.common.addon.get_version()
 except Exception, e:
     addon.log('Failed to import script.module.metahandler: %s' % e)
-    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.xbmchub.com for support")
+    xbmcgui.Dialog().ok("Icefilms Import Failure", "Failed to import Metahandlers", "A component needed by Icefilms is missing on your system", "Please visit www.tvaddons.ag for support")
 
 ########################### Queries ############################
 
@@ -92,7 +92,6 @@ from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
 
 #Common Cache
-import xbmcvfs
 # plugin constants
 dbg = False # Set to false if you don't want debugging
 
@@ -132,10 +131,9 @@ callEndOfDirectory = True
 finalPart = True
 
 #Paths Etc
-metapath = os.path.join(datapath, 'mirror_page_meta_cache')
 cookie_path = os.path.join(datapath, 'cookies')
 downinfopath = os.path.join(datapath, 'downloadinfologs')
-cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
+cookie_jar = os.path.join(cookie_path, 'cookiejar.lwp')
 art_path = os.path.join(icepath, 'resources', 'art')
 
 
@@ -167,8 +165,6 @@ def handle_file(filename,getmode=''):
           return_file = xbmcpath(art_path,'smalltransparent2.png')
      elif filename == 'icon':
           return_file = xbmcpath(icepath, 'icon.png')          
-     elif filename == 'mirror':
-          return_file = xbmcpath(datapath,'MirrorPageSource.txt')
      elif filename == 'homepage':
           return_file = xbmcpath(art_path,'homepage.png')
      elif filename == 'movies':
@@ -201,20 +197,22 @@ def handle_file(filename,getmode=''):
                addon.log('opening failed')
      
 def openfile(filename):
-     fh = open(filename, 'r')
-     contents=fh.read()
-     fh.close()
-     return contents
+    f = xbmcvfs.File(filename)
+    contents = f.read()
+    f.close()
+    return contents
+
 
 def save(filename,contents):  
-     fh = open(filename, 'w')
-     fh.write(contents)  
-     fh.close()
+    f = xbmcvfs.File(filename, 'w')
+    f.write(contents)
+    f.close()
+
 
 def appendfile(filename,contents):  
-     fh = open(filename, 'a')
-     fh.write(contents)  
-     fh.close()
+    f = xbmcvfs.File(filename, 'a')
+    f.write(contents)
+    f.close()
 
 
 def DLDirStartup():
@@ -225,13 +223,13 @@ def DLDirStartup():
   if SpecialDirs == 'true':
 
      if downloadPath:
-        if os.path.exists(downloadPath):
+        if xbmcvfs.exists(downloadPath):
           #initial_path=os.path.join(downloadPath,'Icefilms Downloaded Videos')
           tvpath=os.path.join(downloadPath,'TV Shows')
           moviepath=os.path.join(downloadPath,'Movies')
 
-          tv_path_exists=os.path.exists(tvpath)
-          movie_path_exists=os.path.exists(moviepath)
+          tv_path_exists=xbmcvfs.exists(tvpath)
+          movie_path_exists=xbmcvfs.exists(moviepath)
 
           if tv_path_exists == False or movie_path_exists == False:
 
@@ -240,13 +238,13 @@ def DLDirStartup():
             #(readme files stops folders being deleted when running the DirCleaner)
 
             if tv_path_exists == False:
-               os.makedirs(tvpath)
+               xbmcvfs.mkdir(tvpath)
                tvreadme='Add this folder to your XBMC Library, and set it as TV to scan for metadata with TVDB.'
                tvreadmepath=os.path.join(tvpath,'README.txt')
                save(tvreadmepath,tvreadme)
 
             if movie_path_exists == False:
-               os.makedirs(moviepath)
+               xbmcvfs.mkdir(moviepath)
                moviereadme='Add this folder to your XBMC Library, and set it as Movies to scan for metadata with TheMovieDB.'
                moviereadmepath=os.path.join(moviepath,'README.txt')
                save(moviereadmepath,moviereadme)
@@ -310,11 +308,11 @@ def ContainerStartup():
 
      #Check for previous Icefilms metadata install and delete
      meta_folder = os.path.join(datapath, 'meta_caches')
-     if os.path.exists(meta_folder):
+     if xbmcvfs.exists(meta_folder):
          import shutil
          try:
              addon.log('Removing previous Icefilms meta folder: %s' % meta_folder)
-             shutil.rmtree(meta_folder)
+             xbmcvfs.rmdir(meta_folder)
          except Exception, e:
              addon.log_error('Failed to delete Icefilms meta folder: %s' % e)
              pass
@@ -322,7 +320,7 @@ def ContainerStartup():
      #Initialize MetaHandler and MetaContainer classes
      #MetaContainer will clean up from previous installs, so good idea to always initialize at addon startup
      from metahandler import metacontainers
-     mh=metahandlers.MetaData(preparezip=prepare_zip)
+     mh=metahandlers.MetaData()
      mc = metacontainers.MetaContainer()
 
      #Check meta cache DB if meta pack has been installed     
@@ -363,7 +361,7 @@ def ContainerStartup():
                    #Re-check meta_installed
                    meta_installed = mh.check_meta_installed(addon_id)
               
-              elif get_db_zip==False:
+              else:
                    Notify('small','Metacontainer DB Installation Failure','','')
 
      #Only check/prompt for image pack downloads if the DB has been downloaded/installed
@@ -476,7 +474,7 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
 
         link = url + filename
 
-        filepath_exists=os.path.exists(filepath)
+        filepath_exists=xbmcvfs.exists(filepath)
          
         #if zip does not already exist, download from url, with nice display name.
         if filepath_exists==False:
@@ -486,6 +484,7 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
                 complete = Download(link, filepath, installtype)
             except Exception, e:
                 addon.log_error('******* ERROR - Download Pack Failed: %s' % e)
+                Notify('big','Error Downloading Meta Pack', '%s' % e, '')
                 pass
            
         elif filepath_exists==True:
@@ -502,10 +501,9 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
 def Startup_Routines():
      
      # avoid error on first run if no paths exists, by creating paths
-     if not os.path.exists(datapath): os.makedirs(datapath)
-     if not os.path.exists(downinfopath): os.makedirs(downinfopath)
-     if not os.path.exists(metapath): os.makedirs(metapath)
-     if not os.path.exists(cookie_path): os.makedirs(cookie_path)
+     if not xbmcvfs.exists(datapath): xbmcvfs.mkdir(datapath)
+     if not xbmcvfs.exists(downinfopath): xbmcvfs.mkdir(downinfopath)
+     if not xbmcvfs.exists(cookie_path): xbmcvfs.mkdir(cookie_path)
          
      #force refresh addon repositories, to check for updates.
      #xbmc.executebuiltin('UpdateAddonRepos')
@@ -529,7 +527,7 @@ def create_meta_pack():
     # This function will scrape all A-Z categories of the entire site
     
     #Insert starting record to addon table so that all data and images are scraped/downloaded
-    mh=metahandlers.MetaData(preparezip=prepare_zip)
+    mh=metahandlers.MetaData()
     mh.insert_meta_installed(addon_id, last_update='Now', movie_covers='true', tv_covers='true', tv_banners='true', movie_backdrops='true', tv_backdrops='true')
     
     A2Z=[chr(i) for i in xrange(ord('A'), ord('Z')+1)]
@@ -634,7 +632,7 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
     stringlist=prepare_list(directory,dircontents)
     
     if enablemetadata == True:
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
     else:
         meta_installed = False
@@ -686,43 +684,43 @@ def URL_TYPE(url):
                return 'episodes'     
 
 def METAFIXER(url):
-     #Icefilms urls passed to me will have their proper names and imdb numbers returned.
-     source=GetURL(url)
+    #Icefilms urls passed to me will have their proper names and imdb numbers returned.
+    source=GetURL(url)
 
-     url_type=URL_TYPE(url)
+    url_type=URL_TYPE(url)
 
-     #get proper name from the page. (in case it is a weird name)
+    #get proper name from the page. (in case it is a weird name)
      
-     if url_type=='mirrors':
-               #get imdb number.
-               match=re.compile('<a class=iframe href=http://www.imdb.com/title/(.+?)/ ').findall(source)      
+    if url_type=='mirrors':
+        #get imdb number.
+        match=re.compile('<a class=iframe href=http://www.imdb.com/title/(.+?)/ ').findall(source)      
 
-               #check if it is an episode. 
-               epcheck=re.search('<a href=/tv/series/',source)
+        #check if it is an episode. 
+        epcheck=re.search('<a href=/tv/series/',source)
 
-               #if it is, return the proper series name as opposed to the mirror page name.
-               if epcheck is not None:
-                    tvget=re.compile('<a href=/tv/series/(.+?)>').findall(source)
-                    tvurl=iceurl+'tv/series/'+str(tvget[0])
-                    #load ep page and get name from that. sorry icefilms bandwidth!
-                    tvsource=GetURL(tvurl)
-                    name=re.compile('<h1>(.+?)<a class').findall(tvsource)
+        #if it is, return the proper series name as opposed to the mirror page name.
+        if epcheck is not None:
+            tvget=re.compile('<a href=/tv/series/(.+?)>').findall(source)
+            tvurl=iceurl+'tv/series/'+str(tvget[0])
+            #load ep page and get name from that. sorry icefilms bandwidth!
+            tvsource=GetURL(tvurl)
+            name=re.compile('<h1>(.+?)<a class').findall(tvsource)
 
-               #return mirror page name.
-               if epcheck is None:
-                    name=re.compile('''<span style="font-size:large;color:white;">(.+?)</span>''').findall(source)
-                    
-               name=CLEANUP(name[0])
-               return name,match[0]
+        #return mirror page name.
+        if epcheck is None:
+            name=re.compile('''<span style="font-size:large;color:white;">(.+?)</span>''').findall(source)
+            
+        name=CLEANUP(name[0])
+        return name,match[0]
 
-     elif url_type=='episodes':
-               #TV
-               name=re.compile('<h1>(.+?)<a class').findall(source)
-               match=re.compile('href="http://www.imdb.com/title/(.+?)/"').findall(source)
-               name=CLEANUP(name[0])
-               return name,match[0]
-     
-     
+    elif url_type=='episodes':
+        #TV
+        name=re.compile('<h1>(.+?)<a class').findall(source)
+        match=re.compile('href="http://www.imdb.com/title/(.+?)/"').findall(source)
+        name=CLEANUP(name[0])
+        return name,match[0]
+
+
 def ADD_TO_FAVOURITES(name,url,imdbnum):
      #Creates a new text file in favourites folder. The text file is named after the items name, and contains the name, url and relevant mode.
      addon.log('Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url))
@@ -735,12 +733,12 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
           moviefav=os.path.join(favpath,'Movies')
           
           try:
-               os.makedirs(tvfav)
+               xbmcvfs.mkdir(tvfav)
           except Exception, e:
                addon.log_error('Error creating tv favorites folder: %s' % e)
                pass
           try:
-               os.makedirs(moviefav)
+               xbmcvfs.mkdir(moviefav)
           except Exception, e:
                addon.log_error('Error creating movie favorites folder: %s' % e)
                pass
@@ -771,7 +769,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
 
           #Save the new favourite if it does not exist.
           NewFavFile=os.path.join(savepath,adjustedname+'.txt')
-          if not os.path.exists(NewFavFile):
+          if not xbmcvfs.exists(NewFavFile):
 
                #Use | as separators that can be used by re.split when reading favourites folder.
                favcontents=name+'|'+url+'|'+themode+'|'+imdbnum
@@ -817,12 +815,12 @@ def DELETE_FROM_FAVOURITES(name,url):
     addon.log('ITEMPATH: %s' % itempath)
     addon.log('OLD ITEMPATH: %s' % old_itempath    )
     
-    if os.path.exists(itempath):
-         os.remove(itempath)
+    if xbmcvfs.exists(itempath):
+         xbmcvfs.rmdir(itempath)
          xbmc.executebuiltin("XBMC.Container.Refresh")
          
     if os.path.exists(old_itempath):
-         os.remove(old_itempath)
+         xbmcvfs.rmdir(old_itempath)
          xbmc.executebuiltin("XBMC.Container.Refresh")         
 
 
@@ -907,7 +905,7 @@ def RECENT(url):
 
         #initialise meta class before loop
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)
         else:
             meta_installed = False
@@ -951,7 +949,7 @@ def LATEST(url):
         
         #initialise meta class before loop
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)
         else:
             meta_installed = False
@@ -995,7 +993,7 @@ def WATCHINGNOW(url):
 
         #initialise meta class before loop
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)
         else:
             meta_installed = False
@@ -1043,8 +1041,8 @@ def SEARCHBYPAGE(url, page):
             DoSearch(url, search, page)
             
     setView('movies', 'movies-view')
-	
-	
+
+
 def KnownSearch(search, url):
     DoEpListSearch(search)
     DoSearch(url, search, 0)
@@ -1272,7 +1270,7 @@ def MOVIEINDEX(url):
 
     #initialise meta class before loop    
     if meta_setting=='true':
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
         
     temp = re.compile('(<h3>|<a name=i id=.+?></a><img class=star><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
@@ -1304,7 +1302,7 @@ def TVINDEX(url):
 
     #initialise meta class before loop    
     if meta_setting=='true':
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
         
     #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
@@ -1385,7 +1383,7 @@ def TVSEASONS(url, imdb_id):
             season_nums = re.compile('Season ([0-9]{1,2}) ').findall(seasons)                        
             
             if meta_setting=='true':
-                metaget=metahandlers.MetaData(preparezip=prepare_zip)
+                metaget=metahandlers.MetaData()
                 meta_installed = metaget.check_meta_installed(addon_id)
                 if meta_installed:
                     season_meta = metaget.get_seasons(showname, imdb_id, season_nums)
@@ -1442,7 +1440,7 @@ def TVEPLINKS(source, season, imdb_id):
         
     if meta_setting=='true':
         #initialise meta class before loop
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
     else:
         metaget=False
@@ -1515,7 +1513,7 @@ def LOADMIRRORS(url):
     ########### get and save potential file path. This is for use in download function later on.
     epcheck1 = re.search('Episodes</a>', html)
     epcheck2 = re.search('Episode</a>', html)
-    if epcheck1 is not None or epcheck2 is not None:
+    if epcheck1 or epcheck2:
         if cache.get('mediatvshowname'):
             #open media file if it exists, as that has show name with date.
             showname=cache.get('mediatvshowname')
@@ -1528,16 +1526,17 @@ def LOADMIRRORS(url):
             #if season name file exists
             if cache.get('mediatvshowname'):
                 seasonname=cache.get('mediatvshowname')
-                cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
+                cache.set('mediapath','TV Shows!/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
             else:
-                cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
+                cache.set('mediapath','TV Shows!/' + Clean_Windows_String(showname))
         except:
             addon.log_error("FAILED TO SAVE TV SHOW FILE PATH!")
     else:
           
         try:
-            cache.set('mediapath','Movies/' + Clean_Windows_String(namematch[0]))
-        except:
+            cache.set('mediapath','Movies/' + Clean_Windows_String(namematch.group(1)))
+        except Exception, e:
+            addon.log_error('Failed to set cache value: %s' % e)
             pass
 
     #---------------End phantom metadata getting stuff --------------
@@ -1548,87 +1547,26 @@ def LOADMIRRORS(url):
     for url in match:
         mirrorpageurl = iceurl+'membersonly/components/com_iceplayer/'+url
       
-    mirror_page = GetURL(mirrorpageurl, save_cookie = True)
+    html = GetURL(mirrorpageurl, save_cookie = True)
 
-    GETMIRRORS(mirrorpageurl, mirror_page, ice_meta)
+    #string for all text under hd720p border
+    defcat = re.compile('<div class=ripdiv><b>(.+?)</b>(.+?)</div>').findall(html)
+    for media_type, scrape in defcat:
+        if media_type == 'HD 720p':
+            tag = ' | [COLOR red]HD[/COLOR]'
+        elif media_type == 'DVDRip / Standard Def':
+            tag = ' | [COLOR blue]DVD[/COLOR]'
+        elif media_type == 'DVD Screener':
+            tag = ' | [COLOR yellow]DVDSCR[/COLOR]'
+        elif media_type == 'R5/R6 DVDRip':
+            tag = ' | [COLOR green]R5/R6[/COLOR]'
+        else:
+            tag = ' | [COLOR white]Other[/COLOR]'
+            
+        SOURCE(html, scrape, tag, ice_meta)
+
     setView(None, 'default-view')
 
-
-def GETMIRRORS(url, link, ice_meta):
-# It also displays them in an informative fashion to user.
-# Displays in three directory levels: HD / DVDRip etc , Source, PART
-    addon.log("getting mirrors for: %s" % url)
-        
-    #hacky method -- save page source to cache
-    #cache.delete('mirror')
-    #cache.set('mirror', link)
-    mirrorfile=handle_file('mirror','')
-    save(mirrorfile, link)
-    
-    #check for the existence of categories, and set values.
-    if re.search('<div class=ripdiv><b>DVDRip / Standard Def</b>', link) is not None: dvdrip = 1
-    else: dvdrip = 0
-    
-    if re.search('<div class=ripdiv><b>HD 720p</b>', link) is not None: hd720p = 1
-    else: hd720p = 0
-    
-    if re.search('<div class=ripdiv><b>DVD Screener</b>', link) is not None: dvdscreener = 1
-    else: dvdscreener = 0
-    
-    if re.search('<div class=ripdiv><b>R5/R6 DVDRip</b>', link) is not None: r5r6 = 1
-    else: r5r6 = 0
-    
-    FlattenSrcType = addon.get_setting('flatten-source-type')        
-     
-    # Search if there is a local version of the file
-    #get proper name of vid
-    #vidname=handle_file('videoname','open')
-    #mypath=Get_Path(name,vidname)
-    #if mypath != 'path not set':
-    #    if os.path.isfile(mypath) is True:
-    #        localpic=handle_file('localpic','')
-    #        addExecute('Source    | Local | Full',mypath,205,localpic)
-    
-    #only detect and proceed directly to adding sources if flatten sources setting is true
-    if FlattenSrcType == 'true':
-    
-         #add up total number of categories.
-         total = dvdrip + hd720p + dvdscreener + r5r6
-    
-         #if there is only one category, skip to adding sources.
-         if total == 1:
-              if dvdrip == 1:
-                   DVDRip(url, ice_meta)
-              elif hd720p == 1:
-                   HD720p(url, ice_meta)
-              elif dvdscreener == 1:
-                   DVDScreener(url, ice_meta)
-              elif r5r6 == 1:
-                   R5R6(url, ice_meta)
-    
-         #if there are multiple categories, add sub directories.
-         elif total > 1:
-              addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta)
-    
-    #if flattensources is set to false, don't flatten                
-    elif FlattenSrcType == 'false':
-         addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta)
-
-                
-def addCatDir(url, dvdrip, hd720p, dvdscreener, r5r6, ice_meta):
-       
-        if hd720p == 1:
-                HD720p(url, ice_meta)
-                #addDir('HD 720p',url,102,os.path.join(art_path,'source_types','hd720p.png'), imdb=imdbnum)
-        if dvdrip == 1:
-                DVDRip(url, ice_meta)
-                #addDir('DVDRip',url,101,os.path.join(art_path,'source_types','dvd.png'), imdb=imdbnum)
-        if dvdscreener == 1:
-                DVDScreener(url, ice_meta)
-                #addDir('DVD Screener',url,103,os.path.join(art_path,'source_types','dvdscreener.png'), imdb=imdbnum)
-        if r5r6 == 1:
-                R5R6(url, ice_meta)
-                #addDir('R5/R6 DVDRip',url,104,os.path.join(art_path,'source_types','r5r6.png'), imdb=imdbnum)
 
 def determine_source(url):
 
@@ -1779,15 +1717,15 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
 
     #add cached source
     vidname=cache.get('videoname')
-    dlDir = Get_Path("noext","")
+    dlDir = Get_Path("noext", "", "")
 
     listitem=Item_Meta(vidname)
 
     try:
-        for fname in os.listdir(dlDir):
+        for fname in xbmcvfs.listdir(dlDir):
             match = re.match(re.escape(vidname)+' *(.*)\.avi$', fname)
             if match is not None:
-                if os.path.exists(os.path.join(dlDir,fname)+'.dling'):
+                if xbmcvfs.exists(os.path.join(dlDir,fname)+'.dling'):
                     listitem.setLabel("Play Downloading "+match.group(0))
                     addDownloadControls(match.group(0),os.path.join(dlDir,fname), listitem)
                 else:
@@ -1811,42 +1749,7 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
         PART(sources,thenumber,args,cookie, source_tag, ice_meta)
     setView(None, 'default-view')
 
-def DVDRip(url, ice_meta):
-    #link=cache.get('mirror')
-    link=handle_file('mirror','open')
-    #string for all text under standard def border
-    defcat=re.compile('<div class=ripdiv><b>DVDRip / Standard Def</b>(.+?)</div>').findall(link)
-    for scrape in defcat:
-            SOURCE(link, scrape, ' | [COLOR blue]DVD[/COLOR]', ice_meta)
-    setView(None, 'default-view')
 
-def HD720p(url, ice_meta):
-    #link=cache.get('mirror')
-    link=handle_file('mirror','open')
-    #string for all text under hd720p border
-    defcat=re.compile('<div class=ripdiv><b>HD 720p</b>(.+?)</div>').findall(link)
-    for scrape in defcat:
-            SOURCE(link, scrape, ' | [COLOR red]HD[/COLOR]', ice_meta)
-    setView(None, 'default-view')
-
-def DVDScreener(url, ice_meta):
-    #link=cache.get('mirror')
-    link=handle_file('mirror','open')
-    #string for all text under dvd screener border
-    defcat=re.compile('<div class=ripdiv><b>DVD Screener</b>(.+?)</div>').findall(link)
-    for scrape in defcat:
-            SOURCE(link, scrape, ' | [COLOR yellow]DVDSCR[/COLOR]', ice_meta)
-    setView(None, 'default-view')
-        
-def R5R6(url, ice_meta):
-    #link=cache.get('mirror')
-    link=handle_file('mirror','open')
-    #string for all text under r5/r6 border
-    defcat=re.compile('<div class=ripdiv><b>R5/R6 DVDRip</b>(.+?)</div>').findall(link)
-    for scrape in defcat:
-            SOURCE(link, scrape, ' | [COLOR green]R5/R6[/COLOR]', ice_meta)
-    setView(None, 'default-view')
-        
 class TwoSharedDownloader:
      
      def __init__(self):
@@ -1955,25 +1858,28 @@ def intTryParse(value):
         return 0
 
 
-def Get_Path(srcname,vidname):
+def Get_Path(srcname, vidname, link):
      ##Gets the path the file will be downloaded to, and if necessary makes the folders##
          
      #clean video name of unwanted characters
      vidname = Clean_Windows_String(vidname)
+     
+     #Get file extension from url
+     import urlparse
+     path = urlparse.urlparse(link).path
+     ext = os.path.splitext(path)[1]
     
-     if os.path.exists(downloadPath):
+     if xbmcvfs.exists(downloadPath):
 
           #if source is split into parts, attach part number to the videoname.
           if re.search('Part',srcname) is not None:
                srcname=(re.split('\|+', srcname))[-1]
                vidname=vidname + ' part' + ((re.split('\ +', srcname))[-1])
                #add file extension
-               vidname = vidname+'.avi'
+               vidname = vidname + ext
           elif srcname is not "noext":
                #add file extension
-               vidname = vidname+'.avi'
-
-          #initial_path=os.path.join(downloadPath,'Icefilms Downloaded Videos')
+               vidname = vidname + ext
 
           #is use special directory structure set to true?
           SpecialDirs=addon.get_setting('use-special-structure')
@@ -1982,9 +1888,9 @@ def Get_Path(srcname,vidname):
                mediapath=os.path.normpath(cache.get('mediapath'))
                mediapath=os.path.join(downloadPath, mediapath)              
                
-               if not os.path.exists(mediapath):
+               if not xbmcvfs.exists(mediapath):
                     try:
-                        os.makedirs(mediapath)
+                        xbmcvfs.mkdir(mediapath)
                     except Exception, e:
                         addon.log_error('Failed to create media path: %s' % mediapath)
                         addon.log_error('With error: %s' % e)
@@ -2021,10 +1927,7 @@ def Item_Meta(name):
             vidname = open_vidname
         else: vidname = get_vidname
 
-    #srcname=handle_file('sourcename','open')
-    srcname=name
-
-    listitem = xbmcgui.ListItem(srcname)
+    listitem = xbmcgui.ListItem(name)
 
     video = get_video_name(vidname)
 
@@ -2144,7 +2047,7 @@ def Stream_Source(name, url, download_play=False, download=False, download_jdown
     callEndOfDirectory = False
     
     vidname=cache.get('videoname')
-    mypath = Get_Path(name,vidname)
+    mypath = Get_Path(name, vidname, url)
     listitem = Item_Meta(name)
 
     video_seeking = str2bool(addon.get_setting('video-seeking'))
@@ -2187,13 +2090,13 @@ def Stream_Source(name, url, download_play=False, download=False, download_jdown
         #Download & Watch
         if download_play:
             addon.log('Starting Download & Play')
-            completed = Download_And_Play(name,link, video_seek=False)
+            completed = Download_And_Play(name, link, video_seek=False)
             addon.log('Download & Play streaming completed: %s' % completed)
         
         #Download option
         elif download:
             addon.log('Starting Download')
-            completed = Download_Source(name,link)
+            completed = Download_Source(name, link)
             addon.log('Downloading completed: %s' % completed)
 
         elif download_jdownloader:
@@ -2444,10 +2347,10 @@ class DownloadThread (threading.Thread):
                 self.dialog = None
                 addon.log('Download finished successfully')
             try:
-              os.remove(self.dest + '.dling')
+              xbmcvfs.delete(self.dest + '.dling')
             except:
               pass
-            os.remove(os.path.join(downloadPath,'Downloading'))
+            xbmcvfs.delete(os.path.join(downloadPath,'Downloading'))
         
         except:
             if self.dialog <> None:
@@ -2455,19 +2358,19 @@ class DownloadThread (threading.Thread):
                 self.dialog = None
                 
             addon.log('Download interrupted')
-            os.remove(os.path.join(downloadPath,'Downloading'))
+            xbmcvfs.delete(os.path.join(downloadPath,'Downloading'))
             
             #download is killed so remove .dling file
             try:
-                os.remove(self.dest + '.dling')
+                xbmcvfs.delete(self.dest + '.dling')
             except:
                 pass
             
             if delete_incomplete == 'true':
                 #delete partially downloaded file if setting says to.
-                while os.path.exists(self.dest):
+                while xbmcvfs.exists(self.dest):
                     try:
-                        os.remove(self.dest)
+                        xbmcvfs.delete(self.dest)
                         break
                     except:
                         pass
@@ -2505,31 +2408,31 @@ def Download_And_Play(name,url, video_seek=False):
     #get proper name of vid                                                                                                           
     vidname=cache.get('videoname')
 
-    mypath=Get_Path(name,vidname)
+    mypath=Get_Path(name, vidname, url)
      
     addon.log('MYPATH: %s' % mypath)
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
         return False
 
-    if os.path.exists(os.path.join(downloadPath, 'Ping')):
-        os.remove(os.path.join(downloadPath, 'Ping'))
-    if os.path.exists(os.path.join(downloadPath, 'Alive')):
-        os.remove(os.path.join(downloadPath, 'Alive'))
+    if xbmcvfs.exists(os.path.join(downloadPath, 'Ping')):
+        xbmcvfs.rmdir(os.path.join(downloadPath, 'Ping'))
+    if xbmcvfs.exists(os.path.join(downloadPath, 'Alive')):
+        xbmcvfs.rmdir(os.path.join(downloadPath, 'Alive'))
 
-    if os.path.exists(os.path.join(downloadPath, 'Downloading')):
+    if xbmcvfs.exists(os.path.join(downloadPath, 'Downloading')):
       fhPing = open(os.path.join(downloadPath, 'Ping'), 'w')
       fhPing.close()
       xbmc.sleep(1000)
       
-      if os.path.exists(os.path.join(downloadPath, 'Alive')):
+      if xbmcvfs.exists(os.path.join(downloadPath, 'Alive')):
           fh = open(os.path.join(downloadPath, 'Alive'))          
           filePathAlive = fh.readline().strip('\n')
           fileNameAlive = fh.readline().strip('\n')
           fh.close()
           
           try:
-              os.remove(os.path.join(downloadPath, 'Alive'))
+              xbmcvfs.rmdir(os.path.join(downloadPath, 'Alive'))
           except:
               pass
           
@@ -2538,33 +2441,33 @@ def Download_And_Play(name,url, video_seek=False):
           return False
 
       else:
-          os.remove(os.path.join(downloadPath, 'Ping'))
+          xbmcvfs.rmdir(os.path.join(downloadPath, 'Ping'))
           delete_incomplete = addon.get_setting('delete-incomplete-downloads')
           
           if delete_incomplete == 'true':
-              if os.path.exists(os.path.join(downloadPath, 'Downloading')):
+              if xbmcvfs.exists(os.path.join(downloadPath, 'Downloading')):
                   fh = open(os.path.join(downloadPath, 'Downloading'))          
                   filePathDownloading = fh.readline().strip('\n')
                   fh.close()
                   
                   try:
-                      os.remove(filePathDownloading)
+                      xbmcvfs.rmdir(filePathDownloading)
                   except:
                       pass
                   try:
-                      os.remove(filePathDownloading + '.dling')
+                      xbmcvfs.rmdir(filePathDownloading + '.dling')
                   except:
                       pass
 
-          if os.path.exists(os.path.join(downloadPath, 'Downloading')):
-              os.remove(os.path.join(downloadPath, 'Downloading'))
+          if xbmcvfs.exists(os.path.join(downloadPath, 'Downloading')):
+              xbmcvfs.rmdir(os.path.join(downloadPath, 'Downloading'))
 
 
     if os.path.isfile(mypath) is True:
         if os.path.isfile(mypath + '.dling'):
             try:
-                os.remove(mypath)
-                os.remove(mypath + '.dling')
+                xbmcvfs.delete(mypath)
+                xbmcvfs.delete(mypath + '.dling')
             except:
                 addon.log_error('download failed: existing incomplete files cannot be removed')
                 return False
@@ -2581,7 +2484,7 @@ def Download_And_Play(name,url, video_seek=False):
         handle_wait(buffer_delay, "Buffering", "Waiting a bit before playing...")
         if not handle_wait:
             return False
-        if os.path.exists(mypath):
+        if xbmcvfs.exists(mypath):
             if dlThread.isAlive():
                 listitem=Item_Meta(name)
                 
@@ -2589,9 +2492,9 @@ def Download_And_Play(name,url, video_seek=False):
                 completed = play_with_watched(mypath, listitem, '')
                
                 if video_seek:
-                    if os.path.exists(mypath):
+                    if xbmcvfs.exists(mypath):
                         try:
-                            os.remove(mypath)
+                            xbmcvfs.delete(mypath)
                         except:
                             addon.log_error('Failed to delete file after video seeking')
                 else:
@@ -2647,22 +2550,22 @@ def _dlhook(numblocks, blocksize, filesize, dt, start_time):
         if dt.dialog.iscanceled():
             dt.hide_dialog()
             
-    elif os.path.exists(os.path.join(downloadPath, 'ShowDLInfo')):
-        while os.path.exists(os.path.join(downloadPath, 'ShowDLInfo')):
+    elif xbmcvfs.exists(os.path.join(downloadPath, 'ShowDLInfo')):
+        while xbmcvfs.exists(os.path.join(downloadPath, 'ShowDLInfo')):
             
             try:
-                os.remove(os.path.join(downloadPath, 'ShowDLInfo'))
+                xbmcvfs.rmdir(os.path.join(downloadPath, 'ShowDLInfo'))
             except:
                 continue
             break
         
         dt.show_dialog()
         
-    elif os.path.exists(os.path.join(downloadPath, 'Cancel')):
-        while os.path.exists(os.path.join(downloadPath, 'Cancel')):
+    elif xbmcvfs.exists(os.path.join(downloadPath, 'Cancel')):
+        while xbmcvfs.exists(os.path.join(downloadPath, 'Cancel')):
             
             try:
-                os.remove(os.path.join(downloadPath, 'Cancel'))
+                xbmcvfs.rmdir(os.path.join(downloadPath, 'Cancel'))
             except:
                 continue
             break
@@ -2670,11 +2573,11 @@ def _dlhook(numblocks, blocksize, filesize, dt, start_time):
         addon.log("Stopping download")
         raise StopDownloading('Stopped Downloading')
         
-    elif os.path.exists(os.path.join(downloadPath, 'Ping')):
-        while os.path.exists(os.path.join(downloadPath, 'Ping')):
+    elif xbmcvfs.exists(os.path.join(downloadPath, 'Ping')):
+        while xbmcvfs.exists(os.path.join(downloadPath, 'Ping')):
             
             try:
-                os.remove(os.path.join(downloadPath, 'Ping'))
+                xbmcvfs.rmdir(os.path.join(downloadPath, 'Ping'))
             except:
                 continue
             break
@@ -2682,11 +2585,11 @@ def _dlhook(numblocks, blocksize, filesize, dt, start_time):
         save(os.path.join(downloadPath,'Alive'),dt.dest+'\n'+dt.vidname)
 
 
-def Download_Source(name,url,stacked=False):
+def Download_Source(name, url, stacked=False):
     #get proper name of vid
     vidname=cache.get('videoname')
     
-    mypath=Get_Path(name,vidname)
+    mypath=Get_Path(name, vidname, url)
            
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
@@ -2724,18 +2627,18 @@ def Download(url, dest, displayname=False):
          
         if displayname == False:
             displayname=url
-        delete_incomplete = addon.get_setting('delete-incomplete-downloads')
         dp = xbmcgui.DialogProgress()
         dp.create('Downloading', '', displayname)
         start_time = time.time() 
         try: 
             urllib.urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(nb, bs, fs, dp, start_time)) 
         except:
+            delete_incomplete = addon.get_setting('delete-incomplete-downloads')
             if delete_incomplete == 'true':
                 #delete partially downloaded file if setting says to.
-                while os.path.exists(dest): 
+                while xbmcvfs.exists(dest): 
                     try: 
-                        os.remove(dest) 
+                        xbmcvfs.delete(dest) 
                         break 
                     except: 
                         pass 
@@ -2845,7 +2748,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
      elif mode == 100: # movies
          videoType = 'movie'
      else:
-     	   videoType = video_type
+         videoType = video_type
      
      season = ''
      episode = ''
@@ -3018,7 +2921,7 @@ def MOVIE_FAVOURITES(url):
     favpath=os.path.join(datapath,'Favourites')
     moviefav=os.path.join(favpath,'Movies')
     try:
-        moviedircontents=os.listdir(moviefav)
+        moviedircontents=xbmcvfs.listdir(moviefav)
     except:
         moviedircontents=None
     
@@ -3053,7 +2956,7 @@ def TV_FAVOURITES(url):
     favpath=os.path.join(datapath,'Favourites')
     tvfav=os.path.join(favpath,'TV')
     try:
-        tvdircontents=os.listdir(tvfav)
+        tvdircontents=xbmcvfs.listdir(tvfav)
     except:
         tvdircontents=None
  
@@ -3135,7 +3038,7 @@ def REFRESH(videoType, url,imdb_id,name,dirmode):
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)          
             
             if meta_installed:
@@ -3157,7 +3060,7 @@ def episode_refresh(url, imdb_id, name, dirmode, season, episode):
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)          
             
             if meta_installed:
@@ -3173,7 +3076,7 @@ def season_refresh(url, imdb_id, name, dirmode, season):
         imdb_id = imdb_id.replace('tttt','')
 
         if meta_setting=='true':
-            metaget=metahandlers.MetaData(preparezip=prepare_zip)
+            metaget=metahandlers.MetaData()
             meta_installed = metaget.check_meta_installed(addon_id)          
             
             if meta_installed:
@@ -3229,7 +3132,7 @@ def get_episode(season, episode, imdb_id, url, metaget, meta_installed, tmp_seas
 def find_meta_for_search_results(results, mode, search=''):
     
     #initialise meta class before loop
-    metaget=metahandlers.MetaData(preparezip=prepare_zip)
+    metaget=metahandlers.MetaData()
     meta_installed = metaget.check_meta_installed(addon_id)
     
     if mode == 100:        
@@ -3281,7 +3184,8 @@ def SearchGoogle(search):
         Notify('big','Google Search','Error encountered searching.','')
         return None
     return results
-                               
+
+
 def SearchForTrailer(search, imdb_id, type, manual=False):
     search = search.replace(' *HD 720p*', '')
     res_name = []
@@ -3332,7 +3236,7 @@ def SearchForTrailer(search, imdb_id, type, manual=False):
             % str(trailer_url)[str(trailer_url).rfind("v=")+2:] )
         
         #dialog.ok(' title ', ' message ')
-        metaget=metahandlers.MetaData(preparezip=prepare_zip)
+        metaget=metahandlers.MetaData()
         if type==100:
             type='movie'
         elif type==12:
@@ -3344,14 +3248,14 @@ def SearchForTrailer(search, imdb_id, type, manual=False):
 
 
 def ChangeWatched(imdb_id, videoType, name, season, episode, year='', watched='', refresh=False):
-    metaget=metahandlers.MetaData(preparezip=prepare_zip)
+    metaget=metahandlers.MetaData()
     metaget.change_watched(videoType, name, imdb_id, season=season, episode=episode, year=year, watched=watched)
     if refresh:
         xbmc.executebuiltin("XBMC.Container.Refresh")
 
 
 def SimilarMovies(tmdb_id):
-    metaget=metahandlers.MetaData(preparezip=prepare_zip)
+    metaget=metahandlers.MetaData()
     movie_list = metaget.similar_movies(tmdb_id)
     name_list = []
     filtered_movie_list = []
@@ -3406,7 +3310,7 @@ def addDownloadControls(name,localFilePath, listitem=None):
 
 
 def ShowDownloadInfo(name):
-    if not os.path.exists(os.path.join(downloadPath, 'Downloading')):
+    if not xbmcvfs.exists(os.path.join(downloadPath, 'Downloading')):
         Notify('big','Download Inactive!','Download is not active','')
     else:
         save(os.path.join(downloadPath, 'ShowDLInfo'),'ShowDLInfo')
@@ -3414,7 +3318,7 @@ def ShowDownloadInfo(name):
  
 
 def CancelDownload(name, video_seek=False):
-    if not os.path.exists(os.path.join(downloadPath, 'Downloading')):
+    if not xbmcvfs.exists(os.path.join(downloadPath, 'Downloading')):
         if not video_seek:
             Notify('big','Download Inactive!','Download is not active','')
     else:
@@ -3437,7 +3341,7 @@ def get_default_action():
 def show_addon_help():
 
     # Import PyXBMCt module.
-    from pyxbmct.addonwindow import *
+    import pyxbmct.addonwindow as pyxbmct
 
     try:
         common_addon_version = 'Unknown'
@@ -3467,7 +3371,7 @@ def show_addon_help():
     # Addon current information
     textBox = TextBox(textColor='0xFFFFFFFF')
     window.placeControl(textBox, 0, 2, columnspan=5, rowspan=2)
-    textBox.setText('[B]Author:[/B] %s\n[B]Current version:[/B] %s\n[B]Support:[/B] www.xbmchub.com' % (addon.get_author(), addon.get_version()))
+    textBox.setText('[B]Author:[/B] %s\n[B]Current version:[/B] %s\n[B]Support:[/B] www.tvaddons.ag.com' % (addon.get_author(), addon.get_version()))
     
     #Installed dependencies
     textBox = TextBox(textColor='0xFFFFFFFF')
