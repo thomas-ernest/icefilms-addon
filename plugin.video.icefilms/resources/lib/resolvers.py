@@ -351,7 +351,7 @@ def resolve_movreel(url):
         addon.log('Movreel - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
-        dialog.update(33)
+        dialog.update(50)
         
         #Check page for any error msgs
         if re.search('This server is in maintenance mode', html):
@@ -359,45 +359,19 @@ def resolve_movreel(url):
             raise Exception('File is currently unavailable on the host')
 
         #Set POST data values
-        op = re.search('<input type="hidden" name="op" value="(.+?)">', html).group(1)
-        postid = re.search('<input type="hidden" name="id" value="(.+?)">', html).group(1)
-        method_free = re.search('<input type="(submit|hidden)" name="method_free" (style=".*?" )*value="(.*?)">', html).group(3)
-        method_premium = re.search('<input type="(hidden|submit)" name="method_premium" (style=".*?" )*value="(.*?)">', html).group(3)
+        data = {}
+        r = re.findall('type="hidden" name="(.+?)" value="(.+?)">', html)
+        if r:
+            for name, value in r:
+                data[name] = value
         
-        if method_free:
-            usr_login = ''
-            fname = re.search('<input type="hidden" name="fname" value="(.+?)">', html).group(1)
-            data = {'op': op, 'usr_login': usr_login, 'id': postid, 'referer': url, 'fname': fname, 'method_free': method_free}
-        else:
-            rand = re.search('<input type="hidden" name="rand" value="(.+?)">', html).group(1)
-            data = {'op': op, 'id': postid, 'referer': url, 'rand': rand, 'method_premium': method_premium}
+        wait_time = re.search('<span id="countdown_str">Wait <span id=".+?">(.+?)</span> seconds</span>', html)
+        if wait_time:
+            addon.log('Wait time found: %s' % wait_time.group(1))
+            xbmc.sleep(int(wait_time.group(1)) * 1000)
         
         addon.log('Movreel - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data).content
-
-        #Only do next post if Free account, skip to last page for download link if Premium
-        if method_free:
-            #Check for download limit error msg
-            if re.search('<p class="err">.+?</p>', html):
-                addon.log_error('***** Download limit reached')
-                errortxt = re.search('<p class="err">(.+?)</p>', html).group(1)
-                raise Exception(errortxt)
-    
-            dialog.update(66)
-            
-            #Set POST data values
-            data = {}
-            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
-    
-            if r:
-                for name, value in r:
-                    data[name] = value
-            else:
-                addon.log_error('***** Movreel - Cannot find data values')
-                raise Exception('Unable to resolve Movreel Link')
-
-            addon.log('Movreel - Requesting POST URL: %s DATA: %s' % (url, data))
-            html = net.http_POST(url, data).content
 
         #Get download link
         dialog.update(100)
