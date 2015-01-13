@@ -135,8 +135,7 @@ cookie_path = os.path.join(datapath, 'cookies')
 downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, 'cookiejar.lwp')
 art_path = os.path.join(icepath, 'resources', 'art')
-
-
+               
 ####################################################
 
 def xbmcpath(path,filename):
@@ -177,7 +176,6 @@ def handle_file(filename,getmode=''):
         return_file = xbmcpath(art_path,'movies_fav.png')
      elif filename == 'tvshows_fav':
         return_file = xbmcpath(art_path,'tvshows_fav.png')
-
      elif filename == 'other':
           return_file = xbmcpath(art_path,'other.png')
      elif filename == 'search':
@@ -224,7 +222,6 @@ def DLDirStartup():
 
      if downloadPath:
         if xbmcvfs.exists(downloadPath):
-          #initial_path=os.path.join(downloadPath,'Icefilms Downloaded Videos')
           tvpath=os.path.join(downloadPath,'TV Shows')
           moviepath=os.path.join(downloadPath,'Movies')
 
@@ -504,10 +501,7 @@ def Startup_Routines():
      if not xbmcvfs.exists(datapath): xbmcvfs.mkdir(datapath)
      if not xbmcvfs.exists(downinfopath): xbmcvfs.mkdir(downinfopath)
      if not xbmcvfs.exists(cookie_path): xbmcvfs.mkdir(cookie_path)
-         
-     #force refresh addon repositories, to check for updates.
-     #xbmc.executebuiltin('UpdateAddonRepos')
-     
+            
      # Run the startup routines for special download directory structure 
      DLDirStartup()
 
@@ -1571,29 +1565,30 @@ def LOADMIRRORS(url):
 def determine_source(url):
 
     hoster = re.search('https?://[www\.]*([^/]+)/', url)
-    
+   
     if not hoster:
         return None
 
-    host_list = [('2shared.com', '2Shared', 'SHARED2_HANDLER'),
-                ('180upload.com', '180Upload', 'resolve_180upload'),
+    domain = hoster.group(1)
+
+    #Keep host list as global var - used to determine resolver and build/select auto play settings
+    host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
+                ('billionuploads.com', 'BillionUploads',  'resolve_billionuploads'),
+                ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('vidhog.com', 'VidHog', 'resolve_vidhog'),
                 ('movreel.com', 'MovReel', 'resolve_movreel'),
-                ('billionuploads.com', 'BillionUploads',  'resolve_billionuploads'),
                 ('epicshare.net', 'EpicShare',  'resolve_epicshare'),
                 ('megarelease.org', 'MegaRelease', 'resolve_megarelease'),
                 ('lemuploads.com', 'LemUploads',  'resolve_lemupload'),
-                ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('entroupload.com', 'EntroUpload', 'resolve_entroupload'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
                 ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
                 ('megafiles.se', 'MegaFiles', 'resolve_megafiles'),
                 ('pandapla.net', 'PandaPlanet', 'resolve_pandaplanet'),
-                ('360gig.com', '360gig', 'resolve_360gig')
+                ('360gig.com', '360gig', 'resolve_360gig'),
+                ('2shared.com', '2Shared', 'SHARED2_HANDLER')
                 ]
-
-    domain = hoster.group(1)
-     
+                
     try:
         host_index = [y[0] for y in host_list].index(domain)      
         return host_list[host_index]
