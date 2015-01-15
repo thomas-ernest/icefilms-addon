@@ -594,8 +594,8 @@ def prepare_list(directory,dircontents):
                #add this to list
                stringList.append(filecontents)
                               
-          except:
-               addon.log('problem with opening a favourites item')
+          except Exception, e:
+               addon.log_error('Error opening a favourites item: %s' % e)
 
      #sort list alphabetically and return it.
      tupleList = [(x.lower(), x) for x in stringList]
@@ -638,6 +638,12 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
         info = favRead(thestring)
         if info is not None:
         
+            #Re-do the URL in case user has changed base URL in addon settings
+            r = re.search('[^/]+(?=/$|$)', info[1])
+            new_url = info[1]
+            if r:
+                new_url = ICEFILMS_URL + r.group(0)
+            
             if enablemetadata == True and meta_installed:
                 #return the metadata dictionary
                 if info[3] is not None:
@@ -766,7 +772,12 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
           if not xbmcvfs.exists(NewFavFile):
 
                #Use | as separators that can be used by re.split when reading favourites folder.
-               favcontents=name+'|'+url+'|'+themode+'|'+imdbnum
+               r = re.search('[^/]+(?=/$|$)', info[1])
+               new_url = url
+               if r:
+                   new_url = r.group(0)
+                
+               favcontents=name + '|' + new_url + '|' + themode + '|' + imdbnum
                save(NewFavFile,favcontents)
                
                Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
@@ -1575,16 +1586,9 @@ def determine_source(url):
     host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
                 ('billionuploads.com', 'BillionUploads',  'resolve_billionuploads'),
                 ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
-                ('vidhog.com', 'VidHog', 'resolve_vidhog'),
                 ('movreel.com', 'MovReel', 'resolve_movreel'),
-                ('epicshare.net', 'EpicShare',  'resolve_epicshare'),
-                ('megarelease.org', 'MegaRelease', 'resolve_megarelease'),
-                ('lemuploads.com', 'LemUploads',  'resolve_lemupload'),
-                ('entroupload.com', 'EntroUpload', 'resolve_entroupload'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
                 ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
-                ('megafiles.se', 'MegaFiles', 'resolve_megafiles'),
-                ('pandapla.net', 'PandaPlanet', 'resolve_pandaplanet'),
                 ('360gig.com', '360gig', 'resolve_360gig'),
                 ('2shared.com', '2Shared', 'SHARED2_HANDLER')
                 ]
@@ -1743,46 +1747,6 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
     for thenumber in numlist:
         PART(sources,thenumber,args,cookie, source_tag, ice_meta)
     setView(None, 'default-view')
-
-
-class TwoSharedDownloader:
-     
-     def __init__(self):
-          self.cookieString = ""
-          self.re2sUrl = re.compile('(?<=window.location \=\')([^\']+)')
-     
-     def returnLink(self, pageUrl):
-
-          # Open the 2Shared page and read its source to htmlSource
-          request = urllib2.Request(pageUrl)
-          response = urllib2.urlopen(request)
-          htmlSource = response.read()
-     
-          # Search the source for link to the video and store it for later use
-          match = re.compile('">(.+?)</div>').findall(htmlSource)
-          fileUrl = match[0]
-          
-          # Return the valid link
-          return fileUrl 
-     
-
-def SHARED2_HANDLER(url):
-
-          html = net.http_GET(url).content
-
-          #Check if a download limit msg is showing
-          if re.search('Your free download limit is over.', html):
-              wait_time = re.search('<span id="timeToWait">(.+?)</span>', html).group(1)
-              Notify('big','2Shared Download Limit Exceeded','You have reached your download limit', '', '', 'You must wait ' + wait_time + ' to try again' )
-              return None
-          
-          #If no download limit msg lets grab link, must post to it first for download to activate
-          else:
-              d3fid = re.search('<input type="hidden" name="d3fid" value="(.+?)">', html).group(1)
-              d3link = re.search('<input type="hidden" name="d3link" value="(.+?)">', html).group(1)
-              data = {'d3fid': d3fid, 'd3link': d3link}
-              html = net.http_POST(url, data).content
-              return d3link
 
 
 def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save_cookie = False):
@@ -2913,11 +2877,12 @@ def setView(content, viewType):
 def MOVIE_FAVOURITES(url):
     
     #get settings
-    favpath=os.path.join(datapath,'Favourites')
-    moviefav=os.path.join(favpath,'Movies')
+    moviefav=os.path.join(datapath, 'Favourites', 'Movies')
     try:
-        moviedircontents=xbmcvfs.listdir(moviefav)
-    except:
+        moviedircontents = xbmcvfs.listdir(moviefav)[1]
+    except Exception, e:
+        addon.log_error('Error occured retrieving Favourites from: %s' % moviefav)
+        addon.log_error('Error message: %s' % e)
         moviedircontents=None
     
     if moviedircontents == None:
@@ -2948,11 +2913,12 @@ def MOVIE_FAVOURITES(url):
 #TV Shows Favourites folder
 def TV_FAVOURITES(url):
     
-    favpath=os.path.join(datapath,'Favourites')
-    tvfav=os.path.join(favpath,'TV')
+    tvfav=os.path.join(datapath, 'Favourites', 'TV')
     try:
-        tvdircontents=xbmcvfs.listdir(tvfav)
+        tvdircontents=xbmcvfs.listdir(tvfav)[1]
     except:
+        addon.log_error('Error occured retrieving Favourites from: %s' % tvfav)
+        addon.log_error('Error message: %s' % e)    
         tvdircontents=None
  
     if tvdircontents == None:
