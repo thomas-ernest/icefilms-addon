@@ -225,26 +225,12 @@ def DLDirStartup():
           tvpath=os.path.join(downloadPath,'TV Shows')
           moviepath=os.path.join(downloadPath,'Movies')
 
-          tv_path_exists=xbmcvfs.exists(tvpath)
-          movie_path_exists=xbmcvfs.exists(moviepath)
+          #IF BASE DIRECTORY STRUCTURE DOESN'T EXIST, CREATE IT
+          if not xbmcvfs.exists(tvpath):
+              xbmcvfs.mkdir(tvpath)
 
-          if tv_path_exists == False or movie_path_exists == False:
-
-            #IF BASE DIRECTORY STRUCTURE DOESN'T EXIST, CREATE IT
-            #Also Add README files to TV Show and Movies direcories.
-            #(readme files stops folders being deleted when running the DirCleaner)
-
-            if tv_path_exists == False:
-               xbmcvfs.mkdir(tvpath)
-               tvreadme='Add this folder to your XBMC Library, and set it as TV to scan for metadata with TVDB.'
-               tvreadmepath=os.path.join(tvpath,'README.txt')
-               save(tvreadmepath,tvreadme)
-
-            if movie_path_exists == False:
-               xbmcvfs.mkdir(moviepath)
-               moviereadme='Add this folder to your XBMC Library, and set it as Movies to scan for metadata with TheMovieDB.'
-               moviereadmepath=os.path.join(moviepath,'README.txt')
-               save(moviereadmepath,moviereadme)
+          if not xbmcvfs.exists(moviepath):
+              xbmcvfs.mkdir(moviepath)
 
           else:
               #IF DIRECTORIES EXIST, CLEAN DIRECTORY STRUCTURE (REMOVE EMPTY DIRECTORIES)
@@ -297,7 +283,7 @@ def LoginStartup():
                 addon.log('Movreel Account: login failed')
          except Exception, e:
              addon.log('**** Movreel Error: %s' % e)
-             Notify('big','Movreel Login Failed','Failed to connect with Movreel.', '', '', 'Please check your internet connection.')
+             Notify('big','Movreel Login Failed','Failed to connect with Movreel.', '', '', 'Please check your internet connection and the Movreel.com site.')
              pass
 
 
@@ -1531,9 +1517,9 @@ def LOADMIRRORS(url):
             #if season name file exists
             if cache.get('mediatvshowname'):
                 seasonname=cache.get('mediatvshowname')
-                cache.set('mediapath','TV Shows!/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
+                cache.set('mediapath','TV Shows/'+ Clean_Windows_String(showname) + '/' + Clean_Windows_String(seasonname))
             else:
-                cache.set('mediapath','TV Shows!/' + Clean_Windows_String(showname))
+                cache.set('mediapath','TV Shows/' + Clean_Windows_String(showname))
         except:
             addon.log_error("FAILED TO SAVE TV SHOW FILE PATH!")
     else:
@@ -1721,7 +1707,8 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
     listitem=Item_Meta(vidname)
 
     try:
-        for fname in xbmcvfs.listdir(dlDir):
+        fdirs, fnames = xbmcvfs.listdir(dlDir)
+        for fname in fnames:
             match = re.match(re.escape(vidname)+' *(.*)\.avi$', fname)
             if match is not None:
                 if xbmcvfs.exists(os.path.join(dlDir,fname)+'.dling'):
@@ -1764,11 +1751,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
 
      req.add_header('User-Agent', USER_AGENT)
      req.add_header('Accept', ACCEPT)
-
-     # as of 2011-06-02, IceFilms sources aren't displayed unless a valid referrer header is supplied:
-     # http://forum.xbmc.org/showpost.php?p=810288&postcount=1146
-     if referrer:
-         req.add_header('Referer', referrer)
+     req.add_header('Referer', referrer)
 
      if cookie:
          req.add_header('Cookie', cookie)
@@ -1790,7 +1773,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save
 
      except Exception, e:
          addon.log_error('****** ERROR: %s' % e)
-         Notify('big','Error Requesting Site','An error has occured communicating with Icefilms', '', '', 'Check your connection and the Icefilms site.' )
+         Notify('big','Error Requesting Site','An error has occured communicating with Icefilms', '', '', 'Check your internet connection and the Icefilms site.' )
          body = ''
          pass
 
@@ -2558,19 +2541,21 @@ def Download_Source(name, url, stacked=False):
             Notify('Download Alert','The video you are trying to download already exists!','','')
             return False
         else:              
-                       
-            DownloadInBack=addon.get_setting('download-in-background')
-            addon.log('attempting to download file, silent = '+ DownloadInBack)
-            try:
-                if DownloadInBack == 'true':
-                    completed = QuietDownload(url, mypath, vidname)
-                    return completed
-                else:
-                    completed = Download(url, mypath, vidname)
-                    return completed
-            except:
-                addon.log_error('download failed')
-                return False
+            import commondownloader
+            commondownloader.download(url, mypath, 'Icefilms')
+            
+            # DownloadInBack=addon.get_setting('download-in-background')
+            # addon.log('attempting to download file, silent = '+ DownloadInBack)
+            # try:
+                # if DownloadInBack == 'true':
+                    # completed = QuietDownload(url, mypath, vidname)
+                    # return completed
+                # else:
+                    # completed = Download(url, mypath, vidname)
+                    # return completed
+            # except:
+                # addon.log_error('download failed')
+                # return False
 
 
 def Kill_Streaming(name,url):
@@ -2879,7 +2864,7 @@ def MOVIE_FAVOURITES(url):
     #get settings
     moviefav=os.path.join(datapath, 'Favourites', 'Movies')
     try:
-        moviedircontents = xbmcvfs.listdir(moviefav)[1]
+        moviedirs, moviedircontents = xbmcvfs.listdir(moviefav)
     except Exception, e:
         addon.log_error('Error occured retrieving Favourites from: %s' % moviefav)
         addon.log_error('Error message: %s' % e)
@@ -2915,7 +2900,7 @@ def TV_FAVOURITES(url):
     
     tvfav=os.path.join(datapath, 'Favourites', 'TV')
     try:
-        tvdircontents=xbmcvfs.listdir(tvfav)[1]
+        tvdirs, tvdircontents = xbmcvfs.listdir(tvfav)
     except:
         addon.log_error('Error occured retrieving Favourites from: %s' % tvfav)
         addon.log_error('Error message: %s' % e)    
