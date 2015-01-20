@@ -639,16 +639,16 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
                     
                     if meta is None:
                         #add all the items without meta
-                        addDir(info[0],info[1],info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
+                        addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
                     else:
                         #add directories with meta
-                        addDir(info[0],info[1],info[2],'',meta=meta,delfromfav=True,imdb=info[3], totalItems=len(stringlist), meta_install=meta_installed, favourite=True)
+                        addDir(info[0],new_url,info[2],'',meta=meta,delfromfav=True,imdb=info[3], totalItems=len(stringlist), meta_install=meta_installed, favourite=True)
                 else:
                     #add all the items without meta
-                    addDir(info[0],info[1],info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
+                    addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
             else:
                 #add all the items without meta
-                addDir(info[0],info[1],info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
+                addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
 
 
 def FAVOURITES(url):
@@ -713,7 +713,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
 
      if name is not None and url is not None:
 
-          #Set favourites path, and create it if it does'nt exist.
+          #Set favourites path, and create it if it doesn't exist.
           favpath=os.path.join(datapath,'Favourites')
           tvfav=os.path.join(favpath,'TV')
           moviefav=os.path.join(favpath,'Movies')
@@ -758,7 +758,7 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
           if not xbmcvfs.exists(NewFavFile):
 
                #Use | as separators that can be used by re.split when reading favourites folder.
-               r = re.search('[^/]+(?=/$|$)', info[1])
+               r = re.search('[^/]+(?=/$|$)', url)
                new_url = url
                if r:
                    new_url = r.group(0)
