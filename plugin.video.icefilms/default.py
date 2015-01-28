@@ -625,11 +625,10 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
         if info is not None:
         
             #Re-do the URL in case user has changed base URL in addon settings
-            r = re.search('[^/]+(?=/$|$)', info[1])
-            new_url = info[1]
-            if r:
-                new_url = ICEFILMS_URL + r.group(0)
-            
+            import urlparse
+            split_url = urlparse.urlsplit(info[1])
+            new_url = ICEFILMS_URL + split_url[2]
+                      
             if enablemetadata == True and meta_installed:
                 #return the metadata dictionary
                 if info[3] is not None:
@@ -758,12 +757,11 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
           if not xbmcvfs.exists(NewFavFile):
 
                #Use | as separators that can be used by re.split when reading favourites folder.
-               r = re.search('[^/]+(?=/$|$)', url)
-               new_url = url
-               if r:
-                   new_url = r.group(0)
-                
-               favcontents=name + '|' + new_url + '|' + themode + '|' + imdbnum
+               import urlparse
+               split_url = urlparse.urlsplit(url)
+               part_url = split_url[2][1:]
+                              
+               favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
                save(NewFavFile,favcontents)
                
                Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
