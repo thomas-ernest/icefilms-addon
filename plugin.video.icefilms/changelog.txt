@@ -1,3 +1,13 @@
+[B]v1.7.0(Tuesday, 03 February 2015):[/B]
+  - Fixed MovReel resolver
+  - Fixed BillionUploads resolver
+  - Switch to use xbmcvfs to allow network file operations - downloads
+  - Removed need to download meta data image packs, only database file is required for meta data now
+  - Code optimizations
+  - Shrink images to reduce addon zip by 70%
+  - Remove images for sources, now displays movie/tvshow meta data & poster
+  - Correct downloads to use original file extension instead of always changing to .avi (legacy code)
+
 [B]v1.6.0(Tuesday, 11 November 2014):[/B]
   - Fixed HugeFiles resolver
   - Added 360gig resolver
