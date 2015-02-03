@@ -321,7 +321,7 @@ def ContainerStartup():
          if not meta_pack_locaton.endswith("/"):
              meta_pack_locaton = meta_pack_locaton + "/"
      else:
-         meta_pack_locaton = containers['url_tuxen']
+         meta_pack_locaton = containers['url_2shared']
                             
      if not meta_installed:
 
@@ -455,12 +455,16 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
         #define the path to save it to
         filepath=os.path.normpath(os.path.join(work_folder,filename))
 
-        link = url + filename
+        #link = url + filename
+        
+        #2Shared download
+        import resolvers
+        link = resolvers.SHARED2_HANDLER(url)
 
         filepath_exists=xbmcvfs.exists(filepath)
          
         #if zip does not already exist, download from url, with nice display name.
-        if filepath_exists==False:
+        if not filepath_exists:
                         
             addon.log('Downloading zip: %s' % link)
             try:
@@ -470,7 +474,7 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
                 Notify('big','Error Downloading Meta Pack', '%s' % e, '')
                 pass
            
-        elif filepath_exists==True:
+        else:
             addon.log('zip already downloaded, attempting extraction')
 
     #Run zip install
