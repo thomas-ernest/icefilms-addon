@@ -1091,7 +1091,7 @@ def FindSearchResult(name, results):
 
 
 def DoEpListSearch(search):
-        tvurl='http://www.icefilms.info/tv/series'              
+        tvurl = iceurl + 'tv/series'
         
         # use urllib.quote_plus() on search instead of re.sub ?
         searcher=urllib.quote_plus(search)
@@ -1467,6 +1467,7 @@ def LOADMIRRORS(url):
         return
     else:
         ice_meta['title'] = namematch.group(1)
+        ice_meta['year'] = re.search('\(([0-9]+)\)', namematch.group(1)).group(1)
         try:
             cache.set('videoname', namematch.group(1))
         except:
@@ -1488,7 +1489,10 @@ def LOADMIRRORS(url):
         if plot:
             ice_meta['plot'] = plot.group(1)
             ice_meta['plot_outline'] = plot.group(1)
-
+        else:
+            ice_meta['plot'] = ''
+            ice_meta['plot_outline'] = ''
+            
         #Set Poster
         imgcheck1 = re.search('<img width=250 src=(.+?) style', html)
         if imgcheck1:
@@ -1501,7 +1505,9 @@ def LOADMIRRORS(url):
         mpaacheck=re.search('<th>MPAA Rating:</th><td>(.+?)</td>', html)
         if mpaacheck:
             mpaa=re.sub('Rated ','', mpaacheck)
-
+            ice_meta['mpaa'] = mpaa
+        else:
+            ice_meta['mpaa'] = ''
 
     ########### get and save potential file path. This is for use in download function later on.
     epcheck1 = re.search('Episodes</a>', html)
