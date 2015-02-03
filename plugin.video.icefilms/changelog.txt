@@ -1,3 +1,7 @@
+[B]v1.7.1(Tuesday, 03 February 2015):[/B]
+  - Corrected issue loading sources when meta data is turned off
+  - Fixed search function that wasn't using user entered Icefilms URL
+  
 [B]v1.7.0(Tuesday, 03 February 2015):[/B]
   - Fixed MovReel resolver
   - Fixed BillionUploads resolver
