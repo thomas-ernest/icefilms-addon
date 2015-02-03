@@ -13,7 +13,7 @@ def get():
           containers['date'] = 'Feb 2015'
           
           containers['url_tuxen'] = 'http://user.gosub.dk/eldorado/'
-          containers['url_2shared'] = 'http://www.2shared.com/file/dY-ddQeG/video_cache_20150121.html'
+          containers['url_2shared'] = 'http://www.2shared.com/file/zuXnOkxP/video_cache_20150121.html'
           
           #--- Database Meta Container ---# 
           containers['db_filename'] = 'video_cache_20150121.zip'
