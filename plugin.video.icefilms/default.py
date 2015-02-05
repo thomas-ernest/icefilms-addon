@@ -632,6 +632,8 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
             import urlparse
             split_url = urlparse.urlsplit(info[1])
             new_url = ICEFILMS_URL + split_url[2]
+            if split_url[3]:
+                new_url = new_url + "?" + split_url[3]            
                       
             if enablemetadata == True and meta_installed:
                 #return the metadata dictionary
@@ -763,7 +765,9 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                #Use | as separators that can be used by re.split when reading favourites folder.
                import urlparse
                split_url = urlparse.urlsplit(url)
-               part_url = split_url[2][1:]
+               part_url = split_url[2]
+               if split_url[3]:
+                   part_url = part_url + "?" + split_url[3]               
                               
                favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
                save(NewFavFile,favcontents)
@@ -3295,7 +3299,8 @@ def get_default_action():
 def show_addon_help():
 
     # Import PyXBMCt module.
-    import pyxbmct.addonwindow as pyxbmct
+    #import pyxbmct.addonwindow as pyxbmct
+    from pyxbmct.addonwindow import *
 
     try:
         common_addon_version = 'Unknown'
