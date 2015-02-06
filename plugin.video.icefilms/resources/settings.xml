@@ -51,6 +51,20 @@
     <setting id="notify-percent" enable="eq(-1,true)" label="30304" type="enum" values="2[B] %[/B]|5[B] %[/B]|10[B] %[/B]|20[B] %[/B]|25[B] %[/B]|50[B] %[/B]|100[B] %[/B]" default="2" />
     <setting id="axel-proxy" type="bool" label="30305" default="false" />    
    </category>
+	<category label="Database">
+		<setting id="use_remote_db" type="bool" label="Use a MySQL DB" default="false"/>
+        <setting id="db_address" type="text" label="    Address" enable="eq(-1,true)" visible="eq(-1,true)" default=""/>
+        <setting id="db_port" type="integer" label="    Port" enable="eq(-2,true)" visible="eq(-2,true)" default=""/>
+        <setting id="db_user" type="text" label="    Username" enable="eq(-3,true)" visible="eq(-3,true)" default=""/>
+        <setting id="db_pass" type="text" label="    Password" enable="eq(-4,true)" visible="eq(-4,true)" default="" option="hidden"/>
+        <setting id="db_name" type="text" label="    Database" enable="eq(-5,true)" visible="eq(-5,true)" default="Icefilms"/>
+		<setting type="sep"/>
+        <setting id="use_page_cache" type="bool" label="Use page caching" default="false"/>
+        <setting id="flush_cache" type="action" label="Flush webpage cache" enable="eq(-1,true)" visible="eq(-1,true)" action="RunPlugin(plugin://plugin.video.icefilms/?mode=flush_cache)"/>
+        <setting id="reset_db" type="action" label="Reset Icefilms DB ([COLOR red]SQLITE Only[/COLOR])" enable="true" action="RunPlugin(plugin://plugin.video.icefilms/?mode=reset_db)"/>
+		<setting id="db_export" type="action" label="Export data from Icefilms DB" enable="true" action="RunPlugin(plugin://plugin.video.icefilms/?mode=export_db)"/>
+		<setting id="db_import" type="action" label="Import data into Icefilms DB" enable="true" action="RunPlugin(plugin://plugin.video.icefilms/?mode=import_db)"/>
+	</category>   
    <category label="Auto-View">
 	<setting id="auto-view" type="bool" label="30400" default="false"/>
 	<setting id="movies-view" type="number" label="30401" default="503" enable="!eq(-1,false)"/>
