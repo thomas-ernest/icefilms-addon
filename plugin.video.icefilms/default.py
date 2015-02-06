@@ -87,6 +87,10 @@ sys.path.append( os.path.join( icepath, 'resources', 'lib' ) )
 import container_urls,clean_dirs,htmlcleaner
 import debridroutines
 
+#Database utilities
+from db_utils import DB_Connection
+db_connection = DB_Connection(addon)
+
 from cleaners import *
 from BeautifulSoup import BeautifulSoup
 from xgoogle.search import GoogleSearch
@@ -134,6 +138,7 @@ finalPart = True
 cookie_path = os.path.join(datapath, 'cookies')
 downinfopath = os.path.join(datapath, 'downloadinfologs')
 cookie_jar = os.path.join(cookie_path, 'cookiejar.lwp')
+ice_cookie = os.path.join(cookie_path, 'icefilms.lwp')
 art_path = os.path.join(icepath, 'resources', 'art')
                
 ####################################################
@@ -300,19 +305,14 @@ def ContainerStartup():
              addon.log_error('Failed to delete Icefilms meta folder: %s' % e)
              pass
 
-     #Initialize MetaHandler and MetaContainer classes
-     #MetaContainer will clean up from previous installs, so good idea to always initialize at addon startup
-     from metahandler import metacontainers
-     mh=metahandlers.MetaData()
-     mc = metacontainers.MetaContainer()
+     #Initialize MetaHandler classe
+     mh=metahandlers.MetaData()   
 
      #Check meta cache DB if meta pack has been installed     
      meta_installed = mh.check_meta_installed(addon_id)
      
      #get containers dict from container_urls.py
      containers = container_urls.get()  
-
-     work_path = mc.work_path
      
      local_install = False
      if addon.get_setting('meta_pack_location_option') == 'Custom':
@@ -330,7 +330,12 @@ def ContainerStartup():
          ret = dialog.yesno('Download Meta Containers '+str(containers['date'])+' ?', 'There is a metadata container avaliable.','Install it to get meta information for videos.', 'Would you like to get it? Its a small '+str(containers['db_size'])+'MB download.','Remind me later', 'Install')
          
          if ret==True:
-                 
+
+              #MetaContainer will clean up from previous installs, so good idea to always initialize at addon startup
+              from metahandler import metacontainers
+              mc = metacontainers.MetaContainer()
+              work_path = mc.work_path
+              
               #download dem files
               get_db_zip=Zip_DL_and_Install(meta_pack_locaton, containers['db_filename'], 'database', work_path, mc, local_install)
 
@@ -346,101 +351,6 @@ def ContainerStartup():
               
               else:
                    Notify('small','Metacontainer DB Installation Failure','','')
-
-     #Only check/prompt for image pack downloads if the DB has been downloaded/installed
-     # if meta_installed:
-
-         # #Get metadata settings
-         # movie_fanart = addon.get_setting('movie-fanart')
-         # movie_covers = addon.get_setting('movie-covers')
-         # tv_covers = addon.get_setting('tv-covers')
-         # tv_posters = addon.get_setting('tv-posters')
-         # tv_fanart = addon.get_setting('tv-fanart')
-     
-         # #TV Covers/Banners
-         # if tv_covers =='true':
-             # if tv_posters == 'true':
-                 # tv_installed = meta_installed['tv_covers']
-                 # tv_filename = containers['tv_covers_filename']
-                 # tv_size = containers['tv_cover_size']
-             # else:
-                 # tv_installed = meta_installed['tv_banners']
-                 # tv_filename = containers['tv_banners_filename']
-                 # tv_size = containers['tv_banners_size']
-
-             # if tv_installed == 'false':
-                 # dialog = xbmcgui.Dialog()
-                 # ret = dialog.yesno('Download TV Covers?', 'There is a metadata container avaliable.','Install it to get cover images for TV Shows.', 'Would you like to get it? Its a large ' + str(tv_size) + 'MB download.','Remind me later', 'Install')
-                 # if ret==True:
-                     # #download dem files
-                     # get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, tv_filename, 'tv_images', work_path, mc, local_install)
-                     
-                     # if get_cover_zip:
-                         # if tv_posters =='true':
-                             # mh.update_meta_installed(addon_id, tv_covers='true')
-                         # else:
-                             # mh.update_meta_installed(addon_id, tv_banners='true')
-                         # Notify('small','TV Cover Installation Success','','')
-                     # else:
-                         # addon.log_error('******* ERROR - TV cover install failed')
-                         # Notify('small','TV Cover Installation Failure','','')                     
-             # else:
-                 # addon.log('TV Covers already installed')
-
-         # #Movie Covers
-         # if movie_covers =='true':
-             # if meta_installed['movie_covers'] == 'false':
-                 # dialog = xbmcgui.Dialog()
-                 # ret = dialog.yesno('Download Movie Covers?', 'There is a metadata container avaliable.','Install it to get cover images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_cover_size'])+'MB download.','Remind me later', 'Install')
-                 # if ret==True:
-                     # #download dem files
-                     # get_cover_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_covers_filename'], 'movie_images', work_path, mc, local_install)
-                     
-                     # if get_cover_zip:
-                         # mh.update_meta_installed(addon_id, movie_covers='true')
-                         # Notify('small','Movie Cover Installation Success','','')
-                     # else:
-                         # addon.log_error('******* ERROR - Movie cover install failed')
-                         # Notify('small','Movie Cover Installation Failure','','')                     
-             # else:
-                 # addon.log('Movie Covers already installed')
-
-         # #Movie Fanart
-         # if movie_fanart =='true':
-             # if meta_installed['movie_backdrops'] == 'false':
-                 # dialog = xbmcgui.Dialog()
-                 # ret = dialog.yesno('Download Movie Fanart?', 'There is a metadata container avaliable.','Install it to get background images for Movies.', 'Would you like to get it? Its a large '+str(containers['mv_backdrop_size'])+'MB download.','Remind me later', 'Install')
-                 # if ret==True:
-                     # #download dem files
-                     # get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['mv_backdrop_filename'], 'movie_images', work_path, mc, local_install)
-                     
-                     # if get_backdrop_zip:
-                         # mh.update_meta_installed(addon_id, movie_backdrops='true')
-                         # Notify('small','Movie Fanart Installation Success','','')
-                     # else:
-                         # addon.log_error('******* ERROR - Movie backrop install failed')
-                         # Notify('small','Movie Fanart Installation Failure','','')
-             # else:
-                 # addon.log('Movie fanart already installed')
-
-         # #TV Fanart
-         # if tv_fanart =='true':
-             # if meta_installed['tv_backdrops'] == 'false':
-                 # dialog = xbmcgui.Dialog()
-                 # ret = dialog.yesno('Download TV Show Fanart?', 'There is a metadata container avaliable.','Install it to get background images for TV Shows.', 'Would you like to get it? Its a large '+str(containers['tv_backdrop_size'])+'MB download.','Remind me later', 'Install')
-                 # if ret==True:
-                     # #download dem files
-                     # get_backdrop_zip=Zip_DL_and_Install(meta_pack_locaton, containers['tv_backdrop_filename'], 'tv_images', work_path, mc, local_install)
-                     
-                     # if get_backdrop_zip:
-                         # mh.update_meta_installed(addon_id, tv_backdrops='true')
-                         # Notify('small','TV Fanart Installation Success','','')
-                     # else:
-                         # addon.log_error('******* ERROR - TV backrop install failed')
-                         # Notify('small','TV Fanart Installation Failure','','')                     
-    
-             # else:
-                 # addon.log('TV fanart already installed')
 
 
 def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_install=False):
@@ -495,6 +405,9 @@ def Startup_Routines():
      # Run the startup routines for special download directory structure 
      DLDirStartup()
 
+     #Initialize cache DB
+     db_connection.init_database()
+     
      # Run the login startup routines
      LoginStartup()
      
@@ -631,9 +544,13 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
             #Re-do the URL in case user has changed base URL in addon settings
             import urlparse
             split_url = urlparse.urlsplit(info[1])
-            new_url = ICEFILMS_URL + split_url[2]
+            temp_url = split_url[2]
+            if split_url[2].startswith('/'): 
+                temp_url = split_url[2][1:] 
+                
+            new_url = iceurl + temp_url
             if split_url[3]:
-                new_url = new_url + "?" + split_url[3]            
+                new_url = new_url + "?" + split_url[3]
                       
             if enablemetadata == True and meta_installed:
                 #return the metadata dictionary
@@ -765,9 +682,9 @@ def ADD_TO_FAVOURITES(name,url,imdbnum):
                #Use | as separators that can be used by re.split when reading favourites folder.
                import urlparse
                split_url = urlparse.urlsplit(url)
-               part_url = split_url[2]
+               part_url = split_url[2][1:]
                if split_url[3]:
-                   part_url = part_url + "?" + split_url[3]               
+                   part_url = part_url + "?" + split_url[3]
                               
                favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
                save(NewFavFile,favcontents)
@@ -813,11 +730,11 @@ def DELETE_FROM_FAVOURITES(name,url):
     addon.log('OLD ITEMPATH: %s' % old_itempath    )
     
     if xbmcvfs.exists(itempath):
-         xbmcvfs.rmdir(itempath)
+         xbmcvfs.delete(itempath)
          xbmc.executebuiltin("XBMC.Container.Refresh")
          
     if os.path.exists(old_itempath):
-         xbmcvfs.rmdir(old_itempath)
+         xbmcvfs.delete(old_itempath)
          xbmc.executebuiltin("XBMC.Container.Refresh")         
 
 
@@ -909,35 +826,35 @@ def RECENT(url):
               
         homepage=re.compile('<h1>Recently Added</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(link)
         for scrape in homepage:
-                scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
-                recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
-                for scraped in recadd:
-                    text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
+            scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
+            recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
+            for scraped in recadd:
+                text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
+                
+                #Add the first line
+                folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+                
+                mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                for url,name,hd in mirlinks:
+                    url=iceurl+url
+                    name=CLEANUP(name)
                     
-                    #Add the first line
-                    folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
-                    
-                    mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                    for url,name,hd in mirlinks:
-                            url=iceurl+url
-                            name=CLEANUP(name)
-                            
-                            if check_episode(name):
-                                mode = 14
-                            else:
-                                mode = 100
-                                
-                            #Check if it's an HD source and add a tag to the name
-                            if re.search('color:red', hd):
-                                new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                            else:
-                                new_name = name
-                                
-                            if meta_installed and meta_setting=='true':
-                                meta = check_video_meta(name, metaget)
-                                addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                            else:
-                                addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
+                    if check_episode(name):
+                        mode = 14
+                    else:
+                        mode = 100
+                        
+                    #Check if it's an HD source and add a tag to the name
+                    if re.search('color:red', hd):
+                        new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                    else:
+                        new_name = name
+                        
+                    if meta_installed and meta_setting=='true':
+                        meta = check_video_meta(name, metaget)
+                        addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                    else:
+                        addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')                                    
 
 
@@ -953,35 +870,35 @@ def LATEST(url):
                     
         homepage=re.compile('<h1>Recently Added</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(link)
         for scrape in homepage:
-                scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
-                latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
-                for scraped in latrel:
-                    text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
-                    
-                    #Add the first line
-                    folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
-                    
-                    mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                    for url,name,hd in mirlinks:
-                            url=iceurl+url
-                            name=CLEANUP(name)
+            scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
+            latrel=re.compile('<h1>Latest Releases</h1>(.+?)<h1>Being Watched Now</h1>', re.DOTALL).findall(scrape)
+            for scraped in latrel:
+                text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
+                
+                #Add the first line
+                folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+                
+                mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                for url,name,hd in mirlinks:
+                    url=iceurl+url
+                    name=CLEANUP(name)
 
-                            if check_episode(name):
-                                mode = 14
-                            else:
-                                mode = 100
-                            
-                            #Check if it's an HD source and add a tag to the name
-                            if re.search('color:red', hd):
-                                new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                            else:
-                                new_name = name
-                                
-                            if meta_installed and meta_setting=='true':
-                                meta = check_video_meta(name, metaget)
-                                addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                            else:
-                                addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
+                    if check_episode(name):
+                        mode = 14
+                    else:
+                        mode = 100
+                    
+                    #Check if it's an HD source and add a tag to the name
+                    if re.search('color:red', hd):
+                        new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                    else:
+                        new_name = name
+                        
+                    if meta_installed and meta_setting=='true':
+                        meta = check_video_meta(name, metaget)
+                        addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                    else:
+                        addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
         setView(None, 'default-view')
 
 
@@ -997,30 +914,30 @@ def WATCHINGNOW(url):
                     
         homepage=re.compile('<h1>Recently Added</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(link)
         for scrape in homepage:
-                scrapy='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
-                watnow=re.compile('<h1>Being Watched Now</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(scrapy)
-                for scraped in watnow:
-                        mirlinks=re.compile('href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                        for url,name,hd in mirlinks:
-                                url=iceurl+url
-                                name=CLEANUP(name)
+            scrapy='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
+            watnow=re.compile('<h1>Being Watched Now</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(scrapy)
+            for scraped in watnow:
+                mirlinks=re.compile('href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
+                for url,name,hd in mirlinks:
+                    url=iceurl+url
+                    name=CLEANUP(name)
 
-                                if check_episode(name):
-                                    mode = 14
-                                else:
-                                    mode = 100
+                    if check_episode(name):
+                        mode = 14
+                    else:
+                        mode = 100
 
-                                #Check if it's an HD source and add a tag to the name
-                                if re.search('color:red', hd):
-                                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                                else:
-                                    new_name = name
-                                                                                                        
-                                if meta_installed and meta_setting=='true':
-                                    meta = check_video_meta(name, metaget)
-                                    addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                                else:
-                                    addDir(new_name,url,mode,'',disablefav=True, disablewatch=True) 
+                    #Check if it's an HD source and add a tag to the name
+                    if re.search('color:red', hd):
+                        new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                    else:
+                        new_name = name
+                                                                                            
+                    if meta_installed and meta_setting=='true':
+                        meta = check_video_meta(name, metaget)
+                        addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                    else:
+                        addDir(new_name,url,mode,'',disablefav=True, disablewatch=True) 
         setView(None, 'default-view')
 
 
@@ -1343,66 +1260,66 @@ def TVINDEX(url):
 
 
 def TVSEASONS(url, imdb_id):
-# displays by seasons. pays attention to settings.
+    # displays by seasons. pays attention to settings.
 
-        FlattenSingleSeasons = addon.get_setting('flatten-single-season')
-        source=GetURL(url)
+    FlattenSingleSeasons = addon.get_setting('flatten-single-season')
+    source=GetURL(url)
 
-        #Save the tv show name for use in special download directories.
-        match=re.compile('<h1>(.+?)<a class').findall(source)
-        cache.set('tvshowname',match[0])
-        r=re.search('(.+?) [(][0-9]{4}[)]',match[0])
-        if r:
-            showname = r.group(1)
-        else:
-            showname = match[0]
+    #Save the tv show name for use in special download directories.
+    match=re.compile('<h1>(.+?)<a class').findall(source)
+    cache.set('tvshowname',match[0])
+    r=re.search('(.+?) [(][0-9]{4}[)]',match[0])
+    if r:
+        showname = r.group(1)
+    else:
+        showname = match[0]
 
-        # get and save the TV Show poster link
-        try:
-          imgcheck1 = re.search('<a class=img target=_blank href=', link)
-          imgcheck2 = re.search('<iframe src=http://referer.us/f/\?url=', link)
-          if imgcheck1 is not None:
-               match4=re.compile('<a class=img target=_blank href=(.+?)>').findall(link)
-               cache.set('poster',match4[0])
-          if imgcheck2 is not None:
-               match5=re.compile('<iframe src=http://referer.us/f/\?url=(.+?) width=').findall(link)
-               cache.set('poster',match5[0])
-        except:
-          pass
+    # get and save the TV Show poster link
+    try:
+      imgcheck1 = re.search('<a class=img target=_blank href=', link)
+      imgcheck2 = re.search('<iframe src=http://referer.us/f/\?url=', link)
+      if imgcheck1 is not None:
+           match4=re.compile('<a class=img target=_blank href=(.+?)>').findall(link)
+           cache.set('poster',match4[0])
+      if imgcheck2 is not None:
+           match5=re.compile('<iframe src=http://referer.us/f/\?url=(.+?) width=').findall(link)
+           cache.set('poster',match5[0])
+    except:
+      pass
+    
+    ep_list = str(BeautifulSoup(source).find("span", { "class" : "list" } ))
+
+    showname = CLEANUP_FOR_META(showname)
+    season_list=re.compile('<h3><a name.+?></a>(.+?)<a.+?</a></h3>').findall(ep_list)
+    listlength=len(season_list)
+    if listlength > 0:
+        seasons = str(season_list)
+        season_nums = re.compile('Season ([0-9]{1,2}) ').findall(seasons)                        
         
-        ep_list = str(BeautifulSoup(source).find("span", { "class" : "list" } ))
-
-        showname = CLEANUP_FOR_META(showname)
-        season_list=re.compile('<h3><a name.+?></a>(.+?)<a.+?</a></h3>').findall(ep_list)
-        listlength=len(season_list)
-        if listlength > 0:
-            seasons = str(season_list)
-            season_nums = re.compile('Season ([0-9]{1,2}) ').findall(seasons)                        
-            
-            if meta_setting=='true':
-                metaget=metahandlers.MetaData()
-                meta_installed = metaget.check_meta_installed(addon_id)
-                if meta_installed:
-                    season_meta = metaget.get_seasons(showname, imdb_id, season_nums)
+        if meta_setting=='true':
+            metaget=metahandlers.MetaData()
+            meta_installed = metaget.check_meta_installed(addon_id)
+            if meta_installed:
+                season_meta = metaget.get_seasons(showname, imdb_id, season_nums)
+        else:
+            meta_installed = False
+    num = 0
+    for seasons in season_list:
+        if FlattenSingleSeasons==True and listlength <= 1:             
+        
+            #proceed straight to adding episodes.
+            TVEPISODES(seasons.strip(),source=ep_list,imdb_id=''+str(imdb_id))
+        else:
+            #save episode page source code
+            cache.set('episodesrc',repr(ep_list))
+            #add season directories
+            if meta_installed and meta_setting=='true' and season_meta:
+                temp = season_meta[num]
+                addDir(seasons.strip(),'',13,temp['cover_url'],imdb=''+str(imdb_id), meta=season_meta[num], totalItems=len(season_list), meta_install=meta_installed) 
+                num = num + 1                     
             else:
-                meta_installed = False
-        num = 0
-        for seasons in season_list:
-            if FlattenSingleSeasons==True and listlength <= 1:             
-            
-                #proceed straight to adding episodes.
-                TVEPISODES(seasons.strip(),source=ep_list,imdb_id=''+str(imdb_id))
-            else:
-                #save episode page source code
-                cache.set('episodesrc',repr(ep_list))
-                #add season directories
-                if meta_installed and meta_setting=='true' and season_meta:
-                    temp = season_meta[num]
-                    addDir(seasons.strip(),'',13,temp['cover_url'],imdb=''+str(imdb_id), meta=season_meta[num], totalItems=len(season_list), meta_install=meta_installed) 
-                    num = num + 1                     
-                else:
-                    addDir(seasons.strip(),'',13,'', imdb=''+str(imdb_id), totalItems=len(season_list))
-                setView('seasons', 'seasons-view')
+                addDir(seasons.strip(),'',13,'', imdb=''+str(imdb_id), totalItems=len(season_list))
+            setView('seasons', 'seasons-view')
 
 
 def TVEPISODES(name,url=None,source=None,imdb_id=None):
@@ -1571,14 +1488,7 @@ def LOADMIRRORS(url):
     setView(None, 'default-view')
 
 
-def determine_source(url):
-
-    hoster = re.search('https?://[www\.]*([^/]+)/', url)
-   
-    if not hoster:
-        return None
-
-    domain = hoster.group(1)
+def determine_source(search_string, is_domain=False):
 
     #Keep host list as global var - used to determine resolver and build/select auto play settings
     host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
@@ -1590,15 +1500,28 @@ def determine_source(url):
                 ('360gig.com', '360gig', 'resolve_360gig'),
                 ('2shared.com', '2Shared', 'SHARED2_HANDLER')
                 ]
-                
-    try:
-        host_index = [y[0] for y in host_list].index(domain)      
+
+    try:                
+        if is_domain:
+            hoster = re.search('https?://[www\.]*([^/]+)/', search_string)
+           
+            if not hoster:
+                return None
+
+            domain = hoster.group(1)
+            host_index = [y[0] for y in host_list].index(domain)      
+
+        else:
+            host_index = [y[1].lower() for y in host_list].index(search_string)      
+        
         return host_list[host_index]
-    except:
+
+    except Exception, e:
+        addon.log_error('Error determining source: %s' % e)
         return None
 
 
-def PART(scrap, sourcenumber, args, cookie, source_tag, ice_meta=None):
+def PART(scrap, sourcenumber, host, args, source_tag, ice_meta=None):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
@@ -1620,9 +1543,8 @@ def PART(scrap, sourcenumber, args, cookie, source_tag, ice_meta=None):
                     pair = re.compile("onclick='go\((\d+)\)'>PART\s+(\d+)").findall(scrape)
 
                     for id, partnum in pair:
-                        url = GetSource(id, args, cookie)
 
-                        hoster = determine_source(url)
+                        hoster = determine_source(host)
 
                         if hoster:
                             partname='Part '+ partnum
@@ -1641,9 +1563,9 @@ def PART(scrap, sourcenumber, args, cookie, source_tag, ice_meta=None):
 
                             if stacked and partnum == '1':
                                 fullname = fullname.replace('Part 1', 'Multiple Parts')
-                                addExecute(fullname, url, get_default_action(), ice_meta, stacked)
+                                addExecute(fullname, args, get_default_action(), ice_meta, stacked)
                             elif not stacked:
-                                addExecute(fullname, url, get_default_action(), ice_meta)                                                
+                                addExecute(fullname, args, get_default_action(), ice_meta)                                                
 
           # if source does not have multiple parts...
           else:
@@ -1651,32 +1573,11 @@ def PART(scrap, sourcenumber, args, cookie, source_tag, ice_meta=None):
                source5=re.compile('<a\s+rel='+sourcenumber+'.+?onclick=\'go\((\d+)\)\'>Source\s+#'+sourcenumber+':').findall(scrap)
 
                for id in source5:
-                    url = GetSource(id, args, cookie)
                     
-                    hoster = determine_source(url)
+                    hoster = determine_source(host)
                     if hoster:
                         fullname=sourcestring + ' | ' + hoster[1] + source_tag + ' | Full '
-                        addExecute(fullname, url, get_default_action(), ice_meta)
-
-
-def GetSource(id, args, cookie):
-    m = random.randrange(100, 300) * -1
-    s = random.randrange(5, 50)
-    params = copy.copy(args)
-    params['id'] = id
-    params['m'] = m
-    params['s'] = s
-    paramsenc = urllib.urlencode(params)
-    body = GetURL(ICEFILMS_AJAX, params = paramsenc, cookie = cookie)
-    addon.log('response: %s' % body)
-    source = re.search('url=(http[^&]+)', body)
-    if source:
-        url = urllib.unquote(source.group(1))
-    else:
-        addon.log('GetSource - URL String not found')
-        url = ''
-    addon.log('url: %s' % url)
-    return url
+                        addExecute(fullname, args, get_default_action(), ice_meta)
 
 
 def SOURCE(page, sources, source_tag, ice_meta=None):
@@ -1685,32 +1586,21 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
     #
     # set here:
     #
-    #     iqs: not used?
-    #     url: not used?
-    #     cap: form field for recaptcha? - always set to empty in the JS
     #     sec: secret identifier: hardwired in the JS
     #     t:   token: hardwired in the JS
+    #     id:  source ID in the link's onclick attribute (extracted in PART)    
     #
     # set in GetSource:
     #
+    #     iqs: not used?
+    #     url: not used?
+    #     cap: form field for recaptcha? - always set to empty in the JS    
     #     m:   starts at 0, decremented each time a mousemove event is fired e.g. -123
     #     s:   seconds since page loaded (> 5, < 250)
-    #     id:  source ID in the link's onclick attribute (extracted in PART)
 
-    args = {
-        'iqs': '',
-        'url': '',
-        'cap': ''
-    }
-
-    sec = re.search("f\.lastChild\.value=\"(.+?)\",a", page).group(1)
-    t = re.search('"&t=([^"]+)",', page).group(1)
-
-    args['sec'] = sec
-    args['t'] = t
-
-    cookie = re.search('<cookie>(.+?)</cookie>', page).group(1)
-    addon.log("saved cookie: %s" % cookie)
+    args = {}
+    args['sec'] = re.search("f\.lastChild\.value=\"(.+?)\",a", page).group(1)
+    args['t'] = re.search('"&t=([^"]+)",', page).group(1)
 
     #add cached source
     vidname=cache.get('videoname')
@@ -1732,64 +1622,65 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
     except:
         pass
 
-    # create a list of numbers: 1-21
-    num = 1
-    numlist = list('1')
-    while num < 21:
-        num = num+1
-        numlist.append(str(num))
-
-    #for every number, run PART.
-    #The first thing PART does is check whether that number source exists...
-    #...so it's not as CPU intensive as you might think.
-
-    for thenumber in numlist:
-        PART(sources,thenumber,args,cookie, source_tag, ice_meta)
+    #Find all hosts
+    hosts = re.findall('<a\s+rel=[0-9]+.+?onclick=\'go\((\d+)\)\'>Source\s+#([0-9]+): (<span .+?</span>)</a>', sources)
+    for id, number, hoster in hosts:
+        host = re.sub('</span>', '', re.sub('<span .+?>', '', hoster)).lower()
+        args['id'] = id
+        PART(sources, number, host, args, source_tag, ice_meta)
     setView(None, 'default-view')
 
 
-def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, cookie = None, save_cookie = False):
-     addon.log('GetUrl: ' + url)
-     addon.log('params: ' + repr(params))
-     addon.log('referrer: ' + repr(referrer))
-     addon.log('cookie: ' + repr(cookie))
-     addon.log('save_cookie: ' + repr(save_cookie))
+def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, use_cookie = False, save_cookie = False, use_cache=True):
+    addon.log('GetUrl: ' + url)
+    addon.log('params: ' + repr(params))
+    addon.log('referrer: ' + repr(referrer))
+    addon.log('cookie: ' + repr(use_cookie))
+    addon.log('save_cookie: ' + repr(save_cookie))
 
-     if params:
-        req = urllib2.Request(url, params)
-        # req.add_header('Content-type', 'application/x-www-form-urlencoded')
-     else:
-         req = urllib2.Request(url)
+    headers = {
+        'Referer': referrer,
+        'Accept': ACCEPT,
+        'User-Agent': USER_AGENT
+    }
 
-     req.add_header('User-Agent', USER_AGENT)
-     req.add_header('Accept', ACCEPT)
-     req.add_header('Referer', referrer)
-
-     if cookie:
-         req.add_header('Cookie', cookie)
-
-     # avoid Python >= 2.5 ternary operator for backwards compatibility
-     # http://wiki.xbmc.org/index.php?title=Python_Development#Version
-     try:
-         response = urllib2.urlopen(req)
-         body = response.read()
-
-         if save_cookie:
-             setcookie = response.info().get('Set-Cookie', None)
-             addon.log("Set-Cookie: %s" % repr(setcookie))
-             if setcookie:
-                 setcookie = re.search('([^=]+=[^=;]+)', setcookie).group(1)
-                 body = body + '<cookie>' + setcookie + '</cookie>'
+    page_cache = str2bool(addon.get_setting('use_page_cache'))
     
-         response.close()
+    try:
 
-     except Exception, e:
-         addon.log_error('****** ERROR: %s' % e)
-         Notify('big','Error Requesting Site','An error has occured communicating with Icefilms', '', '', 'Check your internet connection and the Icefilms site.' )
-         body = ''
-         pass
+        if page_cache and use_cache:
+            html = db_connection.get_cached_url(url, 10)
+            if html:
+                addon.log_debug("Cached URL found for: %s" % url)
+                return html
+            else:
+                addon.log_debug("No cache found for: %s" % url)
+        
+        
+        if use_cookie:
+            net.set_cookies(ice_cookie)
+            addon.log("Cookie set")
 
-     return body
+        if params:
+            html = net.http_POST(url, params, headers=headers).content
+        else:
+            html = net.http_GET(url, headers=headers).content
+
+        if use_cache:   
+            db_connection.cache_url(url, html)
+        
+        if save_cookie:
+            net.save_cookies(ice_cookie)          
+            addon.log("Cookie saved")
+
+    except Exception, e:
+        addon.log_error('****** ERROR: %s' % e)
+        Notify('big','Error Requesting Site','An error has occured communicating with Icefilms', '', '', 'Check your internet connection and the Icefilms site.' )
+        html = ''
+        pass
+
+    return html
+
 
 ############################################
 ## Helper Functions
@@ -1950,10 +1841,11 @@ def handle_wait(time_to_wait,title,text):
          addon.log('done waiting')
          return True
 
+   
 def Handle_Vidlink(url):
 
     #Determine who our source is, grab all needed info
-    hoster = determine_source(url)
+    hoster = determine_source(url, is_domain=True)
      
     #Using real-debrid to get the generated premium link
     debrid_account = str2bool(addon.get_setting('realdebrid-account'))
@@ -1994,10 +1886,42 @@ def PlayFile(name,url):
         addon.log_error('local file playing failed')
 
 
-def Stream_Source(name, url, download_play=False, download=False, download_jdownloader=False, stacked=False):
-  
-    addon.log('Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked))
+def GetSource():
 
+    params = {
+        'iqs': '',
+        'url': '',
+        'cap': '',
+        'sec': addon.queries.get('sec', ''),
+        't': addon.queries.get('t', ''),
+        'id': addon.queries.get('id', '')
+    } 
+   
+    m = random.randrange(100, 300) * -1
+    s = random.randrange(5, 50)
+    params['m'] = m
+    params['s'] = s
+    
+    body = GetURL(ICEFILMS_AJAX, params = params, use_cookie=True, use_cache=False)
+    addon.log('GetSource Response: %s' % body)
+    source = re.search('url=(http[^&]+)', body)
+    
+    if source:
+        url = urllib.unquote(source.group(1))
+    else:
+        addon.log('GetSource - URL String not found')
+        url = ''
+    addon.log('GetSource URL: %s' % url)
+    return url
+
+
+def Stream_Source(name, download_play=False, download=False, download_jdownloader=False, stacked=False):
+
+    #Grab actual source url
+    url = GetSource()
+    
+    addon.log('Entering Stream Source with options - Name: %s Url: %s DownloadPlay: %s Download: %s Stacked: %s' % (name, url, download_play, download, stacked))
+  
     callEndOfDirectory = False
     
     vidname=cache.get('videoname')
@@ -2151,61 +2075,6 @@ def get_stacked_part(name, part):
     except:
         addon.log_error('No more parts found')
         return None
-
-
-def Stream_Source_with_parts(name,url):
-    global currentTime
-    global totalTime
-    global watched_percent
-    global finalPart
-
-    #Find which source
-    sourcenumber = name[8:9]
-    source = eval(cache.get("source"+str(sourcenumber)+"parts"))
-
-    watched_percent = get_watched_percent()
-    link=Handle_Vidlink(source['1'])
-    listitem=Item_Meta(name)
-    addon.log('--- Attempting to stream file: ' + str(link) + ' from url: ' + str(url))
-     
-    mplayer = MyPlayer()
-    mplayer.play(link, listitem)
-
-    index = 2
-    
-    # first part is playing... now wait to start 2nd part
-    while not finalPart:
-        #Set the currentTime and totalTime to arbitrary numbers. This keeps it from pre-maturely starting the 3rd part immediately after the 2nd part starts
-        # using currentTime and totalTime from the first part.
-        currentTime = 0
-        totalTime = 20
-        try:
-            #Try to get the totalTime and currentTime from the player... If there is an exception and nothing is retrieved set it back to 20 to avoid moving
-            # on to the next part.
-            totalTime = mplayer.getTotalTime()
-            if totalTime == 0:
-                totalTime = 20
-            currentTime= mplayer.getTime()
-        except Exception:
-            addon.log_error('XBMC is not currently playing a media file')
-        #start next part
-        #When the current part has less than 3 seconds remaining get ready to start next part.
-        if currentTime > totalTime-3:
-            xbmc.sleep(4000)
-            #Check the part list to see if there are parts remaining
-            if source[str(index)]:
-                link2=Handle_Vidlink(source[str(index)])
-                listitem=Item_Meta(name)
-                try:
-                    nextPart = source[str(index+1)]
-                except:
-                    addon.log('Attempting to stream the final part: %s' % str(link2))
-                    finalPart = True
-                    pass
-                mplayer = MyPlayer()
-                mplayer.play(link2, listitem)
-                index+=1
-        xbmc.sleep(500) 
 
 
 class MyPlayer (xbmc.Player):
@@ -2650,16 +2519,17 @@ def _pbhook(numblocks, blocksize, filesize, dp, start_time):
             dp.close() 
             raise StopDownloading('Stopped Downloading')
 
-   
-def addExecute(name, url, mode, ice_meta, stacked=False):
+
+def addExecute(name, args, mode, ice_meta, stacked=False):
 
     # A list item that executes the next mode, but doesn't clear the screen of current list items.
 
     #encode url and name, so they can pass through the sys.argv[0] related strings
     sysname = urllib.quote_plus(name)
-    sysurl = urllib.quote_plus(url)
-    
-    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + str(video_type) + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked)
+    sysurl = urllib.quote_plus(ICEFILMS_AJAX)
+    argsenc = urllib.urlencode(args)
+        
+    u = sys.argv[0] + "?url=" + sysurl + "&mode=" + str(mode) + "&name=" + sysname + "&imdbnum=" + urllib.quote_plus(str(imdbnum))  + "&videoType=" + str(video_type) + "&season=" + str(season_num) + "&episode=" + str(episode_num) + "&stackedParts=" + str(stacked) + "&" + str(argsenc)
     ok=True
 
     liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ice_meta['poster'])
@@ -2668,10 +2538,10 @@ def addExecute(name, url, mode, ice_meta, stacked=False):
     #handle adding context menus
     contextMenuItems = []
 
-    contextMenuItems.append(('Play Stream', 'XBMC.RunPlugin(%s?mode=200&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
-    contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
-    contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
-    contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(%s?mode=202&name=%s&url=%s&stackedParts=%s)' % (sys.argv[0], sysname, sysurl, stacked)))
+    contextMenuItems.append(('Play Stream', 'XBMC.RunPlugin(%s?mode=200&name=%s&url=%s&stackedParts=%s&%s)' % (sys.argv[0], sysname, sysurl, stacked, argsenc)))
+    contextMenuItems.append(('Download', 'XBMC.RunPlugin(%s?mode=201&name=%s&url=%s&stackedParts=%s&%s)' % (sys.argv[0], sysname, sysurl, stacked, argsenc)))
+    contextMenuItems.append(('Download And Watch', 'XBMC.RunPlugin(%s?mode=206&name=%s&url=%s&stackedParts=%s&%s)' % (sys.argv[0], sysname, sysurl, stacked, argsenc)))
+    contextMenuItems.append(('Download with jDownloader', 'XBMC.RunPlugin(%s?mode=202&name=%s&url=%s&stackedParts=%s&%s)' % (sys.argv[0], sysname, sysurl, stacked, argsenc)))
 
     liz.addContextMenuItems(contextMenuItems, replaceItems=True)
 
@@ -3362,7 +3232,27 @@ def show_addon_help():
     window.connect(ACTION_NAV_BACK, window.close)
     # Show the created window.
     window.doModal()
+
     
+def flush_cache():
+    dlg = xbmcgui.Dialog()
+    ln1 = 'Are you sure you want to '
+    ln2 = 'delete the url cache?'
+    ln3 = 'This will slow things down until rebuilt'
+    yes = 'Keep'
+    no = 'Delete'
+    if dlg.yesno('Flush web cache', ln1, ln2, ln3, yes, no):
+        db_connection.flush_cache()
+
+
+def reset_db():
+    if db_connection.reset_db():
+        message='DB Reset Successful'
+    else:
+        message='Reset only allowed on SQLite DBs'
+    
+    Notify('small','Icefilms', message,'')
+
 
 if mode=='main': #or url==None or len(url)<1:
         CATEGORIES()
@@ -3393,7 +3283,13 @@ elif mode=='990':
  
 elif mode=='addon_help':
     show_addon_help()
- 
+    
+elif mode=='flush_cache':
+    flush_cache()
+
+elif mode=='reset_db':
+    reset_db()
+
 elif mode=='50':
         TVCATEGORIES(url)
 
@@ -3508,14 +3404,14 @@ elif mode=='111':
         DELETE_FROM_FAVOURITES(name,url)
 
 elif mode=='200':
-        Stream_Source(name,url,stacked=stacked_parts)
+        Stream_Source(name, stacked=stacked_parts)
 
 elif mode=='201':
-        Stream_Source(name, url, download=True, stacked=stacked_parts)
+        Stream_Source(name, download=True, stacked=stacked_parts)
         #Download_Source(name,url)
 
 elif mode=='202':
-        Stream_Source(name, url, stacked=stacked_parts, download_jdownloader=True)
+        Stream_Source(name, stacked=stacked_parts, download_jdownloader=True)
 
 elif mode=='203':
         Kill_Streaming(name,url)
@@ -3524,7 +3420,7 @@ elif mode=='205':
         PlayFile(name,url)
         
 elif mode=='206':
-        Stream_Source(name, url, download_play=True, stacked=stacked_parts)
+        Stream_Source(name, download_play=True, stacked=stacked_parts)
         #Download_And_Play(name,url)
 
 elif mode=='207':
