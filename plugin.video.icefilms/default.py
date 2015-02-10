@@ -544,13 +544,13 @@ def addFavourites(enablemetadata,directory,dircontents,contentType):
             #Re-do the URL in case user has changed base URL in addon settings
             import urlparse
             split_url = urlparse.urlsplit(info[1])
-            temp_url = split_url[2]
-            if split_url[2].startswith('/'): 
-                temp_url = split_url[2][1:] 
+            temp_url = split_url.path
+            if split_url.path.startswith('/'): 
+                temp_url = split_url.path[1:] 
                 
             new_url = iceurl + temp_url
-            if split_url[3]:
-                new_url = new_url + "?" + split_url[3]
+            if split_url.query:
+                new_url = new_url + "?" + split_url.query
                       
             if enablemetadata == True and meta_installed:
                 #return the metadata dictionary
@@ -630,82 +630,85 @@ def METAFIXER(url):
 
 
 def ADD_TO_FAVOURITES(name,url,imdbnum):
-     #Creates a new text file in favourites folder. The text file is named after the items name, and contains the name, url and relevant mode.
-     addon.log('Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url))
+    #Creates a new text file in favourites folder. The text file is named after the items name, and contains the name, url and relevant mode.
+    addon.log('Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url))
 
-     if name is not None and url is not None:
+    if name and url:
 
-          #Set favourites path, and create it if it doesn't exist.
-          favpath=os.path.join(datapath,'Favourites')
-          tvfav=os.path.join(favpath,'TV')
-          moviefav=os.path.join(favpath,'Movies')
-          
-          try:
-               xbmcvfs.mkdir(tvfav)
-          except Exception, e:
-               addon.log_error('Error creating tv favorites folder: %s' % e)
-               pass
-          try:
-               xbmcvfs.mkdir(moviefav)
-          except Exception, e:
-               addon.log_error('Error creating movie favorites folder: %s' % e)
-               pass
+        #Set favourites path, and create it if it doesn't exist.
+        favpath=os.path.join(datapath,'Favourites')
+        tvfav=os.path.join(favpath,'TV')
+        moviefav=os.path.join(favpath,'Movies')
 
-          #fix name and imdb number for Episode List entries in Search.
-          if imdbnum == 'nothing':
-               metafix=METAFIXER(url)
-               name=metafix[0]
-               imdbnum=metafix[1]
+        if not xbmcvfs.exists(favpath):
+            if not xbmcvfs.mkdir(favpath):
+                addon.log_error('Error creating favorites folder: %s' % favpath)
+        
+        if not xbmcvfs.exists(tvfav):
+            if not xbmcvfs.mkdir(tvfav):
+                addon.log_error('Error creating tv favorites folder: %s' % tvfav)
+    
+        if not xbmcvfs.exists(moviefav):
+            if not xbmcvfs.mkdir(moviefav):
+                addon.log_error('Error creating movie favorites folder: %s' % moviefav)
+
+
+        #fix name and imdb number for Episode List entries in Search.
+        if imdbnum == 'nothing':
+            metafix=METAFIXER(url)
+            name=metafix[0]
+            imdbnum=metafix[1]
          
-          url_type=URL_TYPE(url)
+        url_type=URL_TYPE(url)
 
-          if url_type=='mirrors':
-               themode='100'
-               savepath=moviefav
+        if url_type=='mirrors':
+            themode='100'
+            savepath=moviefav
                
-          elif url_type=='episodes':
-               themode='12'
-               savepath=tvfav
+        elif url_type=='episodes':
+            themode='12'
+            savepath=tvfav
 
-          addon.log('NAME: %s URL: %s IMDB NUMBER: %s' % (name,url,imdbnum))
+        addon.log('NAME: %s URL: %s IMDB NUMBER: %s' % (name,url,imdbnum))
 
-          #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
-          adjustedname=Clean_Windows_String(name).strip()
+        #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
+        adjustedname=Clean_Windows_String(name).strip()
 
-          #encode the filename to the safe string
-          #adjustedname=base64.urlsafe_b64encode(name)
+        #encode the filename to the safe string
+        #adjustedname=base64.urlsafe_b64encode(name)
 
-          #Save the new favourite if it does not exist.
-          NewFavFile=os.path.join(savepath,adjustedname+'.txt')
-          if not xbmcvfs.exists(NewFavFile):
+        #Save the new favourite if it does not exist.
+        NewFavFile=os.path.join(savepath,adjustedname+'.txt')
+        if not xbmcvfs.exists(NewFavFile):
 
-               #Use | as separators that can be used by re.split when reading favourites folder.
-               import urlparse
-               split_url = urlparse.urlsplit(url)
-               part_url = split_url[2][1:]
-               if split_url[3]:
-                   part_url = part_url + "?" + split_url[3]
+            #Use | as separators that can be used by re.split when reading favourites folder.
+            import urlparse
+            split_url = urlparse.urlsplit(url)
+            part_url = split_url.path[1:]
+            if split_url.query:
+                part_url = part_url + "?" + split_url.query
                               
-               favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
-               save(NewFavFile,favcontents)
+            favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
+            save(NewFavFile,favcontents)
                
-               Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
+            Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
 
-               #Rescan Next Aired
-               next_aired = str2bool(addon.get_setting('next-aired'))
-               if next_aired:
-                   xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
-          else:
-               addon.log('Warning - favourite already exists')
-               Notify('small','Icefilms Favourites', name + ' favourite already exists','','6000')
+            #Rescan Next Aired
+            next_aired = str2bool(addon.get_setting('next-aired'))
+            if next_aired:
+                xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
+        else:
+            addon.log('Warning - favourite already exists')
+            Notify('small','Icefilms Favourites', name + ' favourite already exists','','6000')
 
-     else:
-          Notify('small','Icefilms Favourites', 'Unable to add to favourites','','')
-          addon.log('Warning - favorite name or url is none:')
-          addon.log('NAME: ',name)
-          addon.log('URL: ',url)
+            
+    else:
+        Notify('small','Icefilms Favourites', 'Unable to add to favourites','','')
+        addon.log('Warning - favorite name or url is none:')
+        addon.log('NAME: ',name)
+        addon.log('URL: ',url)      
 
-     
+
 def DELETE_FROM_FAVOURITES(name,url):
 
     #legacy check - encode the filename to the safe string *** to check ***
@@ -1666,7 +1669,7 @@ def GetURL(url, params = None, referrer = ICEFILMS_REFERRER, use_cookie = False,
         else:
             html = net.http_GET(url, headers=headers).content
 
-        if use_cache:   
+        if  page_cache and use_cache:
             db_connection.cache_url(url, html)
         
         if save_cookie:
@@ -3169,8 +3172,7 @@ def get_default_action():
 def show_addon_help():
 
     # Import PyXBMCt module.
-    #import pyxbmct.addonwindow as pyxbmct
-    from pyxbmct.addonwindow import *
+    import pyxbmct.addonwindow as pyxbmct
 
     try:
         common_addon_version = 'Unknown'
@@ -3189,39 +3191,39 @@ def show_addon_help():
         pass        
         
     # Create a window instance.
-    window = AddonDialogWindow('Icefilms XBMC Addon Help')
+    window = pyxbmct.AddonDialogWindow('Icefilms XBMC Addon Help')
     # Set the window width, height, rows, columns.
     window.setGeometry(850, 600, 12, 8)
 
     # Icefilms logo
-    image = Image(addon.get_icon())
+    image = pyxbmct.Image(addon.get_icon())
     window.placeControl(image, 0, 0, rowspan=3, columnspan=2)      
 
     # Addon current information
-    textBox = TextBox(textColor='0xFFFFFFFF')
+    textBox = pyxbmct.TextBox(textColor='0xFFFFFFFF')
     window.placeControl(textBox, 0, 2, columnspan=5, rowspan=2)
     textBox.setText('[B]Author:[/B] %s\n[B]Current version:[/B] %s\n[B]Support:[/B] www.tvaddons.ag.com' % (addon.get_author(), addon.get_version()))
     
     #Installed dependencies
-    textBox = TextBox(textColor='0xFFFFFFFF')
+    textBox = pyxbmct.TextBox(textColor='0xFFFFFFFF')
     window.placeControl(textBox, 3, 0, columnspan=7, rowspan=3)
     textBox.setText('[B]Installed Dependencies:[/B]\n    [B]Metahandlers:[/B] %s \n    [B]Common addon methods:[/B] %s \n    [B]Axel Downloader:[/B] %s' % (metahandler_version, common_addon_version, axel_addon_version))
 
     # Folder locations      
-    label = Label('[B]Installed location:[/B] \n[B]Data Location:[/B]')
+    label = pyxbmct.Label('[B]Installed location:[/B] \n[B]Data Location:[/B]')
     window.placeControl(label, 6, 0, columnspan=2)
 
-    fadeLabel = FadeLabel(textColor='0xFFFFFFFF')
+    fadeLabel = pyxbmct.FadeLabel(textColor='0xFFFFFFFF')
     window.placeControl(fadeLabel, 6, 2, columnspan=6)
     fadeLabel.addLabel('%s\n%s' % (addon.get_path(), addon.get_profile()))
     
     #Addon description
-    textBox = TextBox(textColor='0xFFFFFFFF')
+    textBox = pyxbmct.TextBox(textColor='0xFFFFFFFF')
     window.placeControl(textBox, 7, 0, columnspan=7, rowspan=4)
     textBox.setText(addon.get_description())
   
     # Create a button.
-    button = Button('Close')
+    button = pyxbmct.Button('Close')
     # Place the button on the window grid.
     window.placeControl(button, 11, 3, columnspan=2)
     # Set initial focus on the button.
@@ -3229,7 +3231,7 @@ def show_addon_help():
     # Connect the button to a function.
     window.connect(button, window.close)
     # Connect a key action to a function.
-    window.connect(ACTION_NAV_BACK, window.close)
+    window.connect(pyxbmct.ACTION_NAV_BACK, window.close)
     # Show the created window.
     window.doModal()
 
