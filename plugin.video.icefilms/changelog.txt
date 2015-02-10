@@ -1,3 +1,7 @@
+[B]v1.8.1(Tuesday, 10 February 2015):[/B]
+  - Fixed yet another issue with favourites, was failing to create sub-folders on some systems
+  - Small code cleanups from new changes
+
 [B]v1.8.0(Monday, 09 February 2015):[/B]
   - Fixed (hopefully) all issues with favourites
   - Added new Icefilms own cache DB
