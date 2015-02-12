@@ -24,7 +24,7 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 DB_TYPES= enum(MYSQL='mysql', SQLITE='sqlite')
-CSV_MARKERS = enum(FAVORITES='***FAVORITES***', SUBSCRIPTIONS='***SUBSCRIPTIONS***', BOOKMARKS='***BOOKMARKS***', EXT_SUBS='***EXTERNAL SUBSCRIPTIONS***')
+CSV_MARKERS = enum(FAVOURITES='***FAVOURITES***', SUBSCRIPTIONS='***SUBSCRIPTIONS***', BOOKMARKS='***BOOKMARKS***', EXT_SUBS='***EXTERNAL SUBSCRIPTIONS***')
 
 
 class DB_Connection():
@@ -104,8 +104,8 @@ class DB_Connection():
         sql = 'DELETE FROM new_bkmark WHERE url=?'
         self.__execute(sql, (url,))
 
-    def get_favorites(self, fav_type=None):
-        sql = 'SELECT * FROM favorites'
+    def get_favourites(self, fav_type=None):
+        sql = 'SELECT * FROM favourites'
         if fav_type:
             sql = sql + self.__format(' WHERE type = ? ORDER BY NAME')
             favs=self.__execute(sql, (fav_type,))
@@ -113,8 +113,8 @@ class DB_Connection():
             favs=self.__execute(sql)
         return favs
     
-    def get_favorites_count(self, fav_type=None):
-        sql = 'SELECT count(*) FROM favorites'
+    def get_favourites_count(self, fav_type=None):
+        sql = 'SELECT count(*) FROM favourites'
         if fav_type:
             sql = sql + self.__format(' WHERE type = ?')
             rows=self.__execute(sql, (fav_type,))
@@ -123,22 +123,28 @@ class DB_Connection():
 
         return rows[0][0]
     
-    def save_favorite(self, fav_type, name, url, year):
-        sql = 'INSERT INTO favorites (type, name, url, year) VALUES (?, ?, ?, ?)'
+    def save_favourite(self, fav_type, name, url, imdbid):
+        sql = 'INSERT INTO favourites (type, name, url, imdbid) VALUES (?, ?, ?, ?)'
         try:
             title = urllib.unquote_plus(unicode(name, 'latin1'))
-            self.__execute(sql, (fav_type, title, url, year))
+            self.__execute(sql, (fav_type, title, url, imdbid))
         except database.IntegrityError:
             raise
-        
-    # delete a list of favorites, urls must be a list
-    def delete_favorites(self, urls):
+
+    def clear_favourites(self, fav_type=None):
+        sql = self.__format('DELETE FROM favourites')
+        if type:
+            sql = sql + self.__format(' WHERE type = ?')
+        self.__execute(sql, (fav_type,))
+            
+    # delete a list of favourites, urls must be a list
+    def delete_favourites(self, urls):
         url_string=', '.join('?' for _ in urls)
-        sql = self.__format('DELETE FROM favorites WHERE url in ('+url_string+')')
+        sql = self.__format('DELETE FROM favourites WHERE url in ('+url_string+')')
         self.__execute(sql, urls)
         
-    def delete_favorite(self, url):
-        self.delete_favorites([url])
+    def delete_favourite(self, url):
+        self.delete_favourites([url])
 
     def get_subscriptions(self, day=None, order_matters=False):
         sql = 'SELECT * FROM subscriptions'
@@ -245,9 +251,9 @@ class DB_Connection():
         with open(temp_path, 'w') as f:
             writer=csv.writer(f)
             f.write('***VERSION: %s***\n' % self.__get_db_version())
-            if self.__table_exists('favorites'):
-                f.write(CSV_MARKERS.FAVORITES+'\n')
-                for fav in self.get_favorites():
+            if self.__table_exists('favourites'):
+                f.write(CSV_MARKERS.FAVOURITES+'\n')
+                for fav in self.get_favourites():
                     writer.writerow(fav)
             if self.__table_exists('subscriptions'):
                 f.write(CSV_MARKERS.SUBSCRIPTIONS+'\n')
@@ -281,13 +287,13 @@ class DB_Connection():
                     mode=''
                     _=f.readline() #read header
                     for line in reader:
-                        if CSV_MARKERS.FAVORITES in line[0] or CSV_MARKERS.SUBSCRIPTIONS in line[0] or CSV_MARKERS.BOOKMARKS in line[0] or CSV_MARKERS.EXT_SUBS in line[0]:
+                        if CSV_MARKERS.FAVOURITES in line[0] or CSV_MARKERS.SUBSCRIPTIONS in line[0] or CSV_MARKERS.BOOKMARKS in line[0] or CSV_MARKERS.EXT_SUBS in line[0]:
                             mode=line[0]
                             continue
-                        elif mode==CSV_MARKERS.FAVORITES:
+                        elif mode==CSV_MARKERS.FAVOURITES:
                             try:
-                                self.save_favorite(line[0], line[1], line[2], line[3])
-                            except: pass # save_favorite throws exception on dupe
+                                self.save_favourite(line[0], line[1], line[2], line[3])
+                            except: pass # save_favourite throws exception on dupe
                         elif mode==CSV_MARKERS.SUBSCRIPTIONS:
                             # don't allow import of days with values other than 0-6
                             if line[5].translate(None,'0123456'): line[5] = '0123456' 
@@ -311,7 +317,7 @@ class DB_Connection():
         self.addon.log('Building Icefilms Database')
         if self.db_type == DB_TYPES.MYSQL:
             self.__execute('CREATE TABLE IF NOT EXISTS seasons (season INTEGER UNIQUE, contents TEXT)')
-            self.__execute('CREATE TABLE IF NOT EXISTS favorites (type VARCHAR(10), name TEXT, url VARCHAR(255) UNIQUE, year VARCHAR(10))')
+            self.__execute('CREATE TABLE IF NOT EXISTS favourites (type VARCHAR(10), name TEXT, url VARCHAR(255) UNIQUE, imdbid VARCHAR(10))')
             self.__execute('CREATE TABLE IF NOT EXISTS subscriptions (url VARCHAR(255) UNIQUE, title TEXT, img TEXT, year TEXT, imdbnum TEXT, days VARCHAR(7))')
             self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url VARCHAR(255) NOT NULL, response MEDIUMBLOB, timestamp TEXT, PRIMARY KEY(url))')
             self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting TEXT, value TEXT)')
@@ -324,14 +330,14 @@ class DB_Connection():
         else:
             self.__create_sqlite_db()
             self.__execute('CREATE TABLE IF NOT EXISTS seasons (season UNIQUE, contents)')
-            self.__execute('CREATE TABLE IF NOT EXISTS favorites (type, name, url, year)')
+            self.__execute('CREATE TABLE IF NOT EXISTS favourites (type, name, url, imdbid)')
             self.__execute('CREATE TABLE IF NOT EXISTS subscriptions (url, title, img, year, imdbnum, days VARCHAR(7))')
             self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url UNIQUE, response, timestamp)')
             self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting TEXT, value TEXT)')
             self.__execute('CREATE TABLE IF NOT EXISTS new_bkmark (url TEXT PRIMARY KEY NOT NULL, resumepoint DOUBLE NOT NULL)')
             self.__execute('CREATE TABLE IF NOT EXISTS external_subs (type INTEGER NOT NULL, url TEXT NOT NULL, imdbnum TEXT, days VARCHAR(7), PRIMARY KEY (type, url))')
             self.__execute('CREATE TABLE IF NOT EXISTS cache_data (name TEXT, value TEXT)')
-            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_fav ON favorites (url)')
+            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_fav ON favourites (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_sub ON subscriptions (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_url ON url_cache (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_db_info ON db_info (setting)') 
