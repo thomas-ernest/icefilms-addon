@@ -120,6 +120,12 @@ ICEFILMS_REFERRER = 'http://www.icefilms.info'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
+VideoType_Movies = 'movie'
+VideoType_TV = 'tvshow'
+VideoType_Season = 'season'
+VideoType_Episode = 'episode'
+
+
 #useful global strings:
 iceurl = ICEFILMS_URL
 meta_setting = addon.get_setting('use-meta')
@@ -218,6 +224,116 @@ def appendfile(filename,contents):
     f.close()
 
 
+def Startup_Routines():
+     
+     # avoid error on first run if no paths exists, by creating paths
+     if not xbmcvfs.exists(datapath): xbmcvfs.mkdir(datapath)
+     if not xbmcvfs.exists(downinfopath): xbmcvfs.mkdir(downinfopath)
+     if not xbmcvfs.exists(cookie_path): xbmcvfs.mkdir(cookie_path)
+            
+     # Run the startup routines for special download directory structure 
+     DLDirStartup()
+
+     #Initialize cache DB
+     db_connection.init_database()
+     
+     #Convert file system favourites to DB
+     convert_favourites()
+     
+     # Run the login startup routines
+     LoginStartup()
+     
+     # Run the container checking startup routines, if enable meta is set to true
+     if meta_setting=='true': ContainerStartup()
+     
+     #Rescan Next Aired on startup - actually only rescans every 24hrs
+     next_aired = str2bool(addon.get_setting('next-aired'))
+     if next_aired:
+         xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
+
+
+#Upgrade code to convert legacy file system based favourites to cache db
+def convert_favourites():
+
+    favpath=os.path.join(datapath, 'Favourites', '')
+    moviefav=os.path.join(datapath, 'Favourites', 'Movies', '')
+    tvfav=os.path.join(datapath, 'Favourites', 'TV', '')
+    
+    try:
+        if xbmcvfs.exists(favpath):
+        
+            #Process Movie favourites
+            if xbmcvfs.exists(moviefav):
+                moviedirs, moviefiles = xbmcvfs.listdir(moviefav)
+                if moviefiles:
+                    
+                    for file in moviefiles:
+                    
+                        filecontents = openfile(os.path.join(moviefav, file))
+                        
+                        #split it into its component parts
+                        info = favRead(filecontents)
+                        new_url = parse_url(info[1])
+                        
+                        db_connection.save_favourite('movie', info[0], new_url, info[3])
+                        
+                        if not xbmcvfs.delete(os.path.join(moviefav, file)):
+                            raise Exception('Favourite Convert - error deleting movie fav file: %s' % file)
+
+                    if not xbmcvfs.rmdir(moviefav):
+                        raise Exception('Favourite Convert - error deleting movie fav folder: %s' % moviefav)
+
+            #Process TV favourites
+            if xbmcvfs.exists(tvfav):
+            
+                tvdirs, tvfiles = xbmcvfs.listdir(tvfav)            
+                if tvfiles:
+                    
+                    for file in tvfiles:
+                    
+                        filecontents = openfile(os.path.join(tvfav, file))
+                        
+                        #split it into its component parts
+                        info = favRead(filecontents)
+
+                        new_url = parse_url(info[1])
+
+                        db_connection.save_favourite('tvshow', info[0], new_url, info[3])
+
+                        if not xbmcvfs.delete(os.path.join(tvfav, file)):
+                            raise Exception('Favourite Convert - error deleting tv show fav file: %s' % file)                       
+
+                    if not xbmcvfs.rmdir(tvfav):
+                        raise Exception('Favourite Convert - error deleting tv fav folder: %s' % tvfav)
+
+            if not xbmcvfs.rmdir(favpath):
+                raise Exception('Favourite Convert - error deleting favourite folder: %s' % favpath)
+
+    except db_connection.db.IntegrityError, e:
+        addon.log_error('Favourite Convert - Duplicate favourite attempted to be added: %s' % e)
+        Notify('small', 'Icefilms Favourites', 'Error occured converting favourites to cache DB', '')
+    except Exception, e:
+        addon.log_error('Favourite Convert - error during processing: %s' % e)
+        Notify('small', 'Icefilms Favourites', 'Error occured converting favourites to cache DB', '')
+
+
+def parse_url(url):
+
+    #Re-do the URL in case user has changed base URL in addon settings
+    import urlparse
+    split_url = urlparse.urlsplit(url)
+    
+    if split_url.path.startswith('/'):
+        part_url = split_url.path[1:]
+    else:
+        part_url = split_url.path
+        
+    if split_url.query:
+        part_url = part_url + "?" + split_url.query
+        
+    return part_url
+
+
 def DLDirStartup():
 
   # Startup routines for handling and creating special download directory structure 
@@ -227,8 +343,8 @@ def DLDirStartup():
 
      if downloadPath:
         if xbmcvfs.exists(downloadPath):
-          tvpath=os.path.join(downloadPath,'TV Shows')
-          moviepath=os.path.join(downloadPath,'Movies')
+          tvpath=os.path.join(downloadPath, 'TV Shows', '')
+          moviepath=os.path.join(downloadPath, 'Movies', '')
 
           #IF BASE DIRECTORY STRUCTURE DOESN'T EXIST, CREATE IT
           if not xbmcvfs.exists(tvpath):
@@ -295,7 +411,7 @@ def LoginStartup():
 def ContainerStartup():
 
      #Check for previous Icefilms metadata install and delete
-     meta_folder = os.path.join(datapath, 'meta_caches')
+     meta_folder = os.path.join(datapath, 'meta_caches', '')
      if xbmcvfs.exists(meta_folder):
          import shutil
          try:
@@ -358,12 +474,12 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
     complete = False
     if local_install:
         #Define local path where zip already exists
-        filepath=os.path.normpath(os.path.join(url, filename))
+        filepath=os.path.normpath(os.path.join(url, filename, ''))
         complete = True
 
     else:
         #define the path to save it to
-        filepath=os.path.normpath(os.path.join(work_folder,filename))
+        filepath=os.path.normpath(os.path.join(work_folder, filename, ''))
 
         #link = url + filename
         
@@ -394,30 +510,6 @@ def Zip_DL_and_Install(url, filename, installtype, work_folder, mc, local_instal
     else:
         return False
 
-
-def Startup_Routines():
-     
-     # avoid error on first run if no paths exists, by creating paths
-     if not xbmcvfs.exists(datapath): xbmcvfs.mkdir(datapath)
-     if not xbmcvfs.exists(downinfopath): xbmcvfs.mkdir(downinfopath)
-     if not xbmcvfs.exists(cookie_path): xbmcvfs.mkdir(cookie_path)
-            
-     # Run the startup routines for special download directory structure 
-     DLDirStartup()
-
-     #Initialize cache DB
-     db_connection.init_database()
-     
-     # Run the login startup routines
-     LoginStartup()
-     
-     # Run the container checking startup routines, if enable meta is set to true
-     if meta_setting=='true': ContainerStartup()
-     
-     #Rescan Next Aired on startup - actually only rescans every 24hrs
-     next_aired = str2bool(addon.get_setting('next-aired'))
-     if next_aired:
-         xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
 
 def create_meta_pack():
        
@@ -524,54 +616,6 @@ def favRead(string):
      else:
           return name,url,mode,imdb_id
 
-def addFavourites(enablemetadata,directory,dircontents,contentType):
-    #get the strings of data from the files, and return them alphabetically
-    stringlist=prepare_list(directory,dircontents)
-    
-    if enablemetadata == True:
-        metaget=metahandlers.MetaData()
-        meta_installed = metaget.check_meta_installed(addon_id)
-    else:
-        meta_installed = False
-         
-    #for each string
-    for thestring in stringlist:
-    
-        #split it into its component parts
-        info = favRead(thestring)
-        if info is not None:
-        
-            #Re-do the URL in case user has changed base URL in addon settings
-            import urlparse
-            split_url = urlparse.urlsplit(info[1])
-            temp_url = split_url.path
-            if split_url.path.startswith('/'): 
-                temp_url = split_url.path[1:] 
-                
-            new_url = iceurl + temp_url
-            if split_url.query:
-                new_url = new_url + "?" + split_url.query
-                      
-            if enablemetadata == True and meta_installed:
-                #return the metadata dictionary
-                if info[3] is not None:
-                                       
-                    #return the metadata dictionary
-                    meta=metaget.get_meta(contentType, info[0], imdb_id=info[3])
-                    
-                    if meta is None:
-                        #add all the items without meta
-                        addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
-                    else:
-                        #add directories with meta
-                        addDir(info[0],new_url,info[2],'',meta=meta,delfromfav=True,imdb=info[3], totalItems=len(stringlist), meta_install=meta_installed, favourite=True)
-                else:
-                    #add all the items without meta
-                    addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
-            else:
-                #add all the items without meta
-                addDir(info[0],new_url,info[2],'',delfromfav=True, totalItems=len(stringlist), favourite=True)
-
 
 def FAVOURITES(url):
     #get necessary paths
@@ -582,24 +626,13 @@ def FAVOURITES(url):
     addDir('Movies',iceurl,571,movies)
 
 
-def URL_TYPE(url):
-     #Check whether url is a tv episode list or movie/mirrorpage
-     if url.startswith(iceurl+'ip'):
-               addon.log('url is a mirror page url')
-               return 'mirrors'
-     elif url.startswith(iceurl+'tv/series'):
-               addon.log('url is a tv ep list url')
-               return 'episodes'     
-
-def METAFIXER(url):
+def METAFIXER(url, videoType):
     #Icefilms urls passed to me will have their proper names and imdb numbers returned.
     source=GetURL(url)
 
-    url_type=URL_TYPE(url)
-
     #get proper name from the page. (in case it is a weird name)
      
-    if url_type=='mirrors':
+    if videoType==VideoType_Movies:
         #get imdb number.
         match=re.compile('<a class=iframe href=http://www.imdb.com/title/(.+?)/ ').findall(source)      
 
@@ -621,7 +654,7 @@ def METAFIXER(url):
         name=CLEANUP(name[0])
         return name,match[0]
 
-    elif url_type=='episodes':
+    elif videoType==VideoType_TV:
         #TV
         name=re.compile('<h1>(.+?)<a class').findall(source)
         match=re.compile('href="http://www.imdb.com/title/(.+?)/"').findall(source)
@@ -629,135 +662,113 @@ def METAFIXER(url):
         return name,match[0]
 
 
-def ADD_TO_FAVOURITES(name,url,imdbnum):
-    #Creates a new text file in favourites folder. The text file is named after the items name, and contains the name, url and relevant mode.
+def ADD_TO_FAVOURITES(name, url, imdbnum, videoType):
+
     addon.log('Adding to favourites: name: %s, imdbnum: %s, url: %s' % (name, imdbnum, url))
 
-    if name and url:
+    try:
+        if name and url:
 
-        #Set favourites path, and create it if it doesn't exist.
-        favpath=os.path.join(datapath,'Favourites')
-        tvfav=os.path.join(favpath,'TV')
-        moviefav=os.path.join(favpath,'Movies')
+            #fix name and imdb number for Episode List entries in Search.
+            if imdbnum == 'nothing':
+                metafix=METAFIXER(url, videoType)
+                name=metafix[0]
+                imdbnum=metafix[1]
+             
+            addon.log('NAME: %s URL: %s IMDB NUMBER: %s' % (name,url,imdbnum))
 
-        if not xbmcvfs.exists(favpath):
-            if not xbmcvfs.mkdir(favpath):
-                addon.log_error('Error creating favorites folder: %s' % favpath)
-        
-        if not xbmcvfs.exists(tvfav):
-            if not xbmcvfs.mkdir(tvfav):
-                addon.log_error('Error creating tv favorites folder: %s' % tvfav)
-    
-        if not xbmcvfs.exists(moviefav):
-            if not xbmcvfs.mkdir(moviefav):
-                addon.log_error('Error creating movie favorites folder: %s' % moviefav)
+            #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
+            adjustedname=Clean_Windows_String(name).strip()
 
-
-        #fix name and imdb number for Episode List entries in Search.
-        if imdbnum == 'nothing':
-            metafix=METAFIXER(url)
-            name=metafix[0]
-            imdbnum=metafix[1]
-         
-        url_type=URL_TYPE(url)
-
-        if url_type=='mirrors':
-            themode='100'
-            savepath=moviefav
-               
-        elif url_type=='episodes':
-            themode='12'
-            savepath=tvfav
-
-        addon.log('NAME: %s URL: %s IMDB NUMBER: %s' % (name,url,imdbnum))
-
-        #Delete HD entry from filename. using name as filename makes favourites appear alphabetically.
-        adjustedname=Clean_Windows_String(name).strip()
-
-        #encode the filename to the safe string
-        #adjustedname=base64.urlsafe_b64encode(name)
-
-        #Save the new favourite if it does not exist.
-        NewFavFile=os.path.join(savepath,adjustedname+'.txt')
-        if not xbmcvfs.exists(NewFavFile):
-
-            #Use | as separators that can be used by re.split when reading favourites folder.
-            import urlparse
-            split_url = urlparse.urlsplit(url)
-            part_url = split_url.path[1:]
-            if split_url.query:
-                part_url = part_url + "?" + split_url.query
-                              
-            favcontents=name + '|' + part_url + '|' + themode + '|' + imdbnum
-            save(NewFavFile,favcontents)
-               
+            new_url = parse_url(url)
+            db_connection.save_favourite(videoType, name, new_url, imdbnum)
+                   
             Notify('small','Icefilms Favourites', name + ' added to favourites','','6000')
 
             #Rescan Next Aired
             next_aired = str2bool(addon.get_setting('next-aired'))
             if next_aired:
                 xbmc.executebuiltin("RunScript(%s, silent=true)" % os.path.join(icepath, 'resources/script.tv.show.next.aired/default.py'))
+                
         else:
-            addon.log('Warning - favourite already exists')
-            Notify('small','Icefilms Favourites', name + ' favourite already exists','','6000')
+            raise Exception('Unable to add favourite due to blank name or url')
 
-            
-    else:
-        Notify('small','Icefilms Favourites', 'Unable to add to favourites','','')
-        addon.log('Warning - favorite name or url is none:')
-        addon.log('NAME: ',name)
-        addon.log('URL: ',url)      
+    except db_connection.db.IntegrityError, e:
+        addon.log_warning('Favourite already exists: %s' % name)
+        Notify('small','Icefilms Favourites', '%s favourite already exists' % name,'','6000')
+    except Exception, e:
+        addon.log_error('Error adding favourite: %s' % e)
+        Notify('small','Icefilms Favourites', 'Unable to add to favourites','','')        
 
 
-def DELETE_FROM_FAVOURITES(name,url):
-
-    #legacy check - encode the filename to the safe string *** to check ***
-    old_name=base64.urlsafe_b64encode(name)
+def DELETE_FROM_FAVOURITES(url):
+    addon.log('Deleting from favourites: url: %s' % url)
+    try:
+        new_url = parse_url(url)
+        db_connection.delete_favourite(new_url)
+        xbmc.executebuiltin("XBMC.Container.Refresh")
+    except Exception, e:
+        addon.log_error('Error deleting favourite: %s' % e)
+        Notify('small','Icefilms Favourites', 'Error while attempting to delete favourite','','')    
     
-    #Deletes HD entry from filename
-    name=Clean_Windows_String(name).strip()
-      
-    favpath=os.path.join(datapath,'Favourites')
-    
-    url_type=URL_TYPE(url)
-    
-    if url_type=='mirrors':
-         itempath=os.path.join(favpath,'Movies',name+'.txt')
-         old_itempath=os.path.join(favpath,'Movies',old_name+'.txt')
-    
-    elif url_type=='episodes':
-         itempath=os.path.join(favpath,'TV',name+'.txt')
-         old_itempath=os.path.join(favpath,'TV',old_name+'.txt')
-    
-    addon.log('ITEMPATH: %s' % itempath)
-    addon.log('OLD ITEMPATH: %s' % old_itempath    )
-    
-    if xbmcvfs.exists(itempath):
-         xbmcvfs.delete(itempath)
-         xbmc.executebuiltin("XBMC.Container.Refresh")
-         
-    if os.path.exists(old_itempath):
-         xbmcvfs.delete(old_itempath)
-         xbmc.executebuiltin("XBMC.Container.Refresh")         
-
 
 def CLEAR_FAVOURITES(url):
-     
-     dialog = xbmcgui.Dialog()
-     ret = dialog.yesno('WARNING!', 'Delete all your favourites?','','','Cancel','Go Nuclear')
-     if ret==True:
-          import shutil
-          favpath=os.path.join(datapath,'Favourites')
-          tvfav=os.path.join(favpath,'TV')
-          moviefav=os.path.join(favpath,'Movies')
-          try:
-               shutil.rmtree(tvfav)
-          except:
-               pass
-          try:
-               shutil.rmtree(moviefav)
-          except:
-               pass
+    dialog = xbmcgui.Dialog()
+    ret = dialog.yesno('WARNING!', 'Delete all your favourites?','','','Cancel','Go Nuclear')
+    if ret==True:
+        db_connection.clear_favourites()
+        xbmc.executebuiltin("XBMC.Container.Refresh")
+
+
+def getFavourites(videoType):
+
+    fav_list = db_connection.get_favourites(videoType)
+    
+    if meta_setting=='true':    
+        metaget=metahandlers.MetaData()
+        meta_installed = metaget.check_meta_installed(addon_id)
+    else:
+        meta_installed = False
+
+    if videoType == VideoType_TV:
+        mode = 12
+    if videoType == VideoType_Season:
+        mode = 13
+    elif videoType == VideoType_Episode:
+        mode = 14
+    elif videoType == VideoType_Movies:
+        mode = 100
+         
+    #for each string
+    for fav in fav_list:
+    
+        new_url = iceurl + fav[2]
+                  
+        if meta_setting=='true' and meta_installed:
+            #return the metadata dictionary
+            if fav[3] is not None:
+                                   
+                #return the metadata dictionary
+                meta=metaget.get_meta(videoType, fav[1], imdb_id=fav[3])
+                
+                if meta is None:
+                    #add all the items without meta
+                    addDir(fav[1], new_url, mode, '',delfromfav=True, totalItems=len(fav_list), favourite=True)
+                else:
+                    #add directories with meta
+                    addDir(fav[1], new_url, mode, '', meta=meta, delfromfav=True, imdb=fav[3], totalItems=len(fav_list), meta_install=meta_installed, favourite=True)
+            else:
+                #add all the items without meta
+                addDir(fav[1], new_url, mode, '', delfromfav=True, totalItems=len(fav_list), favourite=True)
+        else:
+            #add all the items without meta
+            addDir(fav[1], new_url, mode, '', delfromfav=True, totalItems=len(fav_list), favourite=True)
+
+
+    if videoType == VideoType_TV:
+        setView('tvshows', 'tvshows-view')    
+    elif videoType == VideoType_Movies:
+        setView('movies', 'movies-view')
 
 
 def check_episode(name):
@@ -2693,7 +2704,7 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
                      #if no imdb number, it will have no metadata in Favourites
                      sysimdb = urllib.quote_plus('nothing')
                  #if searchMode==False:
-                 contextMenuItems.append(('Add to Ice Favourites', 'XBMC.RunPlugin(%s?mode=110&name=%s&url=%s&imdbnum=%s)' % (sys.argv[0], sysname, sysurl, sysimdb)))
+                 contextMenuItems.append(('Add to Ice Favourites', 'XBMC.RunPlugin(%s?mode=110&name=%s&url=%s&imdbnum=%s&videoType=%s)' % (sys.argv[0], sysname, sysurl, sysimdb, videoType)))
                         
      if contextMenuItems:
          liz.addContextMenuItems(contextMenuItems, replaceItems=True)
@@ -2743,78 +2754,6 @@ def setView(content, viewType):
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_MPAA_RATING )
     
-#Movie Favourites folder.
-def MOVIE_FAVOURITES(url):
-    
-    #get settings
-    moviefav=os.path.join(datapath, 'Favourites', 'Movies')
-    try:
-        moviedirs, moviedircontents = xbmcvfs.listdir(moviefav)
-    except Exception, e:
-        addon.log_error('Error occured retrieving Favourites from: %s' % moviefav)
-        addon.log_error('Error message: %s' % e)
-        moviedircontents=None
-    
-    if moviedircontents == None:
-        Notify('big','No Movie Favourites Saved','To save a favourite press the C key on a movie or\n TV Show and select Add To Icefilms Favourites','')
-    
-    else:
-        #add clear favourites entry - Not sure if we must put it here, cause it will mess up the sorting
-        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art_path,'deletefavs.png'))
-        
-        #handler for all movie favourites
-        if moviedircontents is not None:
- 
-             #add with metadata -- imdb is still passed for use with Add to Favourites
-            if meta_setting=='true':
-                addFavourites(True,moviefav,moviedircontents, 'movie')                      
-            #add without metadata -- imdb is still passed for use with Add to Favourites
-            else:
-                addFavourites(False,moviefav,moviedircontents, 'movie')
-            
-
-        else:
-            addon.log('moviedircontents is none!')
-            
-    # Enable library mode & set the right view for the content
-    setView('movies', 'movies-view')
-
-
-#TV Shows Favourites folder
-def TV_FAVOURITES(url):
-    
-    tvfav=os.path.join(datapath, 'Favourites', 'TV')
-    try:
-        tvdirs, tvdircontents = xbmcvfs.listdir(tvfav)
-    except:
-        addon.log_error('Error occured retrieving Favourites from: %s' % tvfav)
-        addon.log_error('Error message: %s' % e)    
-        tvdircontents=None
- 
-    if tvdircontents == None:
-        Notify('big','No TV Favourites Saved','To save a favourite press the C key on a movie or\n TV Show and select Add To Icefilms Favourites','')
-
-    else:
-        #add clear favourites entry - Not sure if we must put it here, cause it will mess up the sorting
-        #addExecute('* Clear Favourites Folder *',url,58,os.path.join(art_path,'deletefavs.png'))
-               
-        #handler for all tv favourites
-        if tvdircontents is not None:
-                       
-            #add with metadata -- imdb is still passed for use with Add to Favourites
-            if meta_setting=='true':
-                addFavourites(True,tvfav,tvdircontents,'tvshow')  
-            #add without metadata -- imdb is still passed for use with Add to Favourites
-            else:
-                addFavourites(False,tvfav,tvdircontents,'tvshow')
-                
-           
-        else:
-            addon.log('tvshows dircontents is none!')
-    
-    # Enable library mode & set the right view for the content
-    setView('tvshows', 'tvshows-view')
-
 
 def cleanUnicode(string):
     try:
@@ -3320,10 +3259,10 @@ elif mode=='58':
         callEndOfDirectory = False
 
 elif mode=='570':
-        TV_FAVOURITES(url)
+        getFavourites(VideoType_TV)
 
 elif mode=='571':
-        MOVIE_FAVOURITES(url)
+        getFavourites(VideoType_Movies)
 
 elif mode=='58':
         CLEAR_FAVOURITES(url)
@@ -3400,10 +3339,10 @@ elif mode=='100':
 
 elif mode=='110':
         # if you dont use the "url", "name" params() then you need to define the value# along with the other params.
-        ADD_TO_FAVOURITES(name,url,imdbnum)
+        ADD_TO_FAVOURITES(name, url, imdbnum, video_type)
 
 elif mode=='111':
-        DELETE_FROM_FAVOURITES(name,url)
+        DELETE_FROM_FAVOURITES(url)
 
 elif mode=='200':
         Stream_Source(name, stacked=stacked_parts)
