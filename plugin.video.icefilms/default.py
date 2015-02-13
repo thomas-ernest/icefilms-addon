@@ -280,9 +280,6 @@ def convert_favourites():
                         if not xbmcvfs.delete(os.path.join(moviefav, file)):
                             raise Exception('Favourite Convert - error deleting movie fav file: %s' % file)
 
-                    if not xbmcvfs.rmdir(moviefav):
-                        raise Exception('Favourite Convert - error deleting movie fav folder: %s' % moviefav)
-
             #Process TV favourites
             if xbmcvfs.exists(tvfav):
             
@@ -303,9 +300,12 @@ def convert_favourites():
                         if not xbmcvfs.delete(os.path.join(tvfav, file)):
                             raise Exception('Favourite Convert - error deleting tv show fav file: %s' % file)                       
 
-                    if not xbmcvfs.rmdir(tvfav):
-                        raise Exception('Favourite Convert - error deleting tv fav folder: %s' % tvfav)
+            if not xbmcvfs.rmdir(tvfav):
+                raise Exception('Favourite Convert - error deleting tv fav folder: %s' % tvfav)
 
+            if not xbmcvfs.rmdir(moviefav):
+                raise Exception('Favourite Convert - error deleting movie fav folder: %s' % moviefav)
+                        
             if not xbmcvfs.rmdir(favpath):
                 raise Exception('Favourite Convert - error deleting favourite folder: %s' % favpath)
 
