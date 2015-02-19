@@ -31,39 +31,44 @@ def handle_captchas(url, html, data, dialog):
 
     #SolveMedia captcha
     if solvemedia:
-       dialog.close()
-       html = net.http_GET(solvemedia.group(1), headers=headers).content
-       hugekey=re.search('id="adcopy_challenge" value="(.+?)">', html).group(1)
+        dialog.close()
+        html = net.http_GET(solvemedia.group(1), headers=headers).content
+
+        for match in re.finditer(r'type=hidden.*?name="([^"]+)".*?value="([^"]+)', html):
+            name, value = match.groups()
+            data[name] = value       
+               
+        #Check for alternate puzzle type - stored in a div
+        alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
+        if alt_puzzle:
+            open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
+        else:
+            open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)        
        
-       #Check for alternate puzzle type - stored in a div
-       alt_puzzle = re.search('<div><iframe src="(/papi/media.+?)"', html)
-       if alt_puzzle:
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % alt_puzzle.group(1)).content)
-       else:
-           open(puzzle_img, 'wb').write(net.http_GET("http://api.solvemedia.com%s" % re.search('<img src="(/papi/media.+?)"', html).group(1)).content)
-       
-       img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
-       wdlg = xbmcgui.WindowDialog()
-       wdlg.addControl(img)
-       wdlg.show()
+        img = xbmcgui.ControlImage(450,15,400,130, puzzle_img)
+        wdlg = xbmcgui.WindowDialog()
+        wdlg.addControl(img)
+        wdlg.show()
     
-       xbmc.sleep(3000)
+        xbmc.sleep(3000)
 
-       kb = xbmc.Keyboard('', 'Type the letters in the image', False)
-       kb.doModal()
-       capcode = kb.getText()
+        kb = xbmc.Keyboard('', 'Type the letters in the image', False)
+        kb.doModal()
+        capcode = kb.getText()
 
-       if (kb.isConfirmed()):
-           userInput = kb.getText()
-           if userInput != '':
-               solution = kb.getText()
-           elif userInput == '':
-               raise Exception ('You must enter text in the image to access video')
-       else:
-           wdlg.close()
-           raise Exception ('Captcha Error')
-       wdlg.close()
-       data.update({'adcopy_challenge': hugekey,'adcopy_response': solution})
+        if (kb.isConfirmed()):
+            userInput = kb.getText()
+            if userInput != '':
+                solution = kb.getText()
+            elif userInput == '':
+                raise Exception ('You must enter text in the image to access video')
+        else:
+            wdlg.close()
+            raise Exception ('Captcha Error')
+        wdlg.close()
+        data['adcopy_response'] = solution
+        html = net.http_POST('http://api.solvemedia.com/papi/verify.noscript', data)       
+        data.update({'adcopy_challenge': data['adcopy_challenge'],'adcopy_response': 'manual_challenge'})
 
     #Google Recaptcha
     elif recaptcha:
