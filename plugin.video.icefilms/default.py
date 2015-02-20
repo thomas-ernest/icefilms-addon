@@ -13,6 +13,7 @@ import random
 import copy
 import threading
 import string
+import traceback
 
 ############ Set prepare_zip to True in order to scrape the entire site to create a new meta pack ############
 ''' 
@@ -277,11 +278,11 @@ def convert_favourites():
                         
                         db_connection.save_favourite('movie', info[0], new_url, info[3])
                         
-                        if not xbmcvfs.delete(os.path.join(moviefav, file)):
-                            raise Exception('Favourite Convert - error deleting movie fav file: %s' % file)
+                        #if not xbmcvfs.delete(os.path.join(moviefav, file)):
+                        #    raise Exception('Favourite Convert - error deleting movie fav file: %s' % file)
 
-                if not xbmcvfs.rmdir(moviefav):
-                    raise Exception('Favourite Convert - error deleting movie fav folder: %s' % moviefav)
+                #if not xbmcvfs.rmdir(moviefav):
+                #    raise Exception('Favourite Convert - error deleting movie fav folder: %s' % moviefav)
 
             #Process TV favourites
             if xbmcvfs.exists(tvfav):
@@ -300,17 +301,17 @@ def convert_favourites():
 
                         db_connection.save_favourite('tvshow', info[0], new_url, info[3])
 
-                        if not xbmcvfs.delete(os.path.join(tvfav, file)):
-                            raise Exception('Favourite Convert - error deleting tv show fav file: %s' % file)                       
+                        #if not xbmcvfs.delete(os.path.join(tvfav, file)):
+                        #    raise Exception('Favourite Convert - error deleting tv show fav file: %s' % file)                       
 
-                if not xbmcvfs.rmdir(tvfav):
-                    raise Exception('Favourite Convert - error deleting tv fav folder: %s' % tvfav)
+                #if not xbmcvfs.rmdir(tvfav):
+                #    raise Exception('Favourite Convert - error deleting tv fav folder: %s' % tvfav)
                        
-            if not xbmcvfs.rmdir(favpath):
-                raise Exception('Favourite Convert - error deleting favourite folder: %s' % favpath)
+            #if not xbmcvfs.rmdir(favpath):
+            #    raise Exception('Favourite Convert - error deleting favourite folder: %s' % favpath)
 
     except db_connection.db.IntegrityError, e:
-        addon.log_error('Favourite Convert - Duplicate favourite attempted to be added: %s' % e)
+        #addon.log_error('Favourite Convert - Duplicate favourite attempted to be added: %s' % e)
         Notify('small', 'Icefilms Favourites', 'Error occured converting favourites to cache DB', '')
     except Exception, e:
         addon.log_error('Favourite Convert - error during processing: %s' % e)
