@@ -257,12 +257,16 @@ def Startup_Routines():
 def convert_favourites():
 
     favpath=os.path.join(datapath, 'Favourites', '')
+    backup_favpath = os.path.join(datapath, 'Favourites_Backup', '')
     moviefav=os.path.join(datapath, 'Favourites', 'Movies', '')
     tvfav=os.path.join(datapath, 'Favourites', 'TV', '')
     
     try:
         if xbmcvfs.exists(favpath):
         
+            #Reset DB to start fresh
+            db_connection.reset_db()
+            
             #Process Movie favourites
             if xbmcvfs.exists(moviefav):
                 moviedirs, moviefiles = xbmcvfs.listdir(moviefav)
@@ -310,8 +314,12 @@ def convert_favourites():
             #if not xbmcvfs.rmdir(favpath):
             #    raise Exception('Favourite Convert - error deleting favourite folder: %s' % favpath)
 
+            if not xbmcvfs.rename(favpath, backup_favpath):
+                raise Exception('Favourite Convert - error backing up favourites folder: %s' % favpath)
+                
+            
     except db_connection.db.IntegrityError, e:
-        #addon.log_error('Favourite Convert - Duplicate favourite attempted to be added: %s' % e)
+        addon.log_error('Favourite Convert - Duplicate favourite attempted to be added: %s' % e)
         Notify('small', 'Icefilms Favourites', 'Error occured converting favourites to cache DB', '')
     except Exception, e:
         addon.log_error('Favourite Convert - error during processing: %s' % e)
