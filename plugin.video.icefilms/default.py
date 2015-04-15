@@ -586,29 +586,22 @@ def CATEGORIES():  #  (homescreen of addon)
               addDir('Create Meta Pack',iceurl,666,'')
 
 
-def prepare_list(directory,dircontents):
-     #create new empty list
-     stringList = []
+def sort_list(list):
 
-     #Open all files in dir
-     for thefile in dircontents:
-          try:
-               filecontents=openfile(os.path.join(directory,thefile))
+    #create new empty list
+    stringList = []
 
-               #add this to list
-               stringList.append(filecontents)
-                              
-          except Exception, e:
-               addon.log_error('Error opening a favourites item: %s' % e)
+    for item in list:
+        stringList.append('|'.join(item[1:]))
 
-     #sort list alphabetically and return it.
-     tupleList = [(x.lower(), x) for x in stringList]
+    #sort list alphabetically and return it.
+    tupleList = [(x.lower(), x) for x in stringList]
 
-     #wesaada's patch for ignoring The etc when sorting favourites list.
-     articles = ("a","an","the")
-     tupleList.sort(key=lambda s: tuple(word for word in s[1].split() if word.lower() not in articles))
+    articles = ("a","an","the")
+    tupleList.sort(key=lambda s: tuple(word for word in s[1].split() if word.lower() not in articles))
 
-     return [x[1] for x in tupleList]
+    return [x[1] for x in tupleList]
+
 
 def favRead(string):
      try:
@@ -732,7 +725,9 @@ def CLEAR_FAVOURITES(url):
 def getFavourites(videoType):
 
     fav_list = db_connection.get_favourites(videoType)
-    
+
+    new_fav_list = sort_list(fav_list)
+      
     if meta_setting=='true':    
         metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
@@ -749,29 +744,31 @@ def getFavourites(videoType):
         mode = 100
          
     #for each string
-    for fav in fav_list:
+    for fav_string in new_fav_list:
     
-        new_url = iceurl + fav[2]
+        fav = fav_string.split('|')
+    
+        new_url = iceurl + fav[1]
                   
         if meta_setting=='true' and meta_installed:
             #return the metadata dictionary
-            if fav[3] is not None:
+            if fav[2] is not None:
                                    
                 #return the metadata dictionary
-                meta=metaget.get_meta(videoType, fav[1], imdb_id=fav[3])
+                meta=metaget.get_meta(videoType, fav[0], imdb_id=fav[2])
                 
                 if meta is None:
                     #add all the items without meta
-                    addDir(fav[1], new_url, mode, '',delfromfav=True, totalItems=len(fav_list), favourite=True)
+                    addDir(fav[0], new_url, mode, '',delfromfav=True, totalItems=len(new_fav_list), favourite=True)
                 else:
                     #add directories with meta
-                    addDir(fav[1], new_url, mode, '', meta=meta, delfromfav=True, imdb=fav[3], totalItems=len(fav_list), meta_install=meta_installed, favourite=True)
+                    addDir(fav[0], new_url, mode, '', meta=meta, delfromfav=True, imdb=fav[2], totalItems=len(new_fav_list), meta_install=meta_installed, favourite=True)
             else:
                 #add all the items without meta
-                addDir(fav[1], new_url, mode, '', delfromfav=True, totalItems=len(fav_list), favourite=True)
+                addDir(fav[0], new_url, mode, '', delfromfav=True, totalItems=len(new_fav_list), favourite=True)
         else:
             #add all the items without meta
-            addDir(fav[1], new_url, mode, '', delfromfav=True, totalItems=len(fav_list), favourite=True)
+            addDir(fav[0], new_url, mode, '', delfromfav=True, totalItems=len(new_fav_list), favourite=True)
 
 
     if videoType == VideoType_TV:
@@ -1515,12 +1512,14 @@ def determine_source(search_string, is_domain=False):
 
     #Keep host list as global var - used to determine resolver and build/select auto play settings
     host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
-                ('billionuploads.com', 'BillionUploads',  'resolve_billionuploads'),
                 ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
+                ('clicknupload.com', 'ClicknUpload', 'resolve_clicknupload'),
+                ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
+                ('xfileload.com', 'XfileLoad', 'resolve_xfileload'),
+                ('mightyupload.com', 'MightyUpload', 'resolve_mightyupload'),
                 ('movreel.com', 'MovReel', 'resolve_movreel'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
                 ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
-                ('360gig.com', '360gig', 'resolve_360gig'),
                 ('2shared.com', '2Shared', 'SHARED2_HANDLER')
                 ]
 
