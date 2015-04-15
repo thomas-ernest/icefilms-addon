@@ -1,3 +1,13 @@
+[B]v1.8.4(Wednesday, 15 April 2015):[/B]
+  - Changed Favourites to sort properly - ignore 'The', 'A' etc.
+  - Fixed 180Upload
+  - Fixed HugeFiles
+  - New Resolvers:
+    - TusFiles
+    - XFileLoad
+    - ClicknUpload
+    - MightyUpload
+
 [B]v1.8.3(Monday, 23 February 2015):[/B]
   - Fixed Favourites migration issue duplicating favourite entries
   
