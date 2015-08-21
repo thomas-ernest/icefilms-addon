@@ -116,7 +116,7 @@ ICEFILMS_URL = addon.get_setting('icefilms-url')
 if not ICEFILMS_URL.endswith("/"):
     ICEFILMS_URL = ICEFILMS_URL + "/"
 
-ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php'
+ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php?s=%s&t=%s'
 ICEFILMS_REFERRER = 'http://www.icefilms.info'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
@@ -393,29 +393,6 @@ def LoginStartup():
               addon.log('**** Real-Debrid Error: %s' % e)
               Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
               pass
-
-
-     #Verify MovReel Account
-     if movreel_account:
-         loginurl='http://www.movreel.com/login.html'
-         op = 'login'
-         login = addon.get_setting('movreel-username')
-         password = addon.get_setting('movreel-password')
-         data = {'op': op, 'login': login, 'password': password}
-         cookiejar = os.path.join(cookie_path,'movreel.lwp')
-        
-         try:
-             html = net.http_POST(loginurl, data).content
-             if re.search('op=logout', html):
-                net.save_cookies(cookiejar)
-             else:
-                Notify('big','Movreel','Login failed.', '')
-                addon.log('Movreel Account: login failed')
-         except Exception, e:
-             addon.log('**** Movreel Error: %s' % e)
-             Notify('big','Movreel Login Failed','Failed to connect with Movreel.', '', '', 'Please check your internet connection and the Movreel.com site.')
-             pass
-
 
 def ContainerStartup():
 
@@ -1517,7 +1494,6 @@ def determine_source(search_string, is_domain=False):
                 ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
                 ('xfileload.com', 'XfileLoad', 'resolve_xfileload'),
                 ('mightyupload.com', 'MightyUpload', 'resolve_mightyupload'),
-                ('movreel.com', 'MovReel', 'resolve_movreel'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
                 ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
                 ('24uploading.com', '24Uploading', 'resolve_24uploading'),                
@@ -1917,13 +1893,16 @@ def PlayFile(name,url):
 
 def GetSource():
 
+    t = addon.queries.get('t', '')
+    id = addon.queries.get('id', '')
+    
     params = {
         'iqs': '',
         'url': '',
         'cap': '',
         'sec': addon.queries.get('sec', ''),
-        't': addon.queries.get('t', ''),
-        'id': addon.queries.get('id', '')
+        't': t,
+        'id': id
     } 
    
     m = random.randrange(100, 300) * -1
@@ -1931,7 +1910,7 @@ def GetSource():
     params['m'] = m
     params['s'] = s
     
-    body = GetURL(ICEFILMS_AJAX, params = params, use_cookie=True, use_cache=False)
+    body = GetURL(ICEFILMS_AJAX % (id, t), params = params, use_cookie=True, use_cache=False)
     addon.log('GetSource Response: %s' % body)
     source = re.search('url=(http[^&]+)', body)
     
