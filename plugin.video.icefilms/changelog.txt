@@ -1,3 +1,6 @@
+[B]v1.9.1(Monday, 24 August 2015):[/B]
+  - Again fixed issue with getting final source link, Icefilms site keeps changing
+  
 [B]v1.9.0(Friday, 21 August 2015):[/B]
   - Fixed issue with no hosts working, Icefilms site had changed
 
