@@ -66,6 +66,7 @@ search = addon.queries.get('search', '')
 addon.log('----------------Icefilms Addon Param Info----------------------')
 addon.log('--- Version: ' + str(addon.get_version()))
 addon.log('--- Mode: ' + str(mode))
+addon.log('--- DirMode: ' + str(dirmode))
 addon.log('--- URL: ' + str(url))
 addon.log('--- Video Type: ' + str(video_type))
 addon.log('--- Name: ' + str(name))
@@ -117,6 +118,7 @@ if not ICEFILMS_URL.endswith("/"):
     ICEFILMS_URL = ICEFILMS_URL + "/"
 
 ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php?s=%s&t=%s'
+ICEFILMS_AJAX_REFER = 'http://www.icefilms.info/membersonly/components/com_iceplayer/video.php?h=374&w=631&vid=%s&img='
 ICEFILMS_REFERRER = 'http://www.icefilms.info'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
@@ -1599,7 +1601,9 @@ def SOURCE(page, sources, source_tag, ice_meta=None):
     #     s:   seconds since page loaded (> 5, < 250)
 
     args = {}
-    args['sec'] = re.search("f\.lastChild\.value=\"(.+?)\",a", page).group(1)
+
+    match = re.search('lastChild\.value="([^"]+)"\s*\+\s*"([^"]+)', page)
+    args['sec'] = match.group(1) + match.group(2)
     args['t'] = re.search('"&t=([^"]+)",', page).group(1)
 
     #add cached source
@@ -1899,18 +1903,18 @@ def GetSource():
     params = {
         'iqs': '',
         'url': '',
-        'cap': '',
+        'cap': ' ',
         'sec': addon.queries.get('sec', ''),
         't': t,
         'id': id
     } 
    
-    m = random.randrange(100, 300) * -1
-    s = random.randrange(5, 50)
+    m = random.randrange(100, 300)
+    s = random.randrange(5, 50) * -1
     params['m'] = m
     params['s'] = s
     
-    body = GetURL(ICEFILMS_AJAX % (id, t), params = params, use_cookie=True, use_cache=False)
+    body = GetURL(ICEFILMS_AJAX % (id, t), params = params, referrer = ICEFILMS_AJAX_REFER % t, use_cookie=True, use_cache=False)
     addon.log('GetSource Response: %s' % body)
     source = re.search('url=(http[^&]+)', body)
     
@@ -2421,7 +2425,6 @@ def Download_Source(name, url, referer, stacked=False):
     vidname=cache.get('videoname')
     
     mypath=Get_Path(name, vidname, url)
-    print '!!!!!!!', mypath
            
     if mypath == 'path not set':
         Notify('Download Alert','You have not set the download folder.\n Please access the addon settings and set it.','','')
@@ -2954,7 +2957,7 @@ def SearchGoogle(search):
 
 
 def SearchForTrailer(search, imdb_id, type, manual=False):
-    search = search.replace(' *HD 720p*', '')
+    search = search.replace(' [COLOR red]*HD*[/COLOR]', '')
     res_name = []
     res_url = []
     res_name.append('Manualy enter search...')
@@ -2979,7 +2982,7 @@ def SearchForTrailer(search, imdb_id, type, manual=False):
             
     dialog = xbmcgui.Dialog()
     ret = dialog.select(search + ' trailer search',res_name)
-    
+       
     # Manual search for trailer
     if ret == 0:
         if manual:
@@ -2996,19 +2999,18 @@ def SearchForTrailer(search, imdb_id, type, manual=False):
             result = keyboard.getText()
             SearchForTrailer(result, imdb_id, type, manual=True) 
     # Found trailers
-    elif ret > 1:
+    elif ret > 0:
         trailer_url = res_url[ret - 2]
         xbmc.executebuiltin(
             "PlayMedia(plugin://plugin.video.youtube/?action=play_video&videoid=%s&quality=720p)" 
             % str(trailer_url)[str(trailer_url).rfind("v=")+2:] )
         
-        #dialog.ok(' title ', ' message ')
         metaget=metahandlers.MetaData()
-        if type==100:
-            type='movie'
-        elif type==12:
-            type='tvshow'
-        metaget.update_trailer(type, imdb_id, trailer_url)
+        if type=='100':
+            media_type='movie'
+        elif type=='12':
+            media_type='tvshow'
+        metaget.update_trailer(media_type, imdb_id, trailer_url)
         xbmc.executebuiltin("XBMC.Container.Refresh")
     else:
         res_name.append('Nothing Found. Thanks!!!')
