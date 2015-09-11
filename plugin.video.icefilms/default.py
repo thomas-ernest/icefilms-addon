@@ -1689,6 +1689,9 @@ def show_ice_ad(ad_url, referrer):
         if match and random.randint(0, 100) < 5:
             addon.log('Ice advertisement - performing click on ad: %s' % match.group(1))
             html = net.http_GET(match.group(1)).content
+            match = re.search("location=decode\('([^']+)", html)
+            if match:
+                html = net.http_GET(match.group(1)).content
     finally:
         window.close()
 
