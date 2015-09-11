@@ -1,3 +1,6 @@
+[B]v1.12.0(Friday, 11 September 2015):[/B]
+  - Small update to help fix Ice Ads
+
 [B]v1.11.0(Tuesday, 8 September 2015):[/B]
   - Fixed syntax error with MySQL table creation
   - Added referrer when grabbing Icefilms ads to ensure impressions are hit
