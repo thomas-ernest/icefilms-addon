@@ -118,8 +118,8 @@ if not ICEFILMS_URL.endswith("/"):
     ICEFILMS_URL = ICEFILMS_URL + "/"
 
 ICEFILMS_AJAX = ICEFILMS_URL+'membersonly/components/com_iceplayer/video.phpAjaxResp.php?s=%s&t=%s&app_id=if_' + addon.get_version()
-ICEFILMS_AJAX_REFER = 'http://www.icefilms.info/membersonly/components/com_iceplayer/video.php?h=374&w=631&vid=%s&img='
-ICEFILMS_REFERRER = 'http://www.icefilms.info'
+ICEFILMS_AJAX_REFER = ICEFILMS_URL + 'membersonly/components/com_iceplayer/video.php?h=374&w=631&vid=%s&img='
+ICEFILMS_REFERRER = ICEFILMS_URL
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
@@ -1387,7 +1387,9 @@ def LOADMIRRORS(url):
         return
     else:
         ice_meta['title'] = namematch.group(1)
-        ice_meta['year'] = re.search('\(([0-9]+)\)', namematch.group(1)).group(1)
+        year = re.search('\(([0-9]+)\)', namematch.group(1))
+        if year:
+            ice_meta['year'] = year.group(1)
         try:
             cache.set('videoname', namematch.group(1))
         except:
