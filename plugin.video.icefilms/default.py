@@ -1694,6 +1694,8 @@ def show_ice_ad(ad_url, referrer):
             match = re.search("location=decode\('([^']+)", html)
             if match:
                 html = net.http_GET(match.group(1)).content
+    except:
+        pass
     finally:
         window.close()
 
