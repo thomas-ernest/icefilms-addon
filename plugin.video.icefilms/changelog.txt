@@ -1,3 +1,6 @@
+[B]v1.14.0(Friday, 02 October 2015):[/B]
+  - Small fix to catch and bypass errors encountered with ad's
+
 [B]v1.13.0(Friday, 25 September 2015):[/B]
   - Fixed ClicknUpload resolver
   - Fixed 180Uploads resolver
