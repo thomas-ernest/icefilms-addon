@@ -491,6 +491,8 @@ def resolve_hugefiles(url):
 
     try:
 
+        headers = {'Referer': url}
+        
         puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
         
         #Show dialog box so user knows something is happening
@@ -498,8 +500,11 @@ def resolve_hugefiles(url):
         dialog.create('Resolving', 'Resolving HugeFiles Link...')       
         dialog.update(0)
         
-        addon.log('HugeFiles - Requesting GET URL: %s' % url)
-        html = net.http_GET(url).content
+        media_id = re.search('//.+?/([\w]+)', url).group(1)
+        web_url = 'http://hugefiles.net/embed-%s.html' % media_id
+        
+        addon.log('HugeFiles - Requesting GET URL: %s' % web_url)
+        html = net.http_GET(web_url).content
         
         dialog.update(50)
         
@@ -526,13 +531,13 @@ def resolve_hugefiles(url):
             data['method_free'] = 'Free Download'
 
             #Handle captcha
-            data.update(handle_captchas(url, html, data, dialog))
+            data.update(handle_captchas(web_url, html, data, dialog))
             
             dialog.create('Resolving', 'Resolving HugeFiles Link...') 
             dialog.update(50)             
             
-            addon.log('HugeFiles - Requesting POST URL: %s DATA: %s' % (url, data))
-            html = net.http_POST(url, data).content
+            addon.log('HugeFiles - Requesting POST URL: %s DATA: %s' % (web_url, data))
+            html = net.http_POST(web_url, data, headers=headers).content
 
             solvemedia = re.search('<iframe src="((?:http:)?//api.solvemedia.com[^"]+)', html)
             recaptcha = re.search('<script type="text/javascript" src="(http://www.google.com[^"]+)', html)            
@@ -545,9 +550,24 @@ def resolve_hugefiles(url):
             
         #Get download link
         dialog.update(100)       
-        r = re.search('fileUrl\s*=\s*"([^"]+)', html)
-        if r:
-            return r.group(1)        
+
+        packed = re.search('id="player_code".*?(eval.*?\)\)\))', html,re.DOTALL)
+        if packed:
+            js = jsunpack.unpack(packed.group(1))
+            link = re.search('name="src"0="([^"]+)"/>', js.replace('\\',''))
+            if link:
+                addon.log('HugeFiles Link Found: %s' % link.group(1))
+                return link.group(1) + '|Referer=%s&User-Agent=%s' % (url, USER_AGENT)
+            else:
+                link = re.search("'file','(.+?)'", js.replace('\\',''))
+                if link:
+                    addon.log('HugeFiles Link Found: %s' % link.group(1))
+                    return link.group(1) + '|Referer=%s&User-Agent=%s' % (url, USER_AGENT)
+
+
+        #r = re.search('fileUrl\s*=\s*"([^"]+)', html)
+        #if r:
+        #    return r.group(1)        
         
     except Exception, e:
         addon.log_error('**** HugeFiles Error occured: %s' % e)
