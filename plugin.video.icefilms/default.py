@@ -2023,6 +2023,8 @@ def Stream_Source(name, download_play=False, download=False, download_jdownloade
     last_part = False
     current_part = 1
     
+    resume_threshhold = int(addon.get_setting('resume-threshhold'))
+    
     resume = False
     use_resume = str2bool(addon.get_setting('resume-support'))
     if use_resume:
@@ -2096,7 +2098,7 @@ def Stream_Source(name, download_play=False, download=False, download_jdownloade
         else:               
             addon.log('Starting Normal Streaming')
                                   
-            completed = play_with_watched(link, listitem, mypath, last_part, resume_point)
+            completed = play_with_watched(link, listitem, mypath, last_part, resume_point, resume_threshhold)
             addon.log('Normal streaming completed: %s' % completed)
 
         #Check if video was played until end - else assume user stopped watching video so break from loop
@@ -2104,7 +2106,7 @@ def Stream_Source(name, download_play=False, download=False, download_jdownloade
             break                
 
 
-def play_with_watched(url, listitem, mypath, last_part=False, resume_point=0):
+def play_with_watched(url, listitem, mypath, last_part=False, resume_point=0, resume_threshhold=1):
     global currentTime
     global totalTime
     global watched_percent
@@ -2122,7 +2124,7 @@ def play_with_watched(url, listitem, mypath, last_part=False, resume_point=0):
         axelhelper =  proxy.ProxyHelper()
         url, download_id = axelhelper.create_proxy_url(url)
     
-    mplayer = MyPlayer(axelhelper=axelhelper, download_id=download_id, ice_id=video_id, resume_point=resume_point)
+    mplayer = MyPlayer(axelhelper=axelhelper, download_id=download_id, ice_id=video_id, resume_point=resume_point, resume_threshhold=resume_threshhold)
     mplayer.play(url, listitem)
 
     try:
@@ -2179,12 +2181,13 @@ def get_stacked_part(name, part):
 
 
 class MyPlayer (xbmc.Player):
-    def __init__ (self, axelhelper=None, download_id=None, ice_id=None, resume_point=0):
+    def __init__ (self, axelhelper=None, download_id=None, ice_id=None, resume_point=0, resume_threshhold=1):
         self.dialog = None
         self.axelhelper = axelhelper
         self.download_id = download_id
         self.ice_video_id = ice_id
         self.seek_time = resume_point
+        self.resume_threshhold = resume_threshhold
         xbmc.Player.__init__(self)
         
         addon.log('Initializing myPlayer...')
@@ -2244,7 +2247,7 @@ class MyPlayer (xbmc.Player):
                 addon.log('Auto-Watch - Setting %s to watched' % video            )
                 ChangeWatched(imdbnum, video_type, video['name'], season_num, episode_num, video['year'], watched=7)
                 db_connection.clear_bookmark(self.ice_video_id)
-            elif currentTime > 1:
+            elif currentTime >= (self.resume_threshhold * 60):
                 addon.log('Stopped watching at: %s' % currentTime)
                 db_connection.set_bookmark(self.ice_video_id, currentTime)
 
