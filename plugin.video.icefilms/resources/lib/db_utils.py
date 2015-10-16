@@ -111,12 +111,15 @@ class DB_Connection():
         queue = self.__execute(sql, (type,))
         return queue
        
-    def set_queue(self, url, type, name, year, season, episode, imdbid):
+    def save_queue(self, url, type, name, year, season, episode, imdbid):
         now = time.time()
         if not url: return
-        print url, type, name, year, season, episode, imdbid
-        sql = 'REPLACE INTO queue_list (url, type, name, year, season, episode, imdbid, timestamp) VALUES(?,?,?,?,?,?,?,?)'
-        self.__execute(sql, (url, type, name, year, season, episode, imdbid, now))
+        sql = 'INSERT INTO queue_list (url, type, name, year, season, episode, imdbid, timestamp) VALUES(?,?,?,?,?,?,?,?)'
+        try:
+            title = urllib.unquote_plus(unicode(name, 'latin1'))
+            self.__execute(sql, (url, type, title, year, season, episode, imdbid, now))
+        except database.IntegrityError:
+            raise     
         
     def clear_queue(self, url):
         if not url: return
@@ -398,15 +401,15 @@ class DB_Connection():
             self.__execute('CREATE TABLE IF NOT EXISTS new_bkmark (url TEXT PRIMARY KEY NOT NULL, resumepoint DOUBLE NOT NULL)')
             self.__execute('CREATE TABLE IF NOT EXISTS external_subs (type INTEGER NOT NULL, url TEXT NOT NULL, imdbnum TEXT, days VARCHAR(7), PRIMARY KEY (type, url))')
             self.__execute('CREATE TABLE IF NOT EXISTS cache_data (name TEXT, value TEXT)')
-            self.__execute('CREATE TABLE IF NOT EXISTS recent_watched (url TEXT, type TEXT, name TEXT, year TEXT, season TEXT, episode TEXT, imdbid TEXT, timestamp TEXT)')
-            self.__execute('CREATE TABLE IF NOT EXISTS queue_list (url TEXT, type TEXT, name TEXT, year TEXT, season TEXT, episode TEXT, imdbid TEXT, timestamp TEXT)')
+            self.__execute('CREATE TABLE IF NOT EXISTS recent_watched (url TEXT PRIMARY KEY NOT NULL, type TEXT, name TEXT, year TEXT, season TEXT, episode TEXT, imdbid TEXT, timestamp TEXT)')
+            self.__execute('CREATE TABLE IF NOT EXISTS queue_list (url, type, name, year, season, episode, imdbid, timestamp)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_fav ON favourites (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_sub ON subscriptions (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_url ON url_cache (url)')
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_db_info ON db_info (setting)') 
             self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_name ON cache_data (name)')
-            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_url ON recent_watched (url)')
-            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_url ON queue_list (url)')
+            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_watched ON recent_watched (url)')
+            self.__execute('CREATE UNIQUE INDEX IF NOT EXISTS unique_queue ON queue_list (url)')
         
         # reload the previously saved backup export
         # if db_version is not None and cur_version !=  db_version:
