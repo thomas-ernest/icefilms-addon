@@ -2484,7 +2484,7 @@ class MyPlayer (xbmc.Player):
                 
 
     def setRecentWatched(self, video):
-        if enableRecent:
+        if self.enableRecent:
             addon.log_debug('Setting recently watched: %s' % video['name'])                    
             db_connection.set_watched(self.ice_url, video_type, video['name'], video['year'], self.season, self.episode, self.imdbid)
 
