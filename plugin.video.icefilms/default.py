@@ -1700,7 +1700,7 @@ def LOADMIRRORS(url):
     for media_type, scrape in defcat:
         if media_type == 'HD 720p' or media_type == 'HD 720p+':
             tag = ' | [COLOR red]HD[/COLOR]'
-        elif media_type == 'DVDRip / Standard Def' or media_type == 'SD Standard Def/DVD':
+        elif media_type == 'SD / DVD 480p':
             tag = ' | [COLOR blue]DVD[/COLOR]'
         elif media_type == 'DVD Screener':
             tag = ' | [COLOR yellow]DVDSCR[/COLOR]'
