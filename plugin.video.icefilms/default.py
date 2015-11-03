@@ -17,6 +17,7 @@ import traceback
 
 reload(sys)
 sys.setdefaultencoding('utf8')
+
 ############ Set prepare_zip to True in order to scrape the entire site to create a new meta pack ############
 ''' 
 Setting to true will also enable a new menu option 'Create Meta Pack' which will scrape all categories and download covers & backdrops 
@@ -825,7 +826,7 @@ def folder_tags(folder_text):
         
 
 def RECENT(url):
-        link=GetURL(url)
+        html = GetURL(url)
 
         #initialise meta class before loop
         if meta_setting=='true':
@@ -834,38 +835,31 @@ def RECENT(url):
         else:
             meta_installed = False
               
-        homepage=re.compile('<h1>Recently Added</h1>(.+?)<h1>Statistics</h1>', re.DOTALL).findall(link)
-        for scrape in homepage:
-            scrape='<h1>Recently Added</h1>'+scrape+'<h1>Statistics</h1>'
-            recadd=re.compile('<h1>Recently Added</h1>(.+?)<h1>Latest Releases</h1>', re.DOTALL).findall(scrape)
-            for scraped in recadd:
-                text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(scraped)
-                
-                #Add the first line
-                folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
-                
-                mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(scraped)
-                for url,name,hd in mirlinks:
-                    url=iceurl+url
-                    name=CLEANUP(name)
+        recent_movies = re.search('<h2>Recently Added Movies</h2>(.+?)</div>', html, re.DOTALL)
+        if recent_movies:
+            
+            text = re.compile("<span style='font-size:14px;'>(.+?)<li>").findall(recent_movies.group(1))
+            
+            #Add the first line
+            folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+            
+            mirlinks=re.compile('<a href=/(.+?)>(.+?)</a>[ ]*<(.+?)>').findall(recent_movies.group(1))
+            for url,name,hd in mirlinks:
+                url=iceurl+url
+                name=CLEANUP(name)
+                                   
+                #Check if it's an HD source and add a tag to the name
+                if re.search('color:red', hd):
+                    new_name = name + ' [COLOR red]*HD*[/COLOR]'
+                else:
+                    new_name = name
                     
-                    if check_episode(name):
-                        mode = 14
-                    else:
-                        mode = 100
-                        
-                    #Check if it's an HD source and add a tag to the name
-                    if re.search('color:red', hd):
-                        new_name = name + ' [COLOR red]*HD*[/COLOR]'
-                    else:
-                        new_name = name
-                        
-                    if meta_installed and meta_setting=='true':
-                        meta = check_video_meta(name, metaget)
-                        addDir(new_name,url,mode,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
-                    else:
-                        addDir(new_name,url,mode,'',disablefav=True, disablewatch=True)
-        setView(None, 'default-view')                                    
+                if meta_installed and meta_setting=='true':
+                    meta = check_video_meta(name, metaget)
+                    addDir(new_name,url,100,'',meta=meta,disablefav=True, disablewatch=True, meta_install=meta_installed)
+                else:
+                    addDir(new_name,url,100,'',disablefav=True, disablewatch=True)
+        setView('movies', 'movies-view')
 
 
 def LATEST(url):
@@ -2088,9 +2082,6 @@ def Item_Meta(name, resume_point=0):
         listitem.setInfo('video', {'title': video['name'], 'tvshowtitle': show['name'], 'year': vid_year, 'episode': episode_num, 'season': episode_season, 'type': 'episode', 'plotoutline': plot_outline, 'plot': vid_plot, 'mpaa': mpaa})
 
     listitem.setProperty('StartOffset', str(resume_point))
-    # listitem.setProperty('TotalTime', str(resume_point))
-    # listitem.setProperty('ResumeTime', str(resume_point))
-    # listitem.setProperty('IsPlayable', 'true')
     listitem.setThumbnailImage(thumb_img)
        
     return listitem
