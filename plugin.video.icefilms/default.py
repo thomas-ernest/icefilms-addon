@@ -15,6 +15,8 @@ import threading
 import string
 import traceback
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 ############ Set prepare_zip to True in order to scrape the entire site to create a new meta pack ############
 ''' 
 Setting to true will also enable a new menu option 'Create Meta Pack' which will scrape all categories and download covers & backdrops 
@@ -2482,7 +2484,7 @@ class MyPlayer (xbmc.Player):
                 
 
     def setRecentWatched(self, video):
-        if enableRecent:
+        if self.enableRecent:
             addon.log_debug('Setting recently watched: %s' % video['name'])                    
             db_connection.set_watched(self.ice_url, video_type, video['name'], video['year'], self.season, self.episode, self.imdbid)
 
