@@ -1698,7 +1698,7 @@ def LOADMIRRORS(url):
     #string for all text under hd720p border
     defcat = re.compile('<div class=ripdiv><b>(.+?)</b>(.+?)</div>').findall(html)
     for media_type, scrape in defcat:
-        if media_type == 'HD 720p' or media_type == 'HD 720p+':
+        if media_type == 'HD 720p+':
             tag = ' | [COLOR red]HD[/COLOR]'
         elif media_type == 'SD / DVD 480p':
             tag = ' | [COLOR blue]DVD[/COLOR]'
@@ -1715,11 +1715,13 @@ def LOADMIRRORS(url):
 
 
 def determine_source(search_string, is_domain=False):
-
+  
     #Keep host list as global var - used to determine resolver and build/select auto play settings
     host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
                 ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('clicknupload.com', 'ClicknUpload', 'resolve_clicknupload'),
+                ('clicknupload.me', 'ClicknUpload', 'resolve_clicknupload'),
+                ('upload.af', 'Upload', 'resolve_upload_af'),
                 ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
                 ('xfileload.com', 'XfileLoad', 'resolve_xfileload'),
                 ('mightyupload.com', 'MightyUpload', 'resolve_mightyupload'),
