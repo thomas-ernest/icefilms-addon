@@ -65,6 +65,7 @@ def handle_captchas(url, html, data, dialog):
                 solution = kb.getText()
             elif userInput == '':
                 raise Exception ('You must enter text in the image to access video')
+                wdlg.close()
         else:
             wdlg.close()
             raise Exception ('Captcha Error')
@@ -96,6 +97,7 @@ def handle_captchas(url, html, data, dialog):
                 solution = kb.getText()
             elif userInput == '':
                 raise Exception ('You must enter text in the image to access video')
+                wdlg.close()
         else:
             wdlg.close()
             raise Exception ('Captcha Error')
@@ -558,8 +560,8 @@ def resolve_epicshare(url):
 def resolve_hugefiles(url):
 
     try:
-
-        headers = {'Referer': url}
+            
+        headers = {'Referer': 'http://www.icefilms.info/'}
         
         puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
         
@@ -571,8 +573,8 @@ def resolve_hugefiles(url):
         media_id = re.search('//.+?/([\w]+)', url).group(1)
         web_url = 'http://hugefiles.net/embed-%s.html' % media_id
         
-        addon.log('HugeFiles - Requesting GET URL: %s' % web_url)
-        html = net.http_GET(web_url).content
+        addon.log_debug('HugeFiles - Requesting GET URL: %s' % web_url)
+        html = net.http_GET(web_url, headers=headers).content
         
         dialog.update(50)
         
