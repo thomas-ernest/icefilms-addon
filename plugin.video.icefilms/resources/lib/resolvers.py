@@ -385,7 +385,8 @@ def resolve_upload_af(url):
 
         #Get download link
         dialog.update(100)
-        link = re.search('<a href="(.+?)" class="downloadbtn btn btn-success btn-lg">Download</a>', html)
+
+        link = re.search('<a href="(.+?)".+?>Download</a>', html)
         if link:
             return link.group(1) + '|User-Agent=%s' % USER_AGENT
         else:
@@ -561,7 +562,7 @@ def resolve_hugefiles(url):
 
     try:
             
-        headers = {'Referer': 'http://www.icefilms.info/'}
+        headers = {'Referer': 'http://www.icefilms.info/', 'host': 'hugefiles.net'}
         
         puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
         
@@ -585,6 +586,8 @@ def resolve_hugefiles(url):
 
         wrong_captcha = True
         
+        headers = {'Referer': web_url, 'host': 'hugefiles.net'}
+        
         while wrong_captcha:
         
             #Set POST data values
@@ -599,6 +602,8 @@ def resolve_hugefiles(url):
                 raise Exception('Unable to resolve HugeFiles Link')
             
             data['method_free'] = 'Free Download'
+            data['w'] = ""
+            data['h'] = ""
 
             #Handle captcha
             data.update(handle_captchas(web_url, html, data, dialog))
