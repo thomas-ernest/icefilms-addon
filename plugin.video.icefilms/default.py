@@ -2931,8 +2931,8 @@ def addDir(name, url, mode, iconimage, meta=False, imdb=False, delfromfav=False,
      ###  addDir with context menus and meta support  ###
 
      #encode url and name, so they can pass through the sys.argv[0] related strings
-     sysname = urllib.quote_plus(name)
-     sysurl = urllib.quote_plus(url)
+     sysname = urllib.quote_plus(name.encode('utf8'))
+     sysurl = urllib.quote_plus(url.encode('utf8'))
      dirmode=mode
 
      #get nice unicode name text.
