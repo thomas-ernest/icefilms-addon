@@ -1,3 +1,6 @@
+[B]v1.21.0 (Monday, 11 January 2016):[/B]
+  - Fixed encoding error
+  
 [B]v1.20.0 (Wednesday, 23 December 2015):[/B]
   - Added UploadX resolver
 
