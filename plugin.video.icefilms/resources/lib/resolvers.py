@@ -668,6 +668,7 @@ def resolve_hugefiles(url):
                 raise Exception('Unable to resolve HugeFiles Link')
             
             data['method_free'] = 'Free Download'
+            data['op'] = 'download2'
             data['w'] = ""
             data['h'] = ""
 
@@ -717,6 +718,81 @@ def resolve_hugefiles(url):
         dialog.close()
 
 
+def resolve_kingfiles(url):
+
+    try:
+        puzzle_img = os.path.join(datapath, "kingfiles_puzzle.png")
+        dialog = xbmcgui.DialogProgress()
+        dialog.create('Resolving', 'Resolving KingFiles Link...')
+        dialog.update(0)
+        
+        addon.log_debug('KingFiles - Requesting GET URL: %s' % url)
+        html = net.http_GET(url).content
+
+        dialog.update(33)
+
+        wrong_captcha = True
+        
+        while wrong_captcha:
+        
+            data = {}
+            r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)"', html)
+            if r:
+                for none, name, value in r:
+                    data[name] = value
+            else:
+                raise Exception('Unable to resolve KingFiles Link')
+
+            data['method_premium'] = ''                
+            
+            addon.log('KingFiles - Requesting POST URL: %s DATA: %s' % (url, data))
+            html = net.http_POST(url, data).content                
+            dialog.update(66)
+
+            data = {}
+            r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
+            if r:
+                for none, name, value in r:
+                    data[name] = value
+            else:
+                raise Exception('Unable to resolve KingFiles Link')
+            
+            #Handle captcha
+            data = handle_captchas(url, html, data, dialog)
+
+            dialog.create('Resolving', 'Resolving KingFiles Link...') 
+            dialog.update(66)
+
+            addon.log('KingFiles - Requesting POST URL: %s DATA: %s' % (url, data))   
+            html = net.http_POST(url, data).content
+
+            wrong_captcha = re.search('<div class="err">Wrong captcha</div>', html)
+            if wrong_captcha:
+                addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)
+            
+        dialog.update(100)
+        
+        
+        packed = re.search('id="player_code".*?(eval.*?\)\)\))', html,re.DOTALL)
+        if packed:
+            js = jsunpack.unpack(packed.group(1))
+            link = re.search('name="src"0="([^"]+)"/>', js.replace('\\',''))
+            if link:
+                addon.log('KingFiles Link Found: %s' % link.group(1))
+                return link.group(1) + '|Referer=%s&User-Agent=%s' % (url, USER_AGENT)
+            else:
+                link = re.search("'file','(.+?)'", js.replace('\\',''))
+                if link:
+                    addon.log('KingFiles Link Found: %s' % link.group(1))
+                    return link.group(1) + '|Referer=%s&User-Agent=%s' % (url, USER_AGENT)
+                    
+    except Exception, e:
+        addon.log_error('**** KingFiles Error occured: %s' % e)
+        raise
+    finally:
+        dialog.close()        
+
+        
 def resolve_entroupload(url):
 
     try:
