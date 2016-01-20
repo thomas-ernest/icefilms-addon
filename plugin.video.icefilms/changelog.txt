@@ -1,3 +1,7 @@
+[B]v1.22.0 (Wednesday, 20 January 2016):[/B]
+  - Added KingFiles resolver
+  - Updated Real-Debrid resolver to use new api
+
 [B]v1.21.0 (Monday, 11 January 2016):[/B]
   - Fixed encoding error
   
