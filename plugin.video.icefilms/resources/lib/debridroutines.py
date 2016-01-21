@@ -9,8 +9,8 @@ net = Net()
 addon = Addon('plugin.video.icefilms')
 
 
-CLIENT_ID = 'MUQMIQX6YWDSU'
-USER_AGENT = 'URLResolver for Kodi/%s' % (addon.get_version())
+CLIENT_ID = 'V24WI7BW2OHJW'
+USER_AGENT = 'Icefilms for Kodi/%s' % (addon.get_version())
 INTERVALS = 5
 
 class RealDebrid:
