@@ -79,7 +79,7 @@ def handle_captchas(url, html, data, dialog):
         dialog.close()
         html = net.http_GET(recaptcha.group(1), headers=headers).content
         part = re.search("challenge \: \\'(.+?)\\'", html)
-        captchaimg = 'http://www.google.com/recaptcha/api/image?c='+part.group(1)
+        captchaimg = 'http://www.google.com/recaptcha/api/image?c=' + part.group(1)
         img = xbmcgui.ControlImage(450,15,400,130,captchaimg)
         wdlg = xbmcgui.WindowDialog()
         wdlg.addControl(img)
@@ -628,7 +628,7 @@ def resolve_hugefiles(url):
 
     try:
             
-        headers = {'Referer': 'http://www.icefilms.info/', 'host': 'hugefiles.net'}
+        headers = {'Referer': 'http://www.icefilms.info/'}
         
         puzzle_img = os.path.join(datapath, "hugefiles_puzzle.png")
         
@@ -652,8 +652,6 @@ def resolve_hugefiles(url):
 
         wrong_captcha = True
         
-        headers = {'Referer': web_url, 'host': 'hugefiles.net'}
-        
         while wrong_captcha:
         
             #Set POST data values
@@ -668,9 +666,6 @@ def resolve_hugefiles(url):
                 raise Exception('Unable to resolve HugeFiles Link')
             
             data['method_free'] = 'Free Download'
-            data['op'] = 'download2'
-            data['w'] = ""
-            data['h'] = ""
 
             #Handle captcha
             data.update(handle_captchas(web_url, html, data, dialog))
