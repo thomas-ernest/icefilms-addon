@@ -1,3 +1,7 @@
+[B]v1.23.0 (Wednesday, 27 January 2016):[/B]
+  - Updated Real-Debrid client to use Icefilms own (should have no affects)
+  - Rolled back changes to HugeFiles to 1.18.0 version, working again
+  
 [B]v1.22.0 (Wednesday, 20 January 2016):[/B]
   - Added KingFiles resolver
   - Updated Real-Debrid resolver to use new api
