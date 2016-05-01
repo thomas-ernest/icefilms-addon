@@ -272,7 +272,7 @@ def resolve_clicknupload(url):
     try:
 
         media_id = re.search('//.+?/([\w]+)', url).group(1)
-        url = 'http://clicknupload.me/%s' % media_id
+        url = 'http://clicknupload.link/%s' % media_id
         
         headers = {'Referer': url}
         
