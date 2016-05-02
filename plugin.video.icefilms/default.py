@@ -1715,7 +1715,7 @@ def determine_source(search_string, is_domain=False):
                 ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('kingfiles.net', 'KingFiles', 'resolve_kingfiles'),
                 ('clicknupload.com', 'ClicknUpload', 'resolve_clicknupload'),
-                ('clicknupload.me', 'ClicknUpload', 'resolve_clicknupload'),
+                ('clicknupload.link', 'ClicknUpload', 'resolve_clicknupload'),
                 ('upload.af', 'Upload', 'resolve_upload_af'),
                 ('uploadx.org', 'UploadX', 'resolve_uploadx'),
                 ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
