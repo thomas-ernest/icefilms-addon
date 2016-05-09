@@ -1430,41 +1430,15 @@ def TVINDEX(url):
         metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
         
-    #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
-    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
-    firstText = re.compile('<h3>(.+?)</h3>').findall(link)
-    if firstText:
-        if firstText[0].startswith('Rated'):
-            firstText[0] = string.split(firstText[0], '<')[0]
-            regex = '<h3>(.+?)<div'
-        else:
-            regex = '<h3>(.+?)</h3>'
-        folder_tags('[COLOR blue]' + firstText[0] + '[/COLOR]')
-    else:
-        regex = '<h3>(.+?)</h3>'
-    scrape=re.search('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>', link)
-
-    if meta_setting=='true':
-        ADD_ITEM(metaget,meta_installed,scrape.group(1),scrape.group(2),scrape.group(3),12, totalitems=1)
-    else:
-        addDir(scrape.group(3),iceurl + scrape.group(2),12,'',imdb='tt'+str(scrape.group(1)), totalItems=1)
-    
     #Break the remaining source into seperate lines and check if it contains a text entry
-    temp = re.compile('r>(.+?)<b').findall(link)
-    for entry in temp:
-        text = re.compile(regex).findall(entry)
-        if text:
-            folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
-        scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(entry)
-        if scrape:
-            for imdb_id,url,name in scrape:
-                if meta_setting=='true':
-                    ADD_ITEM(metaget,meta_installed,imdb_id,url,name,12, totalitems=len(temp))
-                else:
-                    #add without metadata -- imdb is still passed for use with Add to Favourites
-                    for imdb_id,url,name in scrape:
-                        name=CLEANUP(name)
-                        addDir(name,iceurl+url,12,'',imdb='tt'+str(imdb_id), totalItems=len(scrape))
+    entries = re.compile('<a class=imdb id=(.+?)></a><a class=tube></a><i class=star></i><a href=/(.+?)>(.+?)</a>(.+?)<br>').findall(link)
+    for imdb_id, url, name, episodes in entries:
+        if meta_setting=='true':
+            ADD_ITEM(metaget,meta_installed,imdb_id,url,name,12, totalitems=len(entries))
+        else:
+            #add without metadata -- imdb is still passed for use with Add to Favourites
+            name=CLEANUP(name)
+            addDir(name,iceurl+url,12,'',imdb='tt'+str(imdb_id), totalItems=len(entries))
     
     # Enable library mode & set the right view for the content
     setView('tvshows', 'tvshows-view')
@@ -1477,9 +1451,9 @@ def TVSEASONS(url, imdb_id):
     source=GetURL(url)
 
     #Save the tv show name for use in special download directories.
-    match=re.compile('<h1>(.+?)<a class').findall(source)
+    match=re.compile('<h1>.([^<].+?)', re.S).findall(source)
     cache.set('tvshowname',match[0])
-    r=re.search('(.+?) [(][0-9]{4}[)]',match[0])
+    r=re.search('(.+?) [(][0-9]{1,4}[)]',match[0])
     if r:
         showname = r.group(1)
     else:
@@ -1561,7 +1535,7 @@ def TVEPISODES(name,url=None,source=None,imdb_id=None):
 def TVEPLINKS(source, season, imdb_id):
     
     # displays all episodes in the source it is passed.
-    match=re.compile('<img class="star" /><a href="/(.+?)&amp;">(.+?)</a>([<b>HD</b>]*)<br />').findall(source)
+    match = re.compile('<i class="star"></i><a href="/(.+?)&amp;">(.+?)</a>([<b>HD</b>]*)<br />').findall(source)
         
     if meta_setting=='true':
         #initialise meta class before loop
@@ -1594,7 +1568,7 @@ def LOADMIRRORS(url):
     ice_meta = {}
     
     #Grab video name
-    namematch = re.search('''<span style="font-size:large;color:white;">(.+?)</span>''', html)
+    namematch = re.search('''<span style="font-size:150%;font-weight:bold;color:white;">(.+?)</span>''', html, re.S)
     if not namematch:
         Notify('big','Error Loading Sources','An error occured loading sources.\nCheck your connection and/or the Icefilms site.','')
         callEndOfDirectory = False
