@@ -452,7 +452,7 @@ def resolve_uploadx(url):
         #Get download link
         dialog.update(100)
 
-        link = re.search('<a href="(.+?)".+?>Download</a>', html)
+        link = re.search('<a href="(.+?)".*?>Download</a>', html)
         if link:
             return link.group(1) + '|User-Agent=%s' % USER_AGENT
         else:

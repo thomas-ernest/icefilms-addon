@@ -1398,7 +1398,7 @@ def MOVIEINDEX(url):
         metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
         
-    temp = re.compile('(<h3>|<a name=i id=.+?></a><img class=star><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
+    temp = re.compile('(<h3>|<a class=imdb id=.+?></a><a class=tube></a><i class=star></i><a href=)(.+?)(<div|</h3>|>(.+?)<br>)').findall(link)
     for tag, link, longname, name in temp:
 
         if tag == '<h3>':
@@ -1406,7 +1406,7 @@ def MOVIEINDEX(url):
 
         else:
             string = tag + link + longname + name
-            scrape=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)<br>').findall(string)
+            scrape=re.compile('<a class=imdb id=(.+?)></a><a class=tube></a><i class=star></i><a href=/(.+?)>(.+?)<br>').findall(string)
             for imdb_id,url,name in scrape:
                 if meta_setting=='true':
                     ADD_ITEM(metaget,meta_installed,imdb_id,url,name,100, totalitems=len(temp))
@@ -1430,15 +1430,41 @@ def TVINDEX(url):
         metaget=metahandlers.MetaData()
         meta_installed = metaget.check_meta_installed(addon_id)
         
-    #Break the remaining source into seperate lines and check if it contains a text entry
-    entries = re.compile('<a class=imdb id=(.+?)></a><a class=tube></a><i class=star></i><a href=/(.+?)>(.+?)</a>(.+?)<br>').findall(link)
-    for imdb_id, url, name, episodes in entries:
-        if meta_setting=='true':
-            ADD_ITEM(metaget,meta_installed,imdb_id,url,name,12, totalitems=len(entries))
+    #list scraper now tries to get number of episodes on icefilms for show. this only works in A-Z.
+    #match=re.compile('<a name=i id=(.+?)></a><img class=star><a href=/(.+?)>(.+?)</a>').findall(link)
+    firstText = re.compile('<h3>(.+?)</h3>').findall(link)
+    if firstText:
+        if firstText[0].startswith('Rated'):
+            firstText[0] = string.split(firstText[0], '<')[0]
+            regex = '<h3>(.+?)<div'
         else:
-            #add without metadata -- imdb is still passed for use with Add to Favourites
-            name=CLEANUP(name)
-            addDir(name,iceurl+url,12,'',imdb='tt'+str(imdb_id), totalItems=len(entries))
+            regex = '<h3>(.+?)</h3>'
+        folder_tags('[COLOR blue]' + firstText[0] + '[/COLOR]')
+    else:
+        regex = '<h3>(.+?)</h3>'
+    scrape=re.search('<a class=imdb id=(.+?)></a><a class=tube></a><i class=star></i><a href=/(.+?)>(.+?)<br>', link)
+
+    if meta_setting=='true':
+        ADD_ITEM(metaget,meta_installed,scrape.group(1),scrape.group(2),scrape.group(3),12, totalitems=1)
+    else:
+        addDir(scrape.group(3),iceurl + scrape.group(2),12,'',imdb='tt'+str(scrape.group(1)), totalItems=1)
+
+    #Break the remaining source into seperate lines and check if it contains a text entry
+    temp = re.compile('r>(.+?)<b').findall(link)
+    for entry in temp:
+        text = re.compile(regex).findall(entry)
+        if text:
+            folder_tags('[COLOR blue]' + text[0] + '[/COLOR]')
+        scrape=re.compile('<a class=imdb id=(.+?)></a><a class=tube></a><i class=star></i><a href=/(.+?)>(.+?)</a>').findall(entry)
+        if scrape:
+            for imdb_id,url,name in scrape:
+                if meta_setting=='true':
+                    ADD_ITEM(metaget,meta_installed,imdb_id,url,name,12, totalitems=len(temp))
+                else:
+                    #add without metadata -- imdb is still passed for use with Add to Favourites
+                    for imdb_id,url,name in scrape:
+                        name=CLEANUP(name)
+                        addDir(name,iceurl+url,12,'',imdb='tt'+str(imdb_id), totalItems=len(scrape))
     
     # Enable library mode & set the right view for the content
     setView('tvshows', 'tvshows-view')
