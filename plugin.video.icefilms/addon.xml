@@ -11,6 +11,7 @@
         <import addon="script.module.metahandler" version="2.5.1" />
         <import addon="script.module.addon.common" version="2.0.0" />
         <import addon="script.module.axel.downloader" version="0.2.1" />
+        <import addon="script.module.urlresolver" version="3.0.0"/>
         <!--import addon="script.module.pyxbmct" version="1.1.2" /-->
         <import addon="script.common.plugin.cache" /> 
     </requires>
