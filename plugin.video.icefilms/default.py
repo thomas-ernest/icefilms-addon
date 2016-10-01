@@ -569,8 +569,9 @@ def CATEGORIES():  #  (homescreen of addon)
                 addDir('Recently Watched', '', 'recent_watched', os.path.join(art_path,'being watched now.png'))
           
           addDir('Search',iceurl,55,search)
+          VaddDir('URLResolver Settings', '', 'resolver_settings', '')
           VaddDir('Help', '', 'addon_help', '')
-          
+                    
           #Only show if prepare_zip = True - meaning you are creating a meta pack
           if prepare_zip:
               addDir('Create Meta Pack',iceurl,666,'')
@@ -3410,6 +3411,9 @@ elif mode=='990':
 elif mode=='addon_help':
     show_addon_help()
     
+elif mode=='resolver_settings':
+    urlresolver.display_settings()
+
 elif mode=='flush_cache':
     flush_cache()
     
@@ -3627,7 +3631,7 @@ elif mode=='5555':
          
 elif mode=='666':
         create_meta_pack()
-
+        
 if callEndOfDirectory and int(sys.argv[1]) <> -1:
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
     
