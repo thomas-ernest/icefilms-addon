@@ -384,23 +384,8 @@ def DLDirStartup():
 
 def LoginStartup():
 
-    #Get whether user has set an account to use.
-     
-    debrid_account = str2bool(addon.get_setting('realdebrid-account'))
-    movreel_account = str2bool(addon.get_setting('movreel-account'))
+    #Get whether user has set an account to use.   
     HideSuccessfulLogin = str2bool(addon.get_setting('hide-successful-login-messages'))
-
-    # #Verify Read-Debrid Account
-    if debrid_account:
-        if not addon.get_setting('realdebrid_token'):
-
-            try:
-                rd = debridroutines.RealDebrid()
-                rd.authorize_resolver()
-            except Exception, e:
-                addon.log_error('**** Real-Debrid Error: %s' % e)
-                Notify('big','Real-Debrid Login Failed','Failed to connect with Real-Debrid.', '', '', 'Please check your internet connection.')
-                pass                
             
 def ContainerStartup():
 
@@ -1701,7 +1686,7 @@ def LOADMIRRORS(url):
     setView(None, 'default-view')
 
 
-def PART(scrap, sourcenumber, host, args, source_tag, ice_meta=None, video_url=None, debrid_hosts=None):
+def PART(scrap, sourcenumber, host, args, source_tag, ice_meta=None, video_url=None):
      #check if source exists
      sourcestring='Source #'+sourcenumber
      checkforsource = re.search(sourcestring, scrap)
@@ -1712,10 +1697,10 @@ def PART(scrap, sourcenumber, host, args, source_tag, ice_meta=None, video_url=N
           hoster = urlresolver.HostedMediaFile(host=host, media_id='dummy')
           
           debrid_tag = ''
-          if hoster:
-			  if debrid_hosts:
-				  if hoster[0] in debrid_hosts:
-					  debrid_tag = ' [COLOR yellow]*RD[/COLOR] '
+#          if hoster:
+#			  if debrid_hosts:
+#				  if hoster[0] in debrid_hosts:
+#					  debrid_tag = ' [COLOR yellow]*RD[/COLOR] '
           
           # find corresponding '<a rel=?' entry and add as a one-link source
           source5=re.compile('<a\s+rel='+sourcenumber+'.+?onclick=\'go\((\d+)\)\'>Source\s+#'+sourcenumber+':').findall(scrap)
@@ -1772,22 +1757,12 @@ def SOURCE(page, sources, source_tag, ice_meta=None, video_url=None):
                     addLocal("Play Local File " + match.group(0), os.path.join(dlDir,fname), listitem)
     except:
         pass
-
-    #Find all hosts
-    debrid_hosts = None
-    debrid_account = str2bool(addon.get_setting('realdebrid-account'))
-    if debrid_account:
-        rd = debridroutines.RealDebrid()
-        try: debrid_hosts = rd.get_hosts()
-        except Exception, e: 
-            addon.log_error(e)
-            pass
-      
+     
     hosts = re.findall('<a\s+rel=[0-9]+.+?onclick=\'go\((\d+)\)\'>Source\s+#([0-9]+): (<span .+?</span>)</a>', sources)
     for id, number, hoster in hosts:
         host = re.sub('</span>', '', re.sub('<span .+?>', '', hoster)).lower()
         args['id'] = id
-        PART(sources, number, host, args, source_tag, ice_meta, video_url, debrid_hosts)
+        PART(sources, number, host, args, source_tag, ice_meta, video_url)
     setView(None, 'default-view')
 
 
@@ -3416,11 +3391,6 @@ elif mode=='resolver_settings':
 
 elif mode=='flush_cache':
     flush_cache()
-    
-elif mode=='reset_rd':
-    rd = debridroutines.RealDebrid()
-    rd.clear_client()
-    Notify('small','Icefilms', 'Successfully reset Real-Debrid authorization','')
     
 elif mode=='reset_db':
     reset_db()
