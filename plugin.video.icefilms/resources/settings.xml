@@ -10,7 +10,6 @@
       <setting id="auto-play" type="bool" label="30505" default="false" visible="false" />
       <setting id="auto-play_hd" type="bool" label="30506" default="false" visible="false" />
       <setting id="auto_play_method" type="labelenum" label="30507" values="Top to Bottom|Preferred Hosts" default="1" enable="!eq(-1,false)" visible="false" />
-      <setting id="auto_host_1" type="labelenum" label="30508" values="" default="180Upload" enable="!eq(-1,false)" visible="false" />
       <setting id="auto_host_2" type="labelenum" label="30509" values="" default="BillionUploads" enable="!eq(-2,false)" visible="false" />
       <setting id="auto_host_3" type="labelenum" label="30510" values="" default="HugeFiles" enable="!eq(-3,false)" visible="false" />
       <setting type="sep" visible="false" />

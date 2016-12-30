@@ -1711,7 +1711,7 @@ def LOADMIRRORS(url):
 def determine_source(search_string, is_domain=False):
   
     #Keep host list as global var - used to determine resolver and build/select auto play settings
-    host_list = [('180upload.com', '180Upload', 'resolve_180upload'),
+    host_list = [
                 ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('kingfiles.net', 'KingFiles', 'resolve_kingfiles'),
                 ('clicknupload.com', 'ClicknUpload', 'resolve_clicknupload'),
