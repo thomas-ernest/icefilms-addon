@@ -1712,7 +1712,6 @@ def determine_source(search_string, is_domain=False):
   
     #Keep host list as global var - used to determine resolver and build/select auto play settings
     host_list = [
-                ('hugefiles.net', 'HugeFiles', 'resolve_hugefiles'),
                 ('kingfiles.net', 'KingFiles', 'resolve_kingfiles'),
                 ('clicknupload.com', 'ClicknUpload', 'resolve_clicknupload'),
                 ('clicknupload.link', 'ClicknUpload', 'resolve_clicknupload'),

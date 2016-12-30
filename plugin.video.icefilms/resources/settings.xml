@@ -11,7 +11,6 @@
       <setting id="auto-play_hd" type="bool" label="30506" default="false" visible="false" />
       <setting id="auto_play_method" type="labelenum" label="30507" values="Top to Bottom|Preferred Hosts" default="1" enable="!eq(-1,false)" visible="false" />
       <setting id="auto_host_2" type="labelenum" label="30509" values="" default="BillionUploads" enable="!eq(-2,false)" visible="false" />
-      <setting id="auto_host_3" type="labelenum" label="30510" values="" default="HugeFiles" enable="!eq(-3,false)" visible="false" />
       <setting type="sep" visible="false" />
       <setting id="resume-support" label="30511" type="bool" default="true" />
         <setting id="resume-threshhold" label="30512" type="slider" range="1,1,10" option="int"  default="2" enable="!eq(-1,false)"/>
