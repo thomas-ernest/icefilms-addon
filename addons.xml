@@ -2,7 +2,7 @@
 <addons>
 <addon id="plugin.video.icefilms"
        name="Icefilms"
-       version="1.99.02"
+       version="1.28.0"
        provider-name="Eldorado">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>
