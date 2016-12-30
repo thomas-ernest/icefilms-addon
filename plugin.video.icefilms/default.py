@@ -1718,7 +1718,6 @@ def determine_source(search_string, is_domain=False):
                 ('upload.af', 'Upload', 'resolve_upload_af'),
                 ('uploadx.org', 'UploadX', 'resolve_uploadx'),
                 ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
-                ('xfileload.com', 'XfileLoad', 'resolve_xfileload'),
                 ('mightyupload.com', 'MightyUpload', 'resolve_mightyupload'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
                 ('vidplay.net', 'VidPlay', 'resolve_vidplay'),

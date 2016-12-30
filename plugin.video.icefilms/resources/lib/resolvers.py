@@ -818,49 +818,6 @@ def resolve_tusfiles(url):
         dialog.close()
 
 
-def resolve_xfileload(url):
-
-    try:
-
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving XfileLoad Link...')       
-        dialog.update(0)
-        
-        addon.log('XfileLoad - Requesting GET URL: %s' % url)
-        html = net.http_GET(url).content
-        
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('<li>The file was deleted by its owner', html):
-            addon.log_error('***** XfileLoad - File is deleted')
-            raise Exception('File has been deleted from the host')
-
-        #Set POST data values
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
-
-        addon.log('XfileLoad - Requesting POST URL: %s DATA: %s' % (url, data))                
-        html = net.http_POST(url, data).content
-
-        #Get download link
-        dialog.update(100)
-        link = re.search('<a href="(.+?)" target=""><img src="http://xfileload.com/3ghdes/images/downdown.png" /></a>', html)
-        if link:
-            return link.group(1)
-        else:
-            raise Exception("Unable to find final link")
-
-    except Exception, e:
-        addon.log_error('**** XfileLoad Error occured: %s' % e)
-        raise
-    finally:
-        dialog.close()
-        
 
 def resolve_mightyupload(url):
 
