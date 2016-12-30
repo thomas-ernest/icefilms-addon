@@ -1720,7 +1720,6 @@ def determine_source(search_string, is_domain=False):
                 ('tusfiles.net', 'TusFiles', 'resolve_tusfiles'),
                 ('mightyupload.com', 'MightyUpload', 'resolve_mightyupload'),
                 ('donevideo.com', 'DoneVideo', 'resolve_donevideo'),
-                ('vidplay.net', 'VidPlay', 'resolve_vidplay'),
                 ('24uploading.com', '24Uploading', 'resolve_24uploading'),                
                 ('xvidstage.com', 'XVIDStage', 'resolve_xvidstage'),                
                 ('2shared.com', '2Shared', 'SHARED2_HANDLER')

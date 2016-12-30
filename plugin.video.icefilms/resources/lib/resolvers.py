@@ -119,16 +119,16 @@ def resolve_24uploading(url):
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving 24Uploading Link...')
         dialog.update(0)
-        
+
         addon.log_debug('24Uploading - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
         dialog.update(33)
 
         wrong_captcha = True
-        
+
         while wrong_captcha:
-        
+
             data = {}
             r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
             if r:
@@ -136,9 +136,9 @@ def resolve_24uploading(url):
                     data[name] = value
             else:
                 raise Exception('Unable to resolve 24Uploading Link')
-                
+
             addon.log('24Uploading - Requesting POST URL: %s DATA: %s' % (url, data))
-            html = net.http_POST(url, data).content                
+            html = net.http_POST(url, data).content
             dialog.update(66)
 
             data = {}
@@ -148,22 +148,22 @@ def resolve_24uploading(url):
                     data[name] = value
             else:
                 raise Exception('Unable to resolve 24Uploading Link')
-            
+
             #Handle captcha
             data = handle_captchas(url, html, data, dialog)
 
-            dialog.create('Resolving', 'Resolving 24Uploading Link...') 
+            dialog.create('Resolving', 'Resolving 24Uploading Link...')
             dialog.update(66)
 
-            addon.log('24Uploading - Requesting POST URL: %s DATA: %s' % (url, data))   
+            addon.log('24Uploading - Requesting POST URL: %s DATA: %s' % (url, data))
             html = net.http_POST(url, data).content
 
             wrong_captcha = re.search('<div class="err">Wrong captcha</div>', html)
             if wrong_captcha:
                 addon.show_ok_dialog(['Wrong captcha entered, try again'], title='Wrong Captcha', is_error=False)
-            
+
         dialog.update(100)
-        
+
         link = re.search('<div class="btn_down">.+<a href="(.+?)" style="display:block;">', html, re.DOTALL)
         if link:
             addon.log_debug('24Uploading Link Found: %s' % link.group(1))
@@ -420,63 +420,19 @@ def resolve_vidhog(url):
     finally:
         dialog.close()
 
-        
-def resolve_vidplay(url):
 
-    try:
-        
-        #Show dialog box so user knows something is happening
-        dialog = xbmcgui.DialogProgress()
-        dialog.create('Resolving', 'Resolving VidPlay Link...')
-        dialog.update(0)
-        
-        addon.log_debug('VidPlay - Requesting GET URL: %s' % url)
-        html = net.http_GET(url).content
-
-        dialog.update(50)
-        
-        #Check page for any error msgs
-        if re.search('This server is in maintenance mode', html):
-            raise Exception('File is currently unavailable on the host')
-        if re.search('<b>File Not Found</b>', html):
-            raise Exception('File has been deleted')
-
-        filename = re.search('<h4>(.+?)</h4>', html).group(1)
-        extension = re.search('(\.[^\.]*$)', filename).group(1)
-        guid = re.search('http://vidplay.net/(.+)$', url).group(1)
-        
-        vid_embed_url = 'http://vidplay.net/vidembed-%s%s' % (guid, extension)
-        
-        request = urllib2.Request(vid_embed_url)
-        request.add_header('User-Agent', USER_AGENT)
-        request.add_header('Accept', ACCEPT)
-        request.add_header('Referer', url)
-        response = urllib2.urlopen(request)
-        redirect_url = re.search('(http://.+?)video', response.geturl()).group(1)
-        download_link = redirect_url + filename  + '|Referer=%s&User-Agent=%s' % (url, USER_AGENT)
-        
-        dialog.update(100)
-
-        return download_link
-        
-    except Exception, e:
-        addon.log_error('**** VidPlay Error occured: %s' % e)
-        raise
-    finally:
-        dialog.close()
-        
 
 def resolve_epicshare(url):
 
     try:
-        
+
         puzzle_img = os.path.join(datapath, "epicshare_puzzle.png")
-        
+
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving EpicShare Link...')
         dialog.update(0)
-        
+
         addon.log('EpicShare - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
 
