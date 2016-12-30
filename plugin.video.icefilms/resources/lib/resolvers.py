@@ -1,9 +1,10 @@
 import xbmc,xbmcgui
 import os
 import urllib, urllib2
-import cookielib
 import re
 import jsunpack
+import urlparse
+
 
 ''' Use addon.common library for http calls '''
 from addon.common.net import Net
@@ -17,6 +18,7 @@ cookie_path = os.path.join(datapath, 'cookies')
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.99 Safari/537.36'
 ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+
 
 def handle_captchas(url, html, data, dialog):
 
@@ -34,9 +36,7 @@ def handle_captchas(url, html, data, dialog):
         dialog.close()
         html = net.http_GET(solvemedia.group(1), headers=headers).content
 
-        for match in re.finditer(r'type=hidden.*?name="([^"]+)".*?value="([^"]+)', html):
-            name, value = match.groups()
-            data[name] = value       
+        data = get_hidden(html)
                
         #Check for alternate puzzle type - stored in a div
         alt_frame = re.search('<div><iframe src="(/papi/media[^"]+)', html)
@@ -113,6 +113,30 @@ def handle_captchas(url, html, data, dialog):
     return data
 
 
+# TODO provide alternative method to get_submit or get_hidden_and-submit or get_input_name_value_pairs_by_type
+def get_hidden(html, form_id=None, input_types=['hidden']):
+    hidden = {}
+    # Search forms optionally based on id
+    if form_id:
+        form_pattern = '''<form [^>]*id\s*=\s*['"]?%s['"]?[^>]*>(.*?)</form>'''
+    else:
+        form_pattern = '''<form[^>]*>(.*?)</form>'''
+
+    for form in re.finditer(form_pattern, html, re.DOTALL | re.IGNORECASE):
+        # Search input fields in form(s) of different type
+        for input_type in input_types:
+            input_pattern = '''<input [^>]*type=['"]?%s['"]?[^>]*>''' % input_type
+            for field in re.finditer(input_pattern, form.group(1)):
+                # Extract name and value in input field
+                field_name_match = re.search('''name\s*=\s*['"]([^'"]+)''', field.group(0))
+                field_value_match = re.search('''value\s*=\s*['"]([^'"]*)''', field.group(0))
+                if field_name_match and field_value_match:
+                    hidden[field_name_match.group(1)] = field_value_match.group(1)
+
+    addon.log_debug('Hidden fields are: %s' % (hidden))
+    return hidden
+
+
 def resolve_180upload(url):
 
     try:
@@ -164,6 +188,7 @@ def resolve_180upload(url):
             #Cannot get video without captcha, so try regular url
             html = net.http_GET(url).content
 
+            # TODO use get_hidden(html)
             data = {}
             r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
 
@@ -271,10 +296,9 @@ def resolve_clicknupload(url):
 
     try:
 
-        media_id = re.search('//.+?/([\w]+)', url).group(1)
-        url = 'http://clicknupload.link/%s' % media_id
-        
-        headers = {'Referer': url}
+        url = 'https://clicknupload.link' + urlparse.urlsplit(url).path
+
+        headers = {'Referer': url, 'User-Agent': USER_AGENT}
         
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
@@ -292,21 +316,14 @@ def resolve_clicknupload(url):
             raise Exception('File has been deleted from the host')
 
         #Set POST data values
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
-                
-        addon.log('ClicknUpload - Requesting POST URL: %s DATA: %s' % (url, data))                
+        data = get_hidden(html)
+        data['method_free'] = 'Free+Download+>>'
+
+        addon.log('ClicknUpload - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data, headers=headers).content
         dialog.update(66)
 
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
+        data = get_hidden(html)
 
         #Check for captcha
         data = handle_captchas(url, html, data, dialog)                
@@ -320,6 +337,7 @@ def resolve_clicknupload(url):
 
         #Get download link
         dialog.update(100)
+        #link = re.search('''class="downloadbtn"[^>]+onClick\s*=\s*\"window\.open\('([^']+)''', html)
         link = re.search("onClick\s*=\s*\"window\.open\('([^']+)", html)
         if link:
             return link.group(1) + '|User-Agent=%s' % USER_AGENT
@@ -343,7 +361,9 @@ def resolve_upload_af(url):
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving Upload.af Link...')       
         dialog.update(0)
-        
+
+        url = 'https://upload.af' + urlparse.urlsplit(url).path
+
         addon.log('Upload.af - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
@@ -355,11 +375,7 @@ def resolve_upload_af(url):
             raise Exception('File has been deleted from the host')
 
         #Set POST data values
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
+        data = get_hidden(html)
 
         data['method_free'] = 'Free Download >>'                
         
@@ -367,11 +383,7 @@ def resolve_upload_af(url):
         html = net.http_POST(url, data, headers=headers).content
         dialog.update(66)
 
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
+        data = get_hidden(html)
 
         #Check for captcha
         data = handle_captchas(url, html, data, dialog)                
@@ -397,19 +409,22 @@ def resolve_upload_af(url):
         raise
     finally:
         dialog.close()
-        
+
 
 def resolve_uploadx(url):
 
     try:
 
-        headers = {'Referer': url}
-        
         #Show dialog box so user knows something is happening
         dialog = xbmcgui.DialogProgress()
         dialog.create('Resolving', 'Resolving Uploadx Link...')       
         dialog.update(0)
-        
+
+        # Use secured protocol to communicate
+        url = 'https://uploadx.org' + urlparse.urlsplit(url).path
+
+        headers = {'Referer': url}
+
         addon.log('Uploadx - Requesting GET URL: %s' % url)
         html = net.http_GET(url).content
         
@@ -420,16 +435,14 @@ def resolve_uploadx(url):
             addon.log_error('***** Uploadx - File is deleted')
             raise Exception('File has been deleted from the host')
 
-        #Set POST data values
-        data = {}
-        r = re.findall('type="(hidden|submit)" name="(.+?)" value="(.*?)">', html)
-        if r:
-            for none, name, value in r:
-                data[name] = value
+        #Free download form has no id, it is identified because it has an empty action
+        free_download_form = re.findall('''(<form [^>]*action=["']{2}[^>]*>.*?</form>)''', html, re.DOTALL | re.IGNORECASE).pop()
+        #Populate POST data with free download form hidden and submit fields
+        data = get_hidden(free_download_form, input_types=['hidden', 'submit'])
+        # TODO replace this quick fix, because extraction of 'Free Download >>' is not easy with regex.
+        data['method_free'] = 'Free Download >>'
 
-        data['method_free'] = 'Free Download >>'                
-        
-        addon.log('Uploadx - Requesting POST URL: %s DATA: %s' % (url, data))                
+        addon.log('Uploadx - Requesting POST URL: %s DATA: %s' % (url, data))
         html = net.http_POST(url, data, headers=headers).content
         dialog.update(66)
 
