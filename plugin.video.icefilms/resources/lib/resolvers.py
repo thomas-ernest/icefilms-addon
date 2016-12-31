@@ -1,4 +1,5 @@
-import xbmc, xbmcgui
+import xbmc
+import xbmcgui
 import os
 import urllib, urllib2
 import re
@@ -113,8 +114,16 @@ def handle_captchas(url, html, data, dialog):
     return data
 
 
-# TODO provide alternative method to get_submit or get_hidden_and-submit or get_input_name_value_pairs_by_type
 def get_hidden(html, form_id=None, input_types=['hidden']):
+    """
+    Return a  dictionnary of the name (as key) and value of filtered input by type in optionaly filtered form by id in html.
+    By default it returns all the hidden input fields from all forms in html.
+
+    :param html: HTML page of fragment to look for form(s) and input fields
+    :param form_id: Id of the form to searh in html. If provided then one or zero form will be processed.
+    :param input_types: Any html input type to search for name and value attributes. By default hidden. But it comes in handy to search for hidden and submit.
+    :return: A dictionnary of the name (as key) and value of filtered input by type in optionaly filtered form by id in html.
+    """
     hidden = {}
     # Search forms optionally based on id
     if form_id:
